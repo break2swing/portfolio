@@ -1,18 +1,68 @@
-import { Image } from 'lucide-react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { supabase, Photo } from '@/lib/supabase';
+import { PhotoGrid } from '@/components/photos/PhotoGrid';
+import { PhotoViewerModal } from '@/components/photos/PhotoViewerModal';
+import { Loader2 } from 'lucide-react';
 
 export default function PhotosPage() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-      <div className="p-6 rounded-full bg-muted">
-        <Image className="h-12 w-12 text-muted-foreground" />
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchPhotos();
+  }, []);
+
+  const fetchPhotos = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+
+      setPhotos(data || []);
+    } catch (error) {
+      console.error('Error fetching photos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Chargement de la galerie...</p>
+        </div>
       </div>
-      <h1 className="text-3xl font-bold">Photos</h1>
-      <p className="text-xl text-muted-foreground text-center max-w-md">
-        Section en cours de création
-      </p>
-      <p className="text-sm text-muted-foreground text-center max-w-md">
-        Cette section sera bientôt disponible et présentera mes photographies.
-      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Galerie Photos</h1>
+        <p className="text-muted-foreground mt-2">
+          Découvrez ma collection de photographies
+        </p>
+      </div>
+
+      <PhotoGrid photos={photos} onPhotoClick={setSelectedPhotoIndex} />
+
+      {selectedPhotoIndex !== null && (
+        <PhotoViewerModal
+          photos={photos}
+          initialIndex={selectedPhotoIndex}
+          open={selectedPhotoIndex !== null}
+          onClose={() => setSelectedPhotoIndex(null)}
+        />
+      )}
     </div>
   );
 }
