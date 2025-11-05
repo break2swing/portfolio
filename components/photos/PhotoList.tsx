@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Photo, supabase } from '@/lib/supabase';
+import { Photo } from '@/lib/supabaseClient';
+import { photoService } from '@/services/photoService';
+import { storageService } from '@/services/storageService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -33,21 +35,15 @@ export function PhotoList({ photos, onUpdate }: PhotoListProps) {
     setDeleting(true);
 
     try {
-      const urlParts = photo.image_url.split('/');
-      const fileName = urlParts[urlParts.length - 1];
+      const fileName = storageService.extractFileNameFromUrl(photo.image_url);
 
-      const { error: storageError } = await supabase.storage
-        .from('photo-files')
-        .remove([fileName]);
+      const { error: storageError } = await storageService.deletePhoto(fileName);
 
       if (storageError) {
         console.error('Error deleting file from storage:', storageError);
       }
 
-      const { error: dbError } = await supabase
-        .from('photos')
-        .delete()
-        .eq('id', photo.id);
+      const { error: dbError } = await photoService.deletePhoto(photo.id);
 
       if (dbError) {
         throw dbError;
@@ -96,10 +92,10 @@ export function PhotoList({ photos, onUpdate }: PhotoListProps) {
 
     try {
       for (const update of updates) {
-        const { error } = await supabase
-          .from('photos')
-          .update({ display_order: update.display_order })
-          .eq('id', update.id);
+        const { error } = await photoService.updateDisplayOrder(
+          update.id,
+          update.display_order
+        );
 
         if (error) throw error;
       }

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { supabase, Photo } from '@/lib/supabase';
+import { Photo } from '@/lib/supabaseClient';
+import { photoService } from '@/services/photoService';
 import { PhotoUploadForm } from '@/components/photos/PhotoUploadForm';
 import { PhotoList } from '@/components/photos/PhotoList';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,10 +21,7 @@ function AdminPhotosContent() {
   const fetchPhotos = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('photos')
-        .select('*')
-        .order('display_order', { ascending: true });
+      const { photos: data, error } = await photoService.getAllPhotos();
 
       if (error) throw error;
 

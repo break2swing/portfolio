@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, DragEvent } from 'react';
-import { supabase } from '@/lib/supabase';
+import { photoService } from '@/services/photoService';
+import { storageService } from '@/services/storageService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -101,42 +102,29 @@ export function PhotoUploadForm({ onSuccess }: PhotoUploadFormProps) {
     setUploading(true);
 
     try {
-      const { data: maxOrderData } = await supabase
-        .from('photos')
-        .select('display_order')
-        .order('display_order', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const nextOrder = (maxOrderData?.display_order ?? -1) + 1;
+      const { maxOrder } = await photoService.getMaxDisplayOrder();
+      const nextOrder = maxOrder + 1;
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('photo-files')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+      const { error: uploadError } = await storageService.uploadPhoto(file, fileName);
 
       if (uploadError) {
         throw uploadError;
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from('photo-files')
-        .getPublicUrl(fileName);
+      const publicUrl = storageService.getPublicUrl(fileName);
 
-      const { error: insertError } = await supabase.from('photos').insert({
+      const { error: insertError } = await photoService.createPhoto({
         title: title.trim(),
         description: description.trim() || null,
-        image_url: publicUrlData.publicUrl,
+        image_url: publicUrl,
         display_order: nextOrder,
       });
 
       if (insertError) {
-        await supabase.storage.from('photo-files').remove([fileName]);
+        await storageService.deletePhoto(fileName);
         throw insertError;
       }
 

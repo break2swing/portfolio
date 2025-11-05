@@ -1,6 +1,6 @@
 'use client';
 
-import { Photo } from '@/lib/supabase';
+import { Photo } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 
 interface PhotoCardProps {
