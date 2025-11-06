@@ -24,6 +24,19 @@ export type Photo = {
   created_at: string;
 };
 
+export type MusicTrack = {
+  id: string;
+  title: string;
+  artist: string | null;
+  album: string | null;
+  audio_url: string;
+  cover_image_url: string | null;
+  duration: number | null;
+  display_order: number;
+  user_id: string | null;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -34,6 +47,14 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Omit<Photo, 'id' | 'created_at'>>;
+      };
+      music_tracks: {
+        Row: MusicTrack;
+        Insert: Omit<MusicTrack, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Omit<MusicTrack, 'id' | 'created_at'>>;
       };
     };
   };
