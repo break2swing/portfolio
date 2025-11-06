@@ -24,6 +24,8 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLInputElement>(null);
   const animationRef = useRef<number>();
@@ -31,12 +33,22 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
   const currentTrack = tracks[currentTrackIndex];
 
   useEffect(() => {
+    console.log('[AUDIO PLAYER] Current track:', currentTrack);
+    console.log('[AUDIO PLAYER] Audio URL:', currentTrack?.audio_url);
+  }, [currentTrack]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    setIsLoading(true);
+    setError(null);
+
     const setAudioData = () => {
+      console.log('[AUDIO PLAYER] Audio loaded - duration:', audio.duration);
       setDuration(audio.duration);
       setCurrentTime(audio.currentTime);
+      setIsLoading(false);
     };
 
     const setAudioTime = () => {
@@ -50,14 +62,34 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
       playNext();
     };
 
+    const handleError = (e: ErrorEvent) => {
+      console.error('[AUDIO PLAYER] Error loading audio:', e);
+      console.error('[AUDIO PLAYER] Audio error code:', audio.error?.code);
+      console.error('[AUDIO PLAYER] Audio error message:', audio.error?.message);
+      setError('Erreur lors du chargement du fichier audio');
+      setIsLoading(false);
+      setIsPlaying(false);
+    };
+
+    const handleCanPlay = () => {
+      console.log('[AUDIO PLAYER] Can play - audio ready');
+      setIsLoading(false);
+    };
+
     audio.addEventListener('loadeddata', setAudioData);
     audio.addEventListener('timeupdate', setAudioTime);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError as any);
+    audio.addEventListener('canplay', handleCanPlay);
+
+    audio.load();
 
     return () => {
       audio.removeEventListener('loadeddata', setAudioData);
       audio.removeEventListener('timeupdate', setAudioTime);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError as any);
+      audio.removeEventListener('canplay', handleCanPlay);
     };
   }, [currentTrackIndex]);
 
@@ -79,18 +111,27 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (isPlaying) {
-      audio.pause();
-      cancelAnimationFrame(animationRef.current!);
-    } else {
-      audio.play();
-      animationRef.current = requestAnimationFrame(whilePlaying);
+    try {
+      if (isPlaying) {
+        audio.pause();
+        cancelAnimationFrame(animationRef.current!);
+        setIsPlaying(false);
+      } else {
+        console.log('[AUDIO PLAYER] Attempting to play...');
+        await audio.play();
+        console.log('[AUDIO PLAYER] Playing successfully');
+        animationRef.current = requestAnimationFrame(whilePlaying);
+        setIsPlaying(true);
+      }
+    } catch (err) {
+      console.error('[AUDIO PLAYER] Play error:', err);
+      setError('Impossible de lire le fichier audio');
+      setIsPlaying(false);
     }
-    setIsPlaying(!isPlaying);
   };
 
   const whilePlaying = () => {
@@ -162,6 +203,12 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
           <p className="text-muted-foreground">{currentTrack.artist || 'Artiste inconnu'}</p>
           {currentTrack.album && (
             <p className="text-sm text-muted-foreground">{currentTrack.album}</p>
+          )}
+          {isLoading && (
+            <p className="text-sm text-blue-500 mt-2">Chargement...</p>
+          )}
+          {error && (
+            <p className="text-sm text-red-500 mt-2">{error}</p>
           )}
         </div>
 
@@ -242,7 +289,12 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
           </div>
         )}
       </div>
-      <audio ref={audioRef} src={currentTrack.audio_url} preload="metadata" />
+      <audio
+        ref={audioRef}
+        src={currentTrack.audio_url}
+        preload="auto"
+        crossOrigin="anonymous"
+      />
     </div>
   );
 }

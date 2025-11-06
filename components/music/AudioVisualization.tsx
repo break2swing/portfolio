@@ -21,14 +21,28 @@ export function AudioVisualization({
     if (!audioElement) return;
 
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 256;
-      sourceRef.current =
-        audioContextRef.current.createMediaElementSource(audioElement);
-      sourceRef.current.connect(analyserRef.current);
-      analyserRef.current.connect(audioContextRef.current.destination);
+      try {
+        console.log('[AUDIO VISUALIZATION] Creating AudioContext...');
+        audioContextRef.current = new (window.AudioContext ||
+          (window as any).webkitAudioContext)();
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        analyserRef.current.fftSize = 256;
+        sourceRef.current =
+          audioContextRef.current.createMediaElementSource(audioElement);
+        sourceRef.current.connect(analyserRef.current);
+        analyserRef.current.connect(audioContextRef.current.destination);
+        console.log('[AUDIO VISUALIZATION] AudioContext created successfully');
+      } catch (error) {
+        console.error('[AUDIO VISUALIZATION] Error creating AudioContext:', error);
+        return;
+      }
+    }
+
+    if (audioContextRef.current.state === 'suspended') {
+      console.log('[AUDIO VISUALIZATION] Resuming suspended AudioContext...');
+      audioContextRef.current.resume().then(() => {
+        console.log('[AUDIO VISUALIZATION] AudioContext resumed');
+      });
     }
 
     const analyser = analyserRef.current;
