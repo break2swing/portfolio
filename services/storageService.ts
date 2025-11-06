@@ -32,12 +32,25 @@ export const storageService = {
   },
 
   async uploadAudio(file: File, fileName: string) {
+    console.log('[STORAGE] Upload audio - Starting');
+    console.log('[STORAGE] Bucket:', AUDIO_BUCKET);
+    console.log('[STORAGE] File name:', fileName);
+    console.log('[STORAGE] File type:', file.type);
+    console.log('[STORAGE] File size:', file.size);
+
     const { data, error } = await supabaseClient.storage
       .from(AUDIO_BUCKET)
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: false,
       });
+
+    if (error) {
+      console.error('[STORAGE] Upload audio - ERROR:', error);
+      console.error('[STORAGE] Error details:', JSON.stringify(error, null, 2));
+    } else {
+      console.log('[STORAGE] Upload audio - SUCCESS:', data);
+    }
 
     return { data, error };
   },

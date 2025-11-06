@@ -40,13 +40,36 @@ export const musicService = {
     duration: number | null;
     display_order: number;
   }) {
-    const { data, error } = await supabaseClient
-      .from('music_tracks')
-      .insert(track)
-      .select()
-      .single();
+    console.log('[MUSIC SERVICE] Create track - Starting');
+    console.log('[MUSIC SERVICE] Track data:', JSON.stringify(track, null, 2));
 
-    return { track: data as MusicTrack | null, error };
+    try {
+      const { data, error } = await supabaseClient
+        .from('music_tracks')
+        .insert(track)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[MUSIC SERVICE] Insert track - ERROR:', error);
+        console.error('[MUSIC SERVICE] Error code:', error.code);
+        console.error('[MUSIC SERVICE] Error message:', error.message);
+        console.error('[MUSIC SERVICE] Error details:', JSON.stringify(error, null, 2));
+        return { track: null, error };
+      }
+
+      console.log('[MUSIC SERVICE] Insert track - SUCCESS:', data);
+      return { track: data as MusicTrack | null, error: null };
+    } catch (err) {
+      console.error('[MUSIC SERVICE] Unexpected error:', err);
+      return {
+        track: null,
+        error: {
+          message: err instanceof Error ? err.message : 'Unknown error',
+          details: err
+        } as any
+      };
+    }
   },
 
   async updateTrack(id: string, updates: Partial<MusicTrack>) {

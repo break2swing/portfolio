@@ -146,41 +146,56 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
     }
 
     setUploading(true);
+    console.log('[FORM] Starting upload process');
 
     try {
+      console.log('[FORM] Step 1: Getting max display order');
       const { maxOrder } = await musicService.getMaxDisplayOrder();
       const nextOrder = maxOrder + 1;
+      console.log('[FORM] Next order:', nextOrder);
 
       const audioExt = audioFile.name.split('.').pop();
       const audioFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${audioExt}`;
+      console.log('[FORM] Step 2: Uploading audio file:', audioFileName);
 
       const { error: uploadAudioError } = await storageService.uploadAudio(audioFile, audioFileName);
 
       if (uploadAudioError) {
+        console.error('[FORM] Audio upload failed:', uploadAudioError);
         throw uploadAudioError;
       }
 
+      console.log('[FORM] Step 3: Getting audio public URL');
       const audioPublicUrl = storageService.getAudioPublicUrl(audioFileName);
+      console.log('[FORM] Audio URL:', audioPublicUrl);
 
       let coverPublicUrl: string | null = null;
       let coverFileName: string | null = null;
 
       if (coverFile) {
+        console.log('[FORM] Step 4: Uploading cover image');
         const coverExt = coverFile.name.split('.').pop();
         coverFileName = `cover-${Date.now()}-${Math.random().toString(36).substring(7)}.${coverExt}`;
 
         const { error: uploadCoverError } = await storageService.uploadPhoto(coverFile, coverFileName);
 
         if (uploadCoverError) {
+          console.error('[FORM] Cover upload failed:', uploadCoverError);
           await storageService.deleteAudio(audioFileName);
           throw uploadCoverError;
         }
 
         coverPublicUrl = storageService.getPublicUrl(coverFileName);
+        console.log('[FORM] Cover URL:', coverPublicUrl);
+      } else {
+        console.log('[FORM] Step 4: No cover image to upload');
       }
 
+      console.log('[FORM] Step 5: Getting audio duration');
       const duration = await getAudioDuration(audioFile);
+      console.log('[FORM] Duration:', duration);
 
+      console.log('[FORM] Step 6: Creating track in database');
       const { error: insertError } = await musicService.createTrack({
         title: title.trim(),
         artist: artist.trim() || null,
@@ -192,13 +207,32 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
       });
 
       if (insertError) {
+        console.error('[FORM] Database insert failed:', insertError);
+        console.error('[FORM] Error type:', typeof insertError);
+        console.error('[FORM] Error keys:', Object.keys(insertError));
+
+        const errorMessage = insertError.message || 'Erreur inconnue';
+        const errorCode = (insertError as any).code || 'NO_CODE';
+        const errorDetails = (insertError as any).details || 'Pas de détails';
+        const errorHint = (insertError as any).hint || 'Pas d\'indice';
+
+        console.error('[FORM] Error message:', errorMessage);
+        console.error('[FORM] Error code:', errorCode);
+        console.error('[FORM] Error details:', errorDetails);
+        console.error('[FORM] Error hint:', errorHint);
+
         await storageService.deleteAudio(audioFileName);
         if (coverFileName) {
           await storageService.deletePhoto(coverFileName);
         }
-        throw insertError;
+
+        toast.error('Erreur lors de l\'insertion en base', {
+          description: `${errorCode}: ${errorMessage}\n${errorHint}\n${errorDetails}`,
+        });
+        return;
       }
 
+      console.log('[FORM] Upload complete - SUCCESS');
       toast.success('Morceau ajouté', {
         description: 'Le morceau a été ajouté à la bibliothèque',
       });
@@ -209,10 +243,35 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
       clearAudioFile();
       clearCoverFile();
       onSuccess();
-    } catch (error) {
-      console.error('Error uploading track:', error);
+    } catch (error: any) {
+      console.error('[FORM] Upload failed - CATCH block:', error);
+      console.error('[FORM] Error type:', typeof error);
+      console.error('[FORM] Error constructor:', error?.constructor?.name);
+
+      let errorMessage = 'Impossible d\'ajouter le morceau';
+      let errorDetails = '';
+
+      if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      if (error?.code) {
+        errorDetails = `Code: ${error.code}`;
+      }
+
+      if (error?.statusCode) {
+        errorDetails += ` | Status: ${error.statusCode}`;
+      }
+
+      if (error?.hint) {
+        errorDetails += ` | ${error.hint}`;
+      }
+
+      console.error('[FORM] Final error message:', errorMessage);
+      console.error('[FORM] Final error details:', errorDetails);
+
       toast.error('Erreur', {
-        description: 'Impossible d\'ajouter le morceau',
+        description: errorDetails ? `${errorMessage}\n${errorDetails}` : errorMessage,
       });
     } finally {
       setUploading(false);
