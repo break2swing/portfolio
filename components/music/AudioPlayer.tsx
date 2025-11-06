@@ -44,7 +44,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [visualizationIndex, setVisualizationIndex] = useState(0);
+  const [visualizationIndex, setVisualizationIndex] = useState(4);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLInputElement>(null);
   const animationRef = useRef<number>();
@@ -244,7 +244,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
           )}
         </div>
 
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-center gap-4 mb-2">
           <button
             onClick={previousVisualization}
             className="p-2 rounded-full hover:bg-secondary/80 transition-colors"
@@ -252,9 +252,6 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
           >
             <ChevronLeft size={20} />
           </button>
-          <span className="text-sm text-muted-foreground font-medium">
-            {VISUALIZATION_NAMES[currentVisualization]}
-          </span>
           <button
             onClick={nextVisualization}
             className="p-2 rounded-full hover:bg-secondary/80 transition-colors"
