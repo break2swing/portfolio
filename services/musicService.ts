@@ -44,9 +44,46 @@ export const musicService = {
     console.log('[MUSIC SERVICE] Track data:', JSON.stringify(track, null, 2));
 
     try {
+      // Récupérer l'utilisateur connecté
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+      if (authError) {
+        console.error('[MUSIC SERVICE] Auth error:', authError);
+        return {
+          track: null,
+          error: {
+            message: 'Erreur d\'authentification',
+            code: 'AUTH_ERROR',
+            details: authError
+          } as any
+        };
+      }
+
+      if (!user) {
+        console.error('[MUSIC SERVICE] No user found - user must be authenticated');
+        return {
+          track: null,
+          error: {
+            message: 'Vous devez être connecté pour ajouter un morceau',
+            code: 'NOT_AUTHENTICATED',
+            hint: 'Connectez-vous depuis la page /login'
+          } as any
+        };
+      }
+
+      console.log('[MUSIC SERVICE] User authenticated:', user.id);
+
+      // Ajouter le user_id au track
+      const trackWithUser = {
+        ...track,
+        user_id: user.id
+      };
+
+      console.log('[MUSIC SERVICE] Inserting track with user_id:', trackWithUser);
+
       const { data, error } = await supabaseClient
         .from('music_tracks')
-        .insert(track)
+        .insert(trackWithUser)
         .select()
         .single();
 
