@@ -6,6 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Portfolio personnel Next.js 13 avec export statique, utilisant l'App Router et un système de double thème (clair/sombre + couleurs personnalisables).
 
+## Setup Initial
+
+### Configuration des variables d'environnement
+
+Le projet nécessite Supabase. Avant de démarrer :
+
+1. Copiez `.env.example` vers `.env.local`
+2. Remplissez les variables Supabase (voir `SETUP_SUPABASE.md` pour les détails)
+3. Redémarrez le serveur après modification
+
+**Important** : `.env.local` n'est pas commité (dans `.gitignore`)
+
 ## Development Commands
 
 ```bash
@@ -45,6 +57,7 @@ Le projet utilise l'App Router avec les routes suivantes :
 - `/videos` - Galerie vidéos
 - `/textes` - Créations textuelles
 - `/contact` - Page de contact
+- `/login` - Page de connexion/authentification
 - `/parametres` - Paramètres d'apparence
 
 Chaque route a son propre fichier `page.tsx` dans un dossier dédié sous `app/`.
@@ -63,10 +76,10 @@ Cette séparation permet d'avoir un layout côté serveur avec metadata et des c
   └─ ThemeProvider
      └─ ColorThemeProvider
         └─ AuthProvider
-           └─ AppLayout (client component)
-              ├─ Sidebar (collapsible, largeur variable)
-              ├─ Topbar
-              └─ Main content area
+           ├─ AppLayout (client component)
+           │  ├─ Sidebar (collapsible, largeur variable)
+           │  ├─ Topbar
+           │  └─ Main content area
            └─ Toaster (sonner notifications)
 ```
 
@@ -131,6 +144,7 @@ Tous les composants interactifs doivent utiliser `'use client'` en première lig
 Le projet utilise une couche service pour la logique métier :
 - `services/authService.ts` - Wrapper autour de Supabase Auth
 - `services/photoService.ts` - Gestion des photos
+- `services/musicService.ts` - Gestion des morceaux de musique (CRUD + ordre d'affichage)
 - `services/storageService.ts` - Gestion du stockage Supabase
 
 Les services encapsulent les appels Supabase et sont utilisés par les contextes et composants.
@@ -165,3 +179,12 @@ Le projet utilise **Supabase** comme backend :
 - **Lucide React** pour les icônes
 - **date-fns** pour la manipulation de dates
 - **Recharts** pour les graphiques (si nécessaire)
+
+## Outils IA
+
+Ce projet supporte plusieurs outils d'IA en CLI :
+- **Claude Code** : `/agents-update` (ce fichier est optimisé pour Claude)
+- **Gemini CLI** : `gemini run agents-update`
+- **Codex CLI** : `codex agents-update`
+
+Voir [AI_TOOLS.md](./AI_TOOLS.md) pour plus de détails sur l'utilisation des différents outils.

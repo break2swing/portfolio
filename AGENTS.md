@@ -162,6 +162,35 @@ import { cn } from '@/lib/utils';
 )} />
 ```
 
+### Notifications
+
+- Utiliser `toast` depuis `sonner` pour tout retour utilisateur (succès/erreur) ; le `<Toaster />` est monté dans `app/layout.tsx`, donc aucun ajout local n'est nécessaire.
+- Les messages sont en français, avec une phrase courte en `title` et un complément facultatif dans `description`.
+- Les formulaires d'upload et les actions admin doivent afficher un toast de succès ET d'échec, en veillant à nettoyer les uploads ratés avant de signaler l'erreur.
+
+### Layout Principal & Navigation
+
+- `app/layout.tsx` est un Server Component qui installe `ThemeProvider`, `ColorThemeProvider`, `AuthProvider`, puis rend `<AppLayout>{children}</AppLayout>` et `<Toaster />`.
+- `components/AppLayout` est client-only : il synchronise la largeur de la sidebar (`256px` ou `64px`) avec `localStorage.sidebarExpanded` et applique la valeur dans `style={{ marginLeft }}`. Toute modification du layout doit préserver cette logique pour éviter les décalages.
+- `components/Sidebar` pilote la navigation. Actualisez le tableau `mainNavItems` lorsque vous créez une nouvelle page publique, et réutilisez le callback `onToggle` pour notifier `AppLayout`.
+- Le `<Topbar />` contient la recherche (actuellement désactivée) et le `ThemeToggle`. Garder cette structure pour conserver l'alignement et la sticky bar (`sticky top-0`).
+
+### LocalStorage & événements globaux
+
+- Clés utilisées :
+  - `theme` (`ThemeContext`)
+  - `colorTheme` + `customColors` (`ColorThemeContext`)
+  - `sidebarExpanded` (layout)
+- `AppLayout` et `Sidebar` écoutent à la fois `storage` et un événement personnalisé `sidebar-toggle`. Si vous ajoutez un composant qui dépend de l'état de la sidebar, souscrivez au même event au lieu d'introduire un nouveau canal.
+- Les contextes montent uniquement quand `window` est disponible ; ne lisez pas `localStorage` côté serveur.
+
+### Authentification & Admin
+
+- `AuthContext` expose `useAuth` (ré-exporté depuis `hooks/useAuth.ts`), ainsi que `signIn`, `signOut`, `user`, `session`, `loading`.
+- `components/ProtectedRoute` redirige vers `/login` si l'utilisateur n'est pas connecté. Toutes les pages sous `/admin/*` doivent être encapsulées dans ce composant.
+- La page `app/login/page.tsx` utilise `useAuth().signIn` puis redirige vers `/admin/photos` en cas de succès. Réutilisez ce pattern pour toute future page d'auth.
+- La sidebar affiche automatiquement `Admin Photos` et `Déconnexion` lorsqu'un `user` est présent. Ajoutez les entrées admin supplémentaires dans cette section pour rester cohérent.
+
 ## Workflows Spécifiques
 
 ### Ajout d'un Nouveau Composant UI
@@ -198,6 +227,42 @@ import { cn } from '@/lib/utils';
 - Variables CSS : `--theme-primary`, `--theme-secondary`, `--theme-accent`
 - Format HSL : `"200 90% 50%"` (sans `hsl()`)
 
+### Services Supabase existants
+
+- `lib/supabaseClient.ts` crée le client en se basant sur `NEXT_PUBLIC_SUPABASE_URL/ANON_KEY` et exporte les types `Photo`, `MusicTrack` et `Database`. Réutilisez ces types plutôt que de recréer des interfaces.
+- `authService` est un simple wrapper autour de `supabaseClient.auth` (`getSession`, `signInWithPassword`, `signOut`, `onAuthStateChange`). Respectez le pattern `{ data?, error }` pour faciliter son usage dans `AuthContext`.
+- `photoService` cible la table `photos` : `getAllPhotos`, `getPhotoById`, `getMaxDisplayOrder`, `createPhoto`, `updatePhoto`, `deletePhoto`, `updateDisplayOrder`. L'ordre d'affichage est numérique croissant (0,1,2,...).
+- `musicService` cible `music_tracks` avec les mêmes helpers qu'au-dessus. La méthode `createTrack` ajoute automatiquement `user_id` (utilisateur courant) et journalise les étapes — conservez ces logs pour faciliter le debug des uploads audio.
+- `storageService` encapsule Supabase Storage avec deux buckets dédiés : `photo-files` (images) et `audio-files` (sons). Il fournit `uploadPhoto`, `uploadAudio`, `getPublicUrl`, `getAudioPublicUrl`, `deletePhoto`, `deleteAudio` ainsi que `extractFileNameFromUrl` pour simplifier les suppressions.
+
+### Routes et navigation actuelles
+
+- Pages publiques : `/`, `/musique`, `/photos`, `/videos`, `/textes`, `/applications`, `/a-propos`, `/contact`, `/parametres`.
+- Auth & admin : `/login`, `/admin/photos`, `/admin/music`. Les routes admin sont wrapées dans `ProtectedRoute` et doivent rester client-side.
+- Seule `/admin/photos` est listée dans la sidebar par défaut. Si vous exposez `/admin/music` ou une nouvelle section, ajoutez-la dans la zone `user && (...)` de `Sidebar.tsx` pour qu'elle n'apparaisse qu'aux utilisateurs connectés.
+
+### Gestion de la galerie Photos
+
+- **Upload** : `PhotoUploadForm` offre drag & drop + prévisualisation (`FileReader`). Les validations acceptent `jpeg/png/webp/gif` ≤ 5 MB. Sur submit :
+  1. `photoService.getMaxDisplayOrder()` pour calculer `display_order`.
+  2. Générer un nom de fichier unique (`${Date.now()}-${random}`) puis `storageService.uploadPhoto` sur le bucket `photo-files`.
+  3. Récupérer l'URL publique avec `storageService.getPublicUrl`.
+  4. Insérer la ligne via `photoService.createPhoto`. En cas d'échec, supprimer immédiatement le fichier via `storageService.deletePhoto`.
+- **Administration** : `PhotoList` gère la suppression (storage + table) et le drag-and-drop natif pour réordonner. L'ordre est recalculé côté client puis chaque ligne est mise à jour avec `photoService.updateDisplayOrder`. Préservez ce comportement pour éviter les trous dans la numérotation.
+- **Front** : `PhotoGrid` + `PhotoCard` gèrent l'affichage responsive. `PhotoViewerModal` (dialog shadcn) ajoute navigation clavier (`←/→`), zoom +/- , téléchargement (via fetch + blob) et partage (`navigator.share` ou clipboard) avec des toasts adaptés. Toute nouvelle fonctionnalité doit rester compatible avec ces entrées clavier et garder `open` contrôlé par le parent.
+
+### Gestion de la bibliothèque Musique
+
+- **Upload** : `MusicUploadForm` accepte `mp3/mp4/wav/ogg` ≤ 10 MB et une cover `jpeg/png/webp` ≤ 2 MB. Le flux :
+  1. `musicService.getMaxDisplayOrder()` pour calculer l'ordre.
+  2. Upload audio (`storageService.uploadAudio` sur `audio-files`) puis récupérer l'URL via `getAudioPublicUrl`.
+  3. Upload éventuel de la cover via `storageService.uploadPhoto` (bucket images) avec nettoyage si l'étape suivante échoue.
+  4. Calculer la durée via un `<audio>` caché.
+  5. Appeler `musicService.createTrack` avec le user authentifié (obtenu côté service via `supabaseClient.auth.getUser`). Sur erreur DB, supprimer les fichiers déjà envoyés.
+- **Administration** : `TrackListAdmin` reprend le drag-and-drop natif pour réordonner et `AlertDialog` pour confirmer les suppressions. Les fichiers audio et cover sont supprimés via `storageService.extractFileNameFromUrl` avant d'appeler `musicService.deleteTrack`.
+- **Lecteur public** : `AudioPlayer` orchestre lecture/pause, skip, volume, mute et s'appuie sur `AudioVisualization` pour afficher une visualisation canvas (types : `bars`, `wave`, `circle`, `dots`, `line`). `AudioVisualization` crée un `AudioContext`, donc conservez `'use client'` et vérifiez toujours que `audioElement` est défini avant d'appeler Web Audio API.
+- **Page `/musique`** : affichage via des `Tabs` shadcn (lecteur vs embeds SoundCloud). Si vous ajoutez une nouvelle source, pensez à garder les tabs pour séparer les contenus et évitez de charger le lecteur si `tracks.length === 0`.
+
 ## Commandes Utiles pour les Agents
 
 ```bash
@@ -215,6 +280,20 @@ npm run dev
 ```
 
 ## Points d'Attention
+
+### Variables d'Environnement
+
+- **Fichier** : `.env.local` (non commité, dans .gitignore)
+- **Exemple** : `.env.example` (commité pour documenter les variables nécessaires)
+- **Format** : Toutes les variables client-side doivent commencer par `NEXT_PUBLIC_`
+- **Redémarrage requis** : Redémarrez `npm run dev` après modification
+- **Documentation** : Voir `SETUP_SUPABASE.md` pour la configuration Supabase
+
+Variables requises :
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+```
 
 ### Export Statique
 
