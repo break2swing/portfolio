@@ -65,7 +65,7 @@ function AdminPhotosContent() {
               <CardTitle>Gérer les photos</CardTitle>
             </div>
             <CardDescription>
-              Réorganisez et supprimez vos photos. Glissez-déposez pour changer l'ordre.
+              Réorganisez et supprimez vos photos. Glissez-déposez pour changer l&apos;ordre.
             </CardDescription>
           </CardHeader>
           <CardContent>

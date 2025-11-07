@@ -46,7 +46,7 @@ export default function LoginPage() {
             <CardTitle className="text-2xl">Connexion</CardTitle>
           </div>
           <CardDescription>
-            Connectez-vous pour accéder à l'administration
+            Connectez-vous pour accéder à l&apos;administration
           </CardDescription>
         </CardHeader>
         <CardContent>

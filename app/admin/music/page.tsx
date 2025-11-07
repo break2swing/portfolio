@@ -65,7 +65,7 @@ function AdminMusicContent() {
               <CardTitle>Gérer les morceaux</CardTitle>
             </div>
             <CardDescription>
-              Réorganisez et supprimez vos morceaux. Glissez-déposez pour changer l'ordre.
+              Réorganisez et supprimez vos morceaux. Glissez-déposez pour changer l&apos;ordre.
             </CardDescription>
           </CardHeader>
           <CardContent>

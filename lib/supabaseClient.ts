@@ -37,6 +37,19 @@ export type MusicTrack = {
   created_at: string;
 };
 
+export type Text = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  content: string;
+  excerpt: string | null;
+  author: string | null;
+  published_date: string | null;
+  display_order: number;
+  user_id: string | null;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -55,6 +68,14 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Omit<MusicTrack, 'id' | 'created_at'>>;
+      };
+      texts: {
+        Row: Text;
+        Insert: Omit<Text, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Omit<Text, 'id' | 'created_at'>>;
       };
     };
   };
