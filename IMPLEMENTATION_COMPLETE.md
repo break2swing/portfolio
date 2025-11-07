@@ -1,10 +1,54 @@
+# 🚀 Implémentation complète du système de textes
+
+Ce guide contient **TOUS** les fichiers restants à créer pour compléter le système. Copiez-collez chaque fichier dans le bon emplacement.
+
+## ✅ Déjà créé
+
+- ✅ Migration SQL (`supabase/migrations/20250107_create_texts_system_v2.sql`)
+- ✅ Types TypeScript (`lib/supabaseClient.ts` - mis à jour)
+- ✅ Services (`categoryService.ts`, `tagService.ts`, `textService.ts` - mis à jour)
+- ✅ Badges (`CategoryBadge.tsx`, `TagBadge.tsx`)
+- ✅ Composants de base (`TextCard.tsx`, `TextDetailModal.tsx`, `MarkdownRenderer.tsx`)
+
+## 📋 À créer (copier/coller depuis ce guide)
+
+### 1. Gestionnaires admin
+
+#### `components/texts/CategoryManager.tsx`
+#### `components/texts/TagManager.tsx`
+
+### 2. Modal d'édition
+
+#### `components/texts/TextEditModal.tsx`
+
+### 3. Mises à jour des composants existants
+
+#### `components/texts/TextUploadForm.tsx` (mise à jour)
+#### `components/texts/TextListAdmin.tsx` (mise à jour)
+#### `app/textes/page.tsx` (mise à jour avec filtres)
+#### `app/admin/texts/page.tsx` (mise à jour avec onglets)
+
+---
+
+## 📦 Code complet de chaque fichier
+
+### 1. `components/texts/TextEditModal.tsx`
+
+```typescript
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Category, Tag } from '@/lib/supabaseClient';
+import { TextWithMetadata, Category, Tag } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
 import { categoryService } from '@/services/categoryService';
 import { tagService } from '@/services/tagService';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,25 +57,28 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { TagBadge } from './TagBadge';
 
-interface TextUploadFormProps {
+interface TextEditModalProps {
+  text: TextWithMetadata;
+  open: boolean;
+  onClose: () => void;
   onSuccess: () => void;
 }
 
-export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
-  const [title, setTitle] = useState('');
-  const [subtitle, setSubtitle] = useState('');
-  const [content, setContent] = useState('');
-  const [excerpt, setExcerpt] = useState('');
-  const [author, setAuthor] = useState('');
-  const [publishedDate, setPublishedDate] = useState('');
-  const [categoryId, setCategoryId] = useState<string>('');
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [isPublished, setIsPublished] = useState(false);
+export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalProps) {
+  const [title, setTitle] = useState(text.title);
+  const [subtitle, setSubtitle] = useState(text.subtitle || '');
+  const [content, setContent] = useState(text.content);
+  const [excerpt, setExcerpt] = useState(text.excerpt || '');
+  const [author, setAuthor] = useState(text.author || '');
+  const [publishedDate, setPublishedDate] = useState(text.published_date || '');
+  const [categoryId, setCategoryId] = useState<string>(text.category_id || '');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(text.tags?.map(t => t.id) || []);
+  const [isPublished, setIsPublished] = useState(text.is_published);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -39,8 +86,10 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (open) {
+      loadData();
+    }
+  }, [open]);
 
   const loadData = async () => {
     setLoadingData(true);
@@ -71,17 +120,7 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
     setLoading(true);
 
     try {
-      const { maxOrder, error: maxError } = await textService.getMaxDisplayOrder();
-
-      if (maxError) {
-        console.error('[FORM] Error getting max order:', maxError);
-        toast.error('Erreur', {
-          description: 'Impossible de récupérer l&apos;ordre d&apos;affichage',
-        });
-        return;
-      }
-
-      const newText = {
+      const updates = {
         title: title.trim(),
         subtitle: subtitle.trim() || null,
         content: content.trim(),
@@ -90,43 +129,31 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
         published_date: publishedDate || null,
         category_id: categoryId || null,
         is_published: isPublished,
-        display_order: (maxOrder ?? -1) + 1,
       };
 
-      console.log('[FORM] Creating text with data:', newText);
-
-      const { text, error } = await textService.createTextWithTags(newText, selectedTagIds);
+      const { error } = await textService.updateTextWithTags(
+        text.id,
+        updates,
+        selectedTagIds
+      );
 
       if (error) {
-        console.error('[FORM] Create text - ERROR:', error);
-        toast.error('Erreur lors de l&apos;ajout', {
-          description: error.message || 'Impossible d&apos;ajouter le texte',
+        console.error('[MODAL] Update failed:', error);
+        toast.error('Erreur lors de la modification', {
+          description: error.message || 'Impossible de modifier le texte',
         });
         return;
       }
 
-      console.log('[FORM] Create text - SUCCESS:', text);
-
-      toast.success('Texte ajouté', {
-        description: 'Le texte a été ajouté avec succès',
+      toast.success('Texte modifié', {
+        description: 'Le texte a été modifié avec succès',
       });
-
-      // Reset form
-      setTitle('');
-      setSubtitle('');
-      setContent('');
-      setExcerpt('');
-      setAuthor('');
-      setPublishedDate('');
-      setCategoryId('');
-      setSelectedTagIds([]);
-      setIsPublished(false);
-
       onSuccess();
+      onClose();
     } catch (error: any) {
-      console.error('[FORM] Unexpected error:', error);
+      console.error('[MODAL] Update failed:', error);
       toast.error('Erreur', {
-        description: error?.message || 'Une erreur inattendue s&apos;est produite',
+        description: error?.message || 'Impossible de modifier le texte',
       });
     } finally {
       setLoading(false);
@@ -143,23 +170,32 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
 
   if (loadingData) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </CardContent>
-      </Card>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Éditer le texte</DialogTitle>
+          <DialogDescription>
+            Modifiez les informations du texte ci-dessous
+          </DialogDescription>
+        </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="title">Titre *</Label>
+              <Label htmlFor="edit-title">Titre *</Label>
               <Input
-                id="title"
+                id="edit-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={loading}
@@ -168,9 +204,9 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subtitle">Sous-titre</Label>
+              <Label htmlFor="edit-subtitle">Sous-titre</Label>
               <Input
-                id="subtitle"
+                id="edit-subtitle"
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
                 disabled={loading}
@@ -180,9 +216,9 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="author">Auteur</Label>
+              <Label htmlFor="edit-author">Auteur</Label>
               <Input
-                id="author"
+                id="edit-author"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
                 disabled={loading}
@@ -190,9 +226,9 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="date">Date de publication</Label>
+              <Label htmlFor="edit-date">Date de publication</Label>
               <Input
-                id="date"
+                id="edit-date"
                 type="date"
                 value={publishedDate}
                 onChange={(e) => setPublishedDate(e.target.value)}
@@ -201,9 +237,9 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Catégorie</Label>
+              <Label htmlFor="edit-category">Catégorie</Label>
               <Select value={categoryId} onValueChange={setCategoryId} disabled={loading}>
-                <SelectTrigger id="category">
+                <SelectTrigger id="edit-category">
                   <SelectValue placeholder="Aucune catégorie" />
                 </SelectTrigger>
                 <SelectContent>
@@ -234,20 +270,20 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="published"
+              id="edit-published"
               checked={isPublished}
               onCheckedChange={setIsPublished}
               disabled={loading}
             />
-            <Label htmlFor="published">
+            <Label htmlFor="edit-published">
               Publier ce texte (visible publiquement)
             </Label>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="excerpt">Extrait / Résumé</Label>
+            <Label htmlFor="edit-excerpt">Extrait / Résumé</Label>
             <Textarea
-              id="excerpt"
+              id="edit-excerpt"
               value={excerpt}
               onChange={(e) => setExcerpt(e.target.value)}
               disabled={loading}
@@ -262,9 +298,9 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
             </TabsList>
 
             <TabsContent value="edit" className="space-y-2 mt-4">
-              <Label htmlFor="content">Contenu (Markdown) *</Label>
+              <Label htmlFor="edit-content">Contenu (Markdown) *</Label>
               <Textarea
-                id="content"
+                id="edit-content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 disabled={loading}
@@ -289,21 +325,33 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
             </TabsContent>
           </Tabs>
 
-          <Button type="submit" disabled={loading || !title.trim() || !content.trim()} className="w-full">
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Ajout en cours...
-              </>
-            ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                Ajouter le texte
-              </>
-            )}
-          </Button>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+              Annuler
+            </Button>
+            <Button type="submit" disabled={loading || !title.trim() || !content.trim()}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Enregistrer
+                </>
+              )}
+            </Button>
+          </div>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }
+```
+
+---
+
+**Suite du guide dans le prochain message pour respecter la limite de caractères...**
+
+Voulez-vous que je continue avec les autres composants (CategoryManager, TagManager, mises à jour des pages) ?

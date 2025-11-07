@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Text } from '@/lib/supabaseClient';
+import { TextWithMetadata } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, GripVertical, Calendar, User } from 'lucide-react';
+import { Trash2, GripVertical, Calendar, User, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -17,19 +17,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { CategoryBadge } from './CategoryBadge';
+import { TagBadge } from './TagBadge';
+import { TextEditModal } from './TextEditModal';
 
 interface TextListAdminProps {
-  texts: Text[];
+  texts: TextWithMetadata[];
   onUpdate: () => void;
 }
 
 export function TextListAdmin({ texts, onUpdate }: TextListAdminProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [draggedItem, setDraggedItem] = useState<Text | null>(null);
+  const [draggedItem, setDraggedItem] = useState<TextWithMetadata | null>(null);
+  const [editingText, setEditingText] = useState<TextWithMetadata | null>(null);
 
-  const handleDelete = async (text: Text) => {
+  const handleDelete = async (text: TextWithMetadata) => {
     try {
       const { error } = await textService.deleteText(text.id);
 
@@ -49,11 +54,11 @@ export function TextListAdmin({ texts, onUpdate }: TextListAdminProps) {
     }
   };
 
-  const handleDragStart = (text: Text) => {
+  const handleDragStart = (text: TextWithMetadata) => {
     setDraggedItem(text);
   };
 
-  const handleDragOver = (e: React.DragEvent, text: Text) => {
+  const handleDragOver = (e: React.DragEvent, text: TextWithMetadata) => {
     e.preventDefault();
     if (!draggedItem || draggedItem.id === text.id) return;
 
@@ -106,7 +111,14 @@ export function TextListAdmin({ texts, onUpdate }: TextListAdminProps) {
                 <div className="flex items-start gap-3">
                   <GripVertical className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg truncate">{text.title}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-lg truncate">{text.title}</h3>
+                      {!text.is_published && (
+                        <Badge variant="outline" className="text-xs">
+                          Brouillon
+                        </Badge>
+                      )}
+                    </div>
                     {text.subtitle && (
                       <p className="text-sm text-muted-foreground truncate">{text.subtitle}</p>
                     )}
@@ -115,28 +127,49 @@ export function TextListAdmin({ texts, onUpdate }: TextListAdminProps) {
                         {text.excerpt}
                       </p>
                     )}
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                      {text.author && (
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          <span>{text.author}</span>
-                        </div>
+                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {text.author && (
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            <span>{text.author}</span>
+                          </div>
+                        )}
+                        {publishedDate && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>{publishedDate}</span>
+                          </div>
+                        )}
+                      </div>
+                      {text.category && (
+                        <CategoryBadge category={text.category} className="text-xs" />
                       )}
-                      {publishedDate && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{publishedDate}</span>
+                      {text.tags && text.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {text.tags.map((tag) => (
+                            <TagBadge key={tag.id} tag={tag} variant="outline" />
+                          ))}
                         </div>
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => setDeletingId(text.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setEditingText(text)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => setDeletingId(text.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -144,6 +177,20 @@ export function TextListAdmin({ texts, onUpdate }: TextListAdminProps) {
         })}
       </div>
 
+      {/* Edit Modal */}
+      {editingText && (
+        <TextEditModal
+          text={editingText}
+          open={!!editingText}
+          onClose={() => setEditingText(null)}
+          onSuccess={() => {
+            setEditingText(null);
+            onUpdate();
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation */}
       <AlertDialog open={deletingId !== null} onOpenChange={() => setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

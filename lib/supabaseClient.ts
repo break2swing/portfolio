@@ -37,6 +37,26 @@ export type MusicTrack = {
   created_at: string;
 };
 
+export type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  color: string;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Tag = {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Text = {
   id: string;
   title: string;
@@ -46,8 +66,23 @@ export type Text = {
   author: string | null;
   published_date: string | null;
   display_order: number;
+  category_id: string | null;
   user_id: string | null;
+  is_published: boolean;
+  view_count: number;
   created_at: string;
+  updated_at: string;
+};
+
+export type TextTag = {
+  text_id: string;
+  tag_id: string;
+  created_at: string;
+};
+
+export type TextWithMetadata = Text & {
+  category?: Category | null;
+  tags?: Tag[];
 };
 
 export type Database = {
@@ -69,13 +104,37 @@ export type Database = {
         };
         Update: Partial<Omit<MusicTrack, 'id' | 'created_at'>>;
       };
-      texts: {
-        Row: Text;
-        Insert: Omit<Text, 'id' | 'created_at'> & {
+      categories: {
+        Row: Category;
+        Insert: Omit<Category, 'id' | 'created_at' | 'updated_at'> & {
           id?: string;
           created_at?: string;
+          updated_at?: string;
         };
-        Update: Partial<Omit<Text, 'id' | 'created_at'>>;
+        Update: Partial<Omit<Category, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      tags: {
+        Row: Tag;
+        Insert: Omit<Tag, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Tag, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      texts: {
+        Row: Text;
+        Insert: Omit<Text, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Text, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      text_tags: {
+        Row: TextTag;
+        Insert: TextTag;
+        Update: never;
       };
     };
   };

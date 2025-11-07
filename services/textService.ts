@@ -1,4 +1,5 @@
-import { supabaseClient, Text } from '@/lib/supabaseClient';
+import { supabaseClient, Text, TextWithMetadata, Category, Tag } from '@/lib/supabaseClient';
+import { tagService } from './tagService';
 
 export const textService = {
   async getAllTexts() {
@@ -38,6 +39,8 @@ export const textService = {
     excerpt: string | null;
     author: string | null;
     published_date: string | null;
+    category_id?: string | null;
+    is_published?: boolean;
     display_order: number;
   }) {
     console.log('[TEXT SERVICE] Create text - Starting');
@@ -136,5 +139,217 @@ export const textService = {
       .eq('id', id);
 
     return { error };
+  },
+
+  // Méthodes avec métadonnées (catégories et tags)
+  async getTextsWithMetadata() {
+    const { data, error } = await supabaseClient
+      .from('texts')
+      .select(`
+        *,
+        category:categories(*),
+        text_tags(tag:tags(*))
+      `)
+      .order('display_order', { ascending: true });
+
+    if (error) return { texts: null, error };
+
+    // Transformer les données pour avoir un format cohérent
+    const texts = data.map((text: any) => ({
+      ...text,
+      category: text.category || null,
+      tags: text.text_tags?.map((tt: any) => tt.tag).filter(Boolean) || [],
+    }));
+
+    // Supprimer text_tags car on a déjà tags
+    texts.forEach((text: any) => delete text.text_tags);
+
+    return { texts: texts as TextWithMetadata[], error: null };
+  },
+
+  async getTextWithMetadata(id: string) {
+    const { data, error } = await supabaseClient
+      .from('texts')
+      .select(`
+        *,
+        category:categories(*),
+        text_tags(tag:tags(*))
+      `)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) return { text: null, error };
+    if (!data) return { text: null, error: null };
+
+    const text = {
+      ...data,
+      category: data.category || null,
+      tags: data.text_tags?.map((tt: any) => tt.tag).filter(Boolean) || [],
+    };
+
+    delete (text as any).text_tags;
+
+    return { text: text as TextWithMetadata, error: null };
+  },
+
+  async getPublishedTexts() {
+    const { data, error } = await supabaseClient
+      .from('texts')
+      .select(`
+        *,
+        category:categories(*),
+        text_tags(tag:tags(*))
+      `)
+      .eq('is_published', true)
+      .order('display_order', { ascending: true });
+
+    if (error) return { texts: null, error };
+
+    const texts = data.map((text: any) => ({
+      ...text,
+      category: text.category || null,
+      tags: text.text_tags?.map((tt: any) => tt.tag).filter(Boolean) || [],
+    }));
+
+    texts.forEach((text: any) => delete text.text_tags);
+
+    return { texts: texts as TextWithMetadata[], error: null };
+  },
+
+  async getTextsByCategory(categoryId: string) {
+    const { data, error } = await supabaseClient
+      .from('texts')
+      .select(`
+        *,
+        category:categories(*),
+        text_tags(tag:tags(*))
+      `)
+      .eq('category_id', categoryId)
+      .eq('is_published', true)
+      .order('display_order', { ascending: true });
+
+    if (error) return { texts: null, error };
+
+    const texts = data.map((text: any) => ({
+      ...text,
+      category: text.category || null,
+      tags: text.text_tags?.map((tt: any) => tt.tag).filter(Boolean) || [],
+    }));
+
+    texts.forEach((text: any) => delete text.text_tags);
+
+    return { texts: texts as TextWithMetadata[], error: null };
+  },
+
+  async getTextsByTag(tagId: string) {
+    const { data, error } = await supabaseClient
+      .from('text_tags')
+      .select(`
+        text:texts(
+          *,
+          category:categories(*),
+          text_tags(tag:tags(*))
+        )
+      `)
+      .eq('tag_id', tagId);
+
+    if (error) return { texts: null, error };
+
+    const texts = data
+      .map((item: any) => item.text)
+      .filter((text: any) => text && text.is_published)
+      .map((text: any) => ({
+        ...text,
+        category: text.category || null,
+        tags: text.text_tags?.map((tt: any) => tt.tag).filter(Boolean) || [],
+      }));
+
+    texts.forEach((text: any) => delete text.text_tags);
+
+    return { texts: texts as TextWithMetadata[], error: null };
+  },
+
+  async searchTexts(query: string) {
+    const { data, error } = await supabaseClient
+      .from('texts')
+      .select(`
+        *,
+        category:categories(*),
+        text_tags(tag:tags(*))
+      `)
+      .textSearch('title', query, {
+        type: 'websearch',
+        config: 'french',
+      })
+      .eq('is_published', true);
+
+    if (error) return { texts: null, error };
+
+    const texts = data.map((text: any) => ({
+      ...text,
+      category: text.category || null,
+      tags: text.text_tags?.map((tt: any) => tt.tag).filter(Boolean) || [],
+    }));
+
+    texts.forEach((text: any) => delete text.text_tags);
+
+    return { texts: texts as TextWithMetadata[], error: null };
+  },
+
+  // Méthode pour créer un texte avec ses tags
+  async createTextWithTags(
+    textData: {
+      title: string;
+      subtitle: string | null;
+      content: string;
+      excerpt: string | null;
+      author: string | null;
+      published_date: string | null;
+      category_id?: string | null;
+      is_published?: boolean;
+      display_order: number;
+    },
+    tagIds: string[] = []
+  ) {
+    const { text, error } = await this.createText(textData);
+
+    if (error || !text) {
+      return { text: null, error };
+    }
+
+    // Ajouter les tags
+    if (tagIds.length > 0) {
+      const { error: tagsError } = await tagService.setTagsForText(text.id, tagIds);
+      if (tagsError) {
+        console.error('[TEXT SERVICE] Error setting tags:', tagsError);
+      }
+    }
+
+    // Récupérer le texte avec métadonnées
+    return await this.getTextWithMetadata(text.id);
+  },
+
+  // Méthode pour mettre à jour un texte avec ses tags
+  async updateTextWithTags(
+    id: string,
+    updates: Partial<Text>,
+    tagIds?: string[]
+  ) {
+    const { text, error } = await this.updateText(id, updates);
+
+    if (error || !text) {
+      return { text: null, error };
+    }
+
+    // Mettre à jour les tags si fournis
+    if (tagIds !== undefined) {
+      const { error: tagsError } = await tagService.setTagsForText(id, tagIds);
+      if (tagsError) {
+        console.error('[TEXT SERVICE] Error updating tags:', tagsError);
+      }
+    }
+
+    // Récupérer le texte avec métadonnées
+    return await this.getTextWithMetadata(id);
   },
 };

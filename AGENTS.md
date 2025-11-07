@@ -187,9 +187,9 @@ import { cn } from '@/lib/utils';
 ### Authentification & Admin
 
 - `AuthContext` expose `useAuth` (ré-exporté depuis `hooks/useAuth.ts`), ainsi que `signIn`, `signOut`, `user`, `session`, `loading`.
-- `components/ProtectedRoute` redirige vers `/login` si l'utilisateur n'est pas connecté. Toutes les pages sous `/admin/*` doivent être encapsulées dans ce composant.
+- `components/ProtectedRoute` redirige vers `/login` si l'utilisateur n'est pas connecté. Toutes les pages sous `/admin/*` doivent être encapsulées dans ce composant ou vérifier manuellement l'authentification.
 - La page `app/login/page.tsx` utilise `useAuth().signIn` puis redirige vers `/admin/photos` en cas de succès. Réutilisez ce pattern pour toute future page d'auth.
-- La sidebar affiche automatiquement `Admin Photos` et `Déconnexion` lorsqu'un `user` est présent. Ajoutez les entrées admin supplémentaires dans cette section pour rester cohérent.
+- La sidebar affiche automatiquement `Admin Photos` et `Déconnexion` lorsqu'un `user` est présent. Ajoutez les entrées admin supplémentaires (`Admin Music`, `Admin Textes`, etc.) dans la zone `user && (...)` de `Sidebar.tsx` pour qu'elles n'apparaissent qu'aux utilisateurs connectés.
 
 ## Workflows Spécifiques
 
@@ -229,17 +229,20 @@ import { cn } from '@/lib/utils';
 
 ### Services Supabase existants
 
-- `lib/supabaseClient.ts` crée le client en se basant sur `NEXT_PUBLIC_SUPABASE_URL/ANON_KEY` et exporte les types `Photo`, `MusicTrack` et `Database`. Réutilisez ces types plutôt que de recréer des interfaces.
+- `lib/supabaseClient.ts` crée le client en se basant sur `NEXT_PUBLIC_SUPABASE_URL/ANON_KEY` et exporte les types `Photo`, `MusicTrack`, `Text`, `TextWithMetadata`, `Category`, `Tag`, `TextTag` et `Database`. Réutilisez ces types plutôt que de recréer des interfaces.
 - `authService` est un simple wrapper autour de `supabaseClient.auth` (`getSession`, `signInWithPassword`, `signOut`, `onAuthStateChange`). Respectez le pattern `{ data?, error }` pour faciliter son usage dans `AuthContext`.
 - `photoService` cible la table `photos` : `getAllPhotos`, `getPhotoById`, `getMaxDisplayOrder`, `createPhoto`, `updatePhoto`, `deletePhoto`, `updateDisplayOrder`. L'ordre d'affichage est numérique croissant (0,1,2,...).
 - `musicService` cible `music_tracks` avec les mêmes helpers qu'au-dessus. La méthode `createTrack` ajoute automatiquement `user_id` (utilisateur courant) et journalise les étapes — conservez ces logs pour faciliter le debug des uploads audio.
+- `textService` cible la table `texts` avec CRUD complet, gestion de l'ordre d'affichage, et méthodes spécialisées : `getTextsWithMetadata`, `getTextWithMetadata`, `getPublishedTexts`, `getTextsByCategory`, `getTextsByTag`, `searchTexts`, `createTextWithTags`, `updateTextWithTags`. La méthode `createText` ajoute automatiquement `user_id` et journalise les étapes.
+- `categoryService` gère la table `categories` : CRUD complet avec `getAllCategories`, `getCategoryById`, `getCategoryBySlug`, `createCategory`, `updateCategory`, `deleteCategory`, `getMaxDisplayOrder`. Utilisé pour organiser les textes.
+- `tagService` gère la table `tags` et les relations `text_tags` : CRUD des tags (`getAllTags`, `getTagById`, `getTagBySlug`, `createTag`, `updateTag`, `deleteTag`) et méthodes de liaison (`getTagsForText`, `addTagToText`, `removeTagFromText`, `setTagsForText`).
 - `storageService` encapsule Supabase Storage avec deux buckets dédiés : `photo-files` (images) et `audio-files` (sons). Il fournit `uploadPhoto`, `uploadAudio`, `getPublicUrl`, `getAudioPublicUrl`, `deletePhoto`, `deleteAudio` ainsi que `extractFileNameFromUrl` pour simplifier les suppressions.
 
 ### Routes et navigation actuelles
 
 - Pages publiques : `/`, `/musique`, `/photos`, `/videos`, `/textes`, `/applications`, `/a-propos`, `/contact`, `/parametres`.
-- Auth & admin : `/login`, `/admin/photos`, `/admin/music`. Les routes admin sont wrapées dans `ProtectedRoute` et doivent rester client-side.
-- Seule `/admin/photos` est listée dans la sidebar par défaut. Si vous exposez `/admin/music` ou une nouvelle section, ajoutez-la dans la zone `user && (...)` de `Sidebar.tsx` pour qu'elle n'apparaisse qu'aux utilisateurs connectés.
+- Auth & admin : `/login`, `/admin/photos`, `/admin/music`, `/admin/texts`. Les routes admin sont wrapées dans `ProtectedRoute` et doivent rester client-side.
+- Seule `/admin/photos` est listée dans la sidebar par défaut. Si vous exposez `/admin/music` ou `/admin/texts` ou une nouvelle section, ajoutez-la dans la zone `user && (...)` de `Sidebar.tsx` pour qu'elle n'apparaisse qu'aux utilisateurs connectés.
 
 ### Gestion de la galerie Photos
 
@@ -262,6 +265,17 @@ import { cn } from '@/lib/utils';
 - **Administration** : `TrackListAdmin` reprend le drag-and-drop natif pour réordonner et `AlertDialog` pour confirmer les suppressions. Les fichiers audio et cover sont supprimés via `storageService.extractFileNameFromUrl` avant d'appeler `musicService.deleteTrack`.
 - **Lecteur public** : `AudioPlayer` orchestre lecture/pause, skip, volume, mute et s'appuie sur `AudioVisualization` pour afficher une visualisation canvas (types : `bars`, `wave`, `circle`, `dots`, `line`). `AudioVisualization` crée un `AudioContext`, donc conservez `'use client'` et vérifiez toujours que `audioElement` est défini avant d'appeler Web Audio API.
 - **Page `/musique`** : affichage via des `Tabs` shadcn (lecteur vs embeds SoundCloud). Si vous ajoutez une nouvelle source, pensez à garder les tabs pour séparer les contenus et évitez de charger le lecteur si `tracks.length === 0`.
+
+### Gestion de la bibliothèque Textes
+
+- **Upload** : `TextUploadForm` permet de créer un texte avec titre, sous-titre, contenu Markdown, extrait, auteur, date de publication, catégorie, tags et statut de publication. Le flux :
+  1. `textService.getMaxDisplayOrder()` pour calculer l'ordre.
+  2. Appeler `textService.createTextWithTags` avec les données du texte et les IDs des tags sélectionnés. Le service ajoute automatiquement `user_id` et gère les relations `text_tags`.
+  3. En cas d'erreur, afficher un toast d'erreur avec nettoyage si nécessaire.
+- **Administration** : `TextListAdmin` gère la liste complète des textes avec drag-and-drop pour réordonner, édition via `TextEditModal`, suppression avec confirmation, et filtrage par statut de publication. Les catégories et tags sont gérés via `CategoryManager` et `TagManager`.
+- **Affichage public** : `TextCard` affiche un aperçu du texte avec catégorie et tags. `TextDetailModal` utilise `MarkdownRenderer` (basé sur `react-markdown` + `remark-gfm`) pour afficher le contenu complet en Markdown. La page `/textes` affiche uniquement les textes publiés (`is_published: true`).
+- **Catégories et Tags** : `CategoryManager` et `TagManager` permettent de créer, modifier et supprimer les catégories et tags. Les catégories ont un ordre d'affichage (`display_order`) et une couleur. Les tags ont une couleur et un slug. Utilisez `categoryService` et `tagService` pour toutes les opérations CRUD.
+- **Recherche et filtrage** : `textService.searchTexts` permet la recherche full-text sur les titres (configurée pour le français). `getTextsByCategory` et `getTextsByTag` permettent de filtrer par catégorie ou tag. Ces méthodes retournent des `TextWithMetadata` avec les relations chargées.
 
 ## Commandes Utiles pour les Agents
 

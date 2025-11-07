@@ -49,16 +49,25 @@ npm run typecheck
 ### Structure des Routes
 
 Le projet utilise l'App Router avec les routes suivantes :
+
+**Pages publiques** :
 - `/` - Page d'accueil
 - `/a-propos` - Page à propos
 - `/applications` - Portfolio d'applications
 - `/musique` - Créations musicales
 - `/photos` - Galerie photos
 - `/videos` - Galerie vidéos
-- `/textes` - Créations textuelles
+- `/textes` - Créations textuelles (affichage des textes publiés)
 - `/contact` - Page de contact
-- `/login` - Page de connexion/authentification
 - `/parametres` - Paramètres d'apparence
+
+**Pages d'authentification** :
+- `/login` - Page de connexion/authentification
+
+**Pages d'administration** (protégées, nécessitent authentification) :
+- `/admin/photos` - Administration de la galerie photos
+- `/admin/music` - Administration de la bibliothèque musicale
+- `/admin/texts` - Administration des textes
 
 Chaque route a son propre fichier `page.tsx` dans un dossier dédié sous `app/`.
 
@@ -143,11 +152,14 @@ Tous les composants interactifs doivent utiliser `'use client'` en première lig
 
 Le projet utilise une couche service pour la logique métier :
 - `services/authService.ts` - Wrapper autour de Supabase Auth
-- `services/photoService.ts` - Gestion des photos
+- `services/photoService.ts` - Gestion des photos (CRUD + ordre d'affichage)
 - `services/musicService.ts` - Gestion des morceaux de musique (CRUD + ordre d'affichage)
-- `services/storageService.ts` - Gestion du stockage Supabase
+- `services/textService.ts` - Gestion des textes (CRUD + ordre d'affichage, catégories, tags, recherche)
+- `services/categoryService.ts` - Gestion des catégories pour les textes (CRUD + ordre d'affichage)
+- `services/tagService.ts` - Gestion des tags pour les textes (CRUD + relations text_tags)
+- `services/storageService.ts` - Gestion du stockage Supabase (photos et fichiers audio)
 
-Les services encapsulent les appels Supabase et sont utilisés par les contextes et composants.
+Les services encapsulent les appels Supabase et sont utilisés par les contextes et composants. Tous suivent le pattern de retour `{ data, error }` pour faciliter la gestion d'erreurs.
 
 ### Sidebar Behavior
 
@@ -164,8 +176,17 @@ La sidebar utilise un système de communication custom via événements :
 Le projet utilise **Supabase** comme backend :
 - Client initialisé dans `lib/supabaseClient.ts`
 - **Authentification** : Gérée via `authService` avec email/password
-- **Storage** : Service de stockage de fichiers disponible
+- **Storage** : Service de stockage de fichiers disponible (buckets `photo-files` et `audio-files`)
+- **Base de données** : Tables principales :
+  - `photos` - Galerie de photos
+  - `music_tracks` - Bibliothèque musicale
+  - `texts` - Textes et articles (avec support Markdown)
+  - `categories` - Catégories pour organiser les textes
+  - `tags` - Tags pour étiqueter les textes
+  - `text_tags` - Table de liaison entre textes et tags
 - Configuration via variables d'environnement (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
+**Types TypeScript** : `lib/supabaseClient.ts` exporte les types `Photo`, `MusicTrack`, `Text`, `TextWithMetadata`, `Category`, `Tag`, `TextTag` et `Database` pour une utilisation typée dans tout le projet.
 
 ### Notifications
 
@@ -179,6 +200,9 @@ Le projet utilise **Supabase** comme backend :
 - **Lucide React** pour les icônes
 - **date-fns** pour la manipulation de dates
 - **Recharts** pour les graphiques (si nécessaire)
+- **react-markdown** + **remark-gfm** pour le rendu Markdown des textes
+- **sonner** pour les notifications toast
+- **next-themes** pour la gestion des thèmes clair/sombre
 
 ## Outils IA
 
