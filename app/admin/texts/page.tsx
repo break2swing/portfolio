@@ -3,17 +3,20 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Text } from '@/lib/supabaseClient';
+import { TextWithMetadata } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
 import { TextUploadForm } from '@/components/texts/TextUploadForm';
 import { TextListAdmin } from '@/components/texts/TextListAdmin';
+import { CategoryManager } from '@/components/texts/CategoryManager';
+import { TagManager } from '@/components/texts/TagManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Upload, Settings } from 'lucide-react';
+import { Loader2, Upload, Settings, FolderTree, Tags } from 'lucide-react';
 
 export default function AdminTextsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [texts, setTexts] = useState<Text[]>([]);
+  const [texts, setTexts] = useState<TextWithMetadata[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,7 +34,7 @@ export default function AdminTextsPage() {
   const fetchTexts = async () => {
     setLoading(true);
     try {
-      const { texts: data, error } = await textService.getAllTexts();
+      const { texts: data, error } = await textService.getTextsWithMetadata();
 
       if (error) throw error;
 
@@ -58,49 +61,77 @@ export default function AdminTextsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">Administration des Textes</h1>
-        <p className="text-muted-foreground">
-          Gérez vos écrits et articles
-        </p>
+        <p className="text-muted-foreground">Gérez vos écrits, catégories et tags</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            <CardTitle>Ajouter un texte</CardTitle>
-          </div>
-          <CardDescription>
-            Rédigez et publiez un nouveau texte en Markdown
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TextUploadForm onSuccess={fetchTexts} />
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="texts" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto">
+          <TabsTrigger value="texts" className="gap-2">
+            <Upload className="h-4 w-4" />
+            Textes
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="gap-2">
+            <FolderTree className="h-4 w-4" />
+            Catégories
+          </TabsTrigger>
+          <TabsTrigger value="tags" className="gap-2">
+            <Tags className="h-4 w-4" />
+            Tags
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            <CardTitle>Gérer les textes</CardTitle>
-          </div>
-          <CardDescription>
-            Réorganisez et supprimez vos textes. Glissez-déposez pour changer l&apos;ordre.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Chargement...</p>
+        {/* Texts Tab */}
+        <TabsContent value="texts" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                <CardTitle>Ajouter un texte</CardTitle>
               </div>
-            </div>
-          ) : (
-            <TextListAdmin texts={texts} onUpdate={fetchTexts} />
-          )}
-        </CardContent>
-      </Card>
+              <CardDescription>
+                Rédigez et publiez un nouveau texte en Markdown
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TextUploadForm onSuccess={fetchTexts} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                <CardTitle>Gérer les textes</CardTitle>
+              </div>
+              <CardDescription>
+                Réorganisez et modifiez vos textes. Glissez-déposez pour changer l&apos;ordre.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Chargement...</p>
+                  </div>
+                </div>
+              ) : (
+                <TextListAdmin texts={texts} onUpdate={fetchTexts} />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Categories Tab */}
+        <TabsContent value="categories">
+          <CategoryManager />
+        </TabsContent>
+
+        {/* Tags Tab */}
+        <TabsContent value="tags">
+          <TagManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
