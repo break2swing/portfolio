@@ -1,0 +1,140 @@
+import { supabaseClient, MusicTrack } from '@/lib/supabaseClient';
+
+export const musicService = {
+  async getAllTracks() {
+    const { data, error } = await supabaseClient
+      .from('music_tracks')
+      .select('*')
+      .order('display_order', { ascending: true });
+
+    return { tracks: data as MusicTrack[] | null, error };
+  },
+
+  async getTrackById(id: string) {
+    const { data, error } = await supabaseClient
+      .from('music_tracks')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    return { track: data as MusicTrack | null, error };
+  },
+
+  async getMaxDisplayOrder() {
+    const { data, error } = await supabaseClient
+      .from('music_tracks')
+      .select('display_order')
+      .order('display_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return { maxOrder: data?.display_order ?? -1, error };
+  },
+
+  async createTrack(track: {
+    title: string;
+    artist: string | null;
+    album: string | null;
+    audio_url: string;
+    cover_image_url: string | null;
+    duration: number | null;
+    display_order: number;
+  }) {
+    console.log('[MUSIC SERVICE] Create track - Starting');
+    console.log('[MUSIC SERVICE] Track data:', JSON.stringify(track, null, 2));
+
+    try {
+      // Récupérer l'utilisateur connecté
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+      if (authError) {
+        console.error('[MUSIC SERVICE] Auth error:', authError);
+        return {
+          track: null,
+          error: {
+            message: 'Erreur d\'authentification',
+            code: 'AUTH_ERROR',
+            details: authError
+          } as any
+        };
+      }
+
+      if (!user) {
+        console.error('[MUSIC SERVICE] No user found - user must be authenticated');
+        return {
+          track: null,
+          error: {
+            message: 'Vous devez être connecté pour ajouter un morceau',
+            code: 'NOT_AUTHENTICATED',
+            hint: 'Connectez-vous depuis la page /login'
+          } as any
+        };
+      }
+
+      console.log('[MUSIC SERVICE] User authenticated:', user.id);
+
+      // Ajouter le user_id au track
+      const trackWithUser = {
+        ...track,
+        user_id: user.id
+      };
+
+      console.log('[MUSIC SERVICE] Inserting track with user_id:', trackWithUser);
+
+      const { data, error } = await supabaseClient
+        .from('music_tracks')
+        .insert(trackWithUser)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[MUSIC SERVICE] Insert track - ERROR:', error);
+        console.error('[MUSIC SERVICE] Error code:', error.code);
+        console.error('[MUSIC SERVICE] Error message:', error.message);
+        console.error('[MUSIC SERVICE] Error details:', JSON.stringify(error, null, 2));
+        return { track: null, error };
+      }
+
+      console.log('[MUSIC SERVICE] Insert track - SUCCESS:', data);
+      return { track: data as MusicTrack | null, error: null };
+    } catch (err) {
+      console.error('[MUSIC SERVICE] Unexpected error:', err);
+      return {
+        track: null,
+        error: {
+          message: err instanceof Error ? err.message : 'Unknown error',
+          details: err
+        } as any
+      };
+    }
+  },
+
+  async updateTrack(id: string, updates: Partial<MusicTrack>) {
+    const { data, error } = await supabaseClient
+      .from('music_tracks')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    return { track: data as MusicTrack | null, error };
+  },
+
+  async deleteTrack(id: string) {
+    const { error } = await supabaseClient
+      .from('music_tracks')
+      .delete()
+      .eq('id', id);
+
+    return { error };
+  },
+
+  async updateDisplayOrder(id: string, display_order: number) {
+    const { error } = await supabaseClient
+      .from('music_tracks')
+      .update({ display_order })
+      .eq('id', id);
+
+    return { error };
+  },
+};

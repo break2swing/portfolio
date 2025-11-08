@@ -15,10 +15,15 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Shield,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface NavItem {
   href: string;
@@ -44,6 +49,7 @@ interface SidebarProps {
 export function Sidebar({ onToggle }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const stored = localStorage.getItem('sidebarExpanded');
@@ -58,6 +64,13 @@ export function Sidebar({ onToggle }: SidebarProps) {
     localStorage.setItem('sidebarExpanded', String(newState));
     onToggle?.(newState);
     window.dispatchEvent(new Event('sidebar-toggle'));
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    toast.success('Déconnexion réussie', {
+      description: 'Vous avez été déconnecté',
+    });
   };
 
   return (
@@ -107,7 +120,54 @@ export function Sidebar({ onToggle }: SidebarProps) {
           })}
         </nav>
 
-        <div className="mt-auto border-t px-3 py-2">
+        <div className="mt-auto border-t px-3 py-2 space-y-1">
+          {user && (
+            <>
+              <Link href="/admin/photos">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                    'hover:bg-accent/50',
+                    pathname === '/admin/photos' && 'bg-foreground text-background font-medium',
+                    pathname !== '/admin/photos' && 'text-muted-foreground',
+                    !isExpanded && 'justify-center px-2'
+                  )}
+                >
+                  <Image className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && <span>Admin Photos</span>}
+                </div>
+              </Link>
+              <Link href="/admin/music">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                    'hover:bg-accent/50',
+                    pathname === '/admin/music' && 'bg-foreground text-background font-medium',
+                    pathname !== '/admin/music' && 'text-muted-foreground',
+                    !isExpanded && 'justify-center px-2'
+                  )}
+                >
+                  <Music className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && <span>Admin Musique</span>}
+                </div>
+              </Link>
+              <Link href="/admin/videos">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                    'hover:bg-accent/50',
+                    pathname === '/admin/videos' && 'bg-foreground text-background font-medium',
+                    pathname !== '/admin/videos' && 'text-muted-foreground',
+                    !isExpanded && 'justify-center px-2'
+                  )}
+                >
+                  <Video className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && <span>Admin Vidéos</span>}
+                </div>
+              </Link>
+            </>
+          )}
+
           <Link href="/parametres">
             <div
               className={cn(
@@ -122,6 +182,35 @@ export function Sidebar({ onToggle }: SidebarProps) {
               {isExpanded && <span>Paramètres</span>}
             </div>
           </Link>
+
+          {user ? (
+            <button
+              onClick={handleLogout}
+              className={cn(
+                'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                'hover:bg-accent/50 text-muted-foreground',
+                !isExpanded && 'justify-center px-2'
+              )}
+            >
+              <LogOut className="h-5 w-5 flex-shrink-0" />
+              {isExpanded && <span>Déconnexion</span>}
+            </button>
+          ) : (
+            <Link href="/login">
+              <div
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                  'hover:bg-accent/50',
+                  pathname === '/login' && 'bg-foreground text-background font-medium',
+                  pathname !== '/login' && 'text-muted-foreground',
+                  !isExpanded && 'justify-center px-2'
+                )}
+              >
+                <LogIn className="h-5 w-5 flex-shrink-0" />
+                {isExpanded && <span>Connexion</span>}
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     </aside>
