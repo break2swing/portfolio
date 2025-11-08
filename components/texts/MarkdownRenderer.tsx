@@ -2,6 +2,7 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useMemo, useEffect, useState } from 'react';
 
 interface MarkdownRendererProps {
   content: string;
@@ -9,6 +10,46 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+  const [DOMPurify, setDOMPurify] = useState<any>(null);
+
+  // Charger DOMPurify uniquement côté client
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      import('dompurify').then((module) => {
+        setDOMPurify(module.default);
+      });
+    }
+  }, []);
+
+  // Sanitiser le contenu pour prévenir les attaques XSS
+  // DOMPurify supprime les scripts, événements inline, et autres contenus dangereux
+  const sanitizedContent = useMemo(() => {
+    if (!DOMPurify) return content; // Fallback pendant le chargement
+
+    return DOMPurify.sanitize(content, {
+      // Permet les balises Markdown communes
+      ALLOWED_TAGS: [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'p', 'br', 'strong', 'em', 'u', 's', 'del', 'ins',
+        'a', 'img',
+        'ul', 'ol', 'li',
+        'blockquote', 'code', 'pre',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        'hr', 'div', 'span'
+      ],
+      // Permet les attributs nécessaires
+      ALLOWED_ATTR: [
+        'href', 'title', 'alt', 'src',
+        'class', 'id',
+        'align', 'start',
+        'colspan', 'rowspan'
+      ],
+      // Bloque JavaScript dans les URLs
+      ALLOW_DATA_ATTR: false,
+      ALLOW_UNKNOWN_PROTOCOLS: false,
+    });
+  }, [content, DOMPurify]);
+
   return (
     <div
       className={`prose prose-slate dark:prose-invert max-w-none ${className}`}
@@ -45,7 +86,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           ),
         }}
       >
-        {content}
+        {sanitizedContent}
       </ReactMarkdown>
     </div>
   );
