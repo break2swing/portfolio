@@ -1,14 +1,46 @@
 import { supabaseClient } from '@/lib/supabaseClient';
+import imageCompression from 'browser-image-compression';
 
 const PHOTO_BUCKET = 'photo-files';
 const AUDIO_BUCKET = 'audio-files';
 const VIDEO_BUCKET = 'video-files';
 
+/**
+ * Compresse une image côté client pour réduire la taille du fichier
+ * @param file - Fichier image à compresser
+ * @returns Fichier compressé
+ */
+async function compressImage(file: File): Promise<File> {
+  // Options de compression optimisées
+  const options = {
+    maxSizeMB: 1, // Taille maximale de 1MB
+    maxWidthOrHeight: 1920, // Largeur/hauteur max pour garder une bonne qualité
+    useWebWorker: true, // Utilise un Web Worker pour ne pas bloquer le thread principal
+    fileType: file.type as 'image/jpeg' | 'image/png' | 'image/webp',
+    initialQuality: 0.85, // Qualité initiale à 85% (bon compromis)
+  };
+
+  try {
+    console.log('[COMPRESSION] Original file size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+    const compressedFile = await imageCompression(file, options);
+    console.log('[COMPRESSION] Compressed file size:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+    console.log('[COMPRESSION] Reduction:', ((1 - compressedFile.size / file.size) * 100).toFixed(1), '%');
+    return compressedFile;
+  } catch (error) {
+    console.error('[COMPRESSION] Error compressing image:', error);
+    // En cas d'erreur, on retourne le fichier original
+    return file;
+  }
+}
+
 export const storageService = {
   async uploadPhoto(file: File, fileName: string) {
+    // Compresser l'image avant l'upload pour réduire la bande passante
+    const compressedFile = await compressImage(file);
+
     const { data, error } = await supabaseClient.storage
       .from(PHOTO_BUCKET)
-      .upload(fileName, file, {
+      .upload(fileName, compressedFile, {
         cacheControl: '3600',
         upsert: false,
       });

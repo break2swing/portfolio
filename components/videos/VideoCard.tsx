@@ -4,6 +4,7 @@ import { Video } from '@/lib/supabaseClient';
 import { Card, CardContent } from '@/components/ui/card';
 import { Video as VideoIcon, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { OptimizedImage } from '@/components/OptimizedImage';
 
 interface VideoCardProps {
   video: Video;
@@ -26,10 +27,12 @@ export function VideoCard({ video, onClick }: VideoCardProps) {
       <div className="relative aspect-video bg-secondary">
         {video.thumbnail_url ? (
           <>
-            <img
+            <OptimizedImage
               src={video.thumbnail_url}
               alt={video.title}
-              className="w-full h-full object-cover"
+              className="aspect-video"
+              objectFit="cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">

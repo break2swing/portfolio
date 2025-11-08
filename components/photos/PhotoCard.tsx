@@ -2,6 +2,7 @@
 
 import { Photo } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
+import { OptimizedImage } from '@/components/OptimizedImage';
 
 interface PhotoCardProps {
   photo: Photo;
@@ -13,16 +14,16 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
     <div
       className={cn(
         'group relative overflow-hidden rounded-lg cursor-pointer',
-        'aspect-square bg-muted',
         'transition-all duration-300 hover:shadow-lg hover:scale-[1.02]'
       )}
       onClick={onClick}
     >
-      <img
+      <OptimizedImage
         src={photo.image_url}
         alt={photo.title}
-        className="w-full h-full object-cover"
-        loading="lazy"
+        className="aspect-square"
+        objectFit="cover"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
       <div
         className={cn(
