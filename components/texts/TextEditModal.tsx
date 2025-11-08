@@ -39,7 +39,7 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
   const [excerpt, setExcerpt] = useState(text.excerpt || '');
   const [author, setAuthor] = useState(text.author || '');
   const [publishedDate, setPublishedDate] = useState(text.published_date || '');
-  const [categoryId, setCategoryId] = useState<string>(text.category_id || '');
+  const [categoryId, setCategoryId] = useState<string>(text.category_id || 'none');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(text.tags?.map(t => t.id) || []);
   const [isPublished, setIsPublished] = useState(text.is_published);
 
@@ -90,7 +90,7 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
         excerpt: excerpt.trim() || null,
         author: author.trim() || null,
         published_date: publishedDate || null,
-        category_id: categoryId || null,
+        category_id: categoryId === 'none' ? null : categoryId,
         is_published: isPublished,
       };
 
@@ -206,7 +206,7 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
                   <SelectValue placeholder="Aucune catégorie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucune catégorie</SelectItem>
+                  <SelectItem value="none">Aucune catégorie</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}

@@ -29,7 +29,7 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
   const [excerpt, setExcerpt] = useState('');
   const [author, setAuthor] = useState('');
   const [publishedDate, setPublishedDate] = useState('');
-  const [categoryId, setCategoryId] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string>('none');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [isPublished, setIsPublished] = useState(false);
 
@@ -88,7 +88,7 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
         excerpt: excerpt.trim() || null,
         author: author.trim() || null,
         published_date: publishedDate || null,
-        category_id: categoryId || null,
+        category_id: categoryId === 'none' ? null : categoryId,
         is_published: isPublished,
         display_order: (maxOrder ?? -1) + 1,
       };
@@ -118,7 +118,7 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
       setExcerpt('');
       setAuthor('');
       setPublishedDate('');
-      setCategoryId('');
+      setCategoryId('none');
       setSelectedTagIds([]);
       setIsPublished(false);
 
@@ -207,7 +207,7 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
                   <SelectValue placeholder="Aucune catégorie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucune catégorie</SelectItem>
+                  <SelectItem value="none">Aucune catégorie</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
