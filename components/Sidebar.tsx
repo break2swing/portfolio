@@ -122,20 +122,50 @@ export function Sidebar({ onToggle }: SidebarProps) {
 
         <div className="mt-auto border-t px-3 py-2 space-y-1">
           {user && (
-            <Link href="/admin/photos">
-              <div
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
-                  'hover:bg-accent/50',
-                  pathname === '/admin/photos' && 'bg-foreground text-background font-medium',
-                  pathname !== '/admin/photos' && 'text-muted-foreground',
-                  !isExpanded && 'justify-center px-2'
-                )}
-              >
-                <Shield className="h-5 w-5 flex-shrink-0" />
-                {isExpanded && <span>Admin Photos</span>}
-              </div>
-            </Link>
+            <>
+              <Link href="/admin/photos">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                    'hover:bg-accent/50',
+                    pathname === '/admin/photos' && 'bg-foreground text-background font-medium',
+                    pathname !== '/admin/photos' && 'text-muted-foreground',
+                    !isExpanded && 'justify-center px-2'
+                  )}
+                >
+                  <Image className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && <span>Admin Photos</span>}
+                </div>
+              </Link>
+              <Link href="/admin/music">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                    'hover:bg-accent/50',
+                    pathname === '/admin/music' && 'bg-foreground text-background font-medium',
+                    pathname !== '/admin/music' && 'text-muted-foreground',
+                    !isExpanded && 'justify-center px-2'
+                  )}
+                >
+                  <Music className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && <span>Admin Musique</span>}
+                </div>
+              </Link>
+              <Link href="/admin/videos">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                    'hover:bg-accent/50',
+                    pathname === '/admin/videos' && 'bg-foreground text-background font-medium',
+                    pathname !== '/admin/videos' && 'text-muted-foreground',
+                    !isExpanded && 'justify-center px-2'
+                  )}
+                >
+                  <Video className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && <span>Admin Vidéos</span>}
+                </div>
+              </Link>
+            </>
           )}
 
           <Link href="/parametres">

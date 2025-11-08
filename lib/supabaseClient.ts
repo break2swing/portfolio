@@ -85,6 +85,18 @@ export type TextWithMetadata = Text & {
   tags?: Tag[];
 };
 
+export type Video = {
+  id: string;
+  title: string;
+  description: string | null;
+  video_url: string;
+  thumbnail_url: string | null;
+  duration: number | null;
+  display_order: number;
+  user_id: string | null;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -135,6 +147,14 @@ export type Database = {
         Row: TextTag;
         Insert: TextTag;
         Update: never;
+      };
+      videos: {
+        Row: Video;
+        Insert: Omit<Video, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Omit<Video, 'id' | 'created_at'>>;
       };
     };
   };

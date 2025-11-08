@@ -2,6 +2,7 @@ import { supabaseClient } from '@/lib/supabaseClient';
 
 const PHOTO_BUCKET = 'photo-files';
 const AUDIO_BUCKET = 'audio-files';
+const VIDEO_BUCKET = 'video-files';
 
 export const storageService = {
   async uploadPhoto(file: File, fileName: string) {
@@ -66,6 +67,46 @@ export const storageService = {
   async deleteAudio(fileName: string) {
     const { data, error } = await supabaseClient.storage
       .from(AUDIO_BUCKET)
+      .remove([fileName]);
+
+    return { data, error };
+  },
+
+  async uploadVideo(file: File, fileName: string) {
+    console.log('[STORAGE] Upload video - Starting');
+    console.log('[STORAGE] Bucket:', VIDEO_BUCKET);
+    console.log('[STORAGE] File name:', fileName);
+    console.log('[STORAGE] File type:', file.type);
+    console.log('[STORAGE] File size:', file.size);
+
+    const { data, error } = await supabaseClient.storage
+      .from(VIDEO_BUCKET)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('[STORAGE] Upload video - ERROR:', error);
+      console.error('[STORAGE] Error details:', JSON.stringify(error, null, 2));
+    } else {
+      console.log('[STORAGE] Upload video - SUCCESS:', data);
+    }
+
+    return { data, error };
+  },
+
+  getVideoPublicUrl(fileName: string) {
+    const { data } = supabaseClient.storage
+      .from(VIDEO_BUCKET)
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  },
+
+  async deleteVideo(fileName: string) {
+    const { data, error } = await supabaseClient.storage
+      .from(VIDEO_BUCKET)
       .remove([fileName]);
 
     return { data, error };
