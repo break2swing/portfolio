@@ -1231,3 +1231,206 @@ Les workflows sont prêts à être utilisés.
 
 ---
 
+_**User (2025-11-09 07:58Z)**_
+
+céer description de pullrequest pour ci
+
+---
+
+_**Agent (model composer-1, mode Agent)**_
+
+
+
+---
+
+
+Création d'un template de description de pull request pour le CI/CD.
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: .github/pull_request_template.md</summary>
+
+**Chunk 1**
+Lines added: 57, lines removed: 1
+
+```diff
+@@ -1,1 +1,57 @@
+- 
++ ## Description
++ 
++ &lt;!-- Décrivez brièvement les changements apportés dans cette PR --&gt;
++ 
++ ## Type de changement
++ 
++ &lt;!-- Cochez les cases applicables avec un &#39;x&#39; --&gt;
++ 
++ - [ ] 🐛 Bug fix (correction qui ne casse pas les fonctionnalités existantes)
++ - [ ] ✨ Nouvelle fonctionnalité (ajout qui ne casse pas les fonctionnalités existantes)
++ - [ ] 💥 Breaking change (fix ou fonctionnalité qui casse les fonctionnalités existantes)
++ - [ ] 📚 Documentation (changements dans la documentation uniquement)
++ - [ ] 🔧 Configuration CI/CD (changements dans les workflows GitHub Actions)
++ - [ ] 🎨 Style (formatage, point-virgule manquant, etc., pas de changement de code)
++ - [ ] ♻️ Refactoring (refactoring du code sans changement de fonctionnalité)
++ - [ ] ⚡ Performance (amélioration des performances)
++ - [ ] ✅ Tests (ajout ou modification de tests)
++ - [ ] 🔨 Build (changements dans le système de build ou dépendances)
++ 
++ ## Checklist
++ 
++ &lt;!-- Vérifiez que vous avez complété les étapes suivantes --&gt;
++ 
++ - [ ] Mon code suit les conventions de style du projet (voir &#96;AGENTS.md&#96;)
++ - [ ] J&#39;ai effectué une auto-revue de mon code
++ - [ ] J&#39;ai commenté mon code, particulièrement dans les parties complexes
++ - [ ] J&#39;ai mis à jour la documentation si nécessaire
++ - [ ] Mes changements ne génèrent pas de nouveaux warnings
++ - [ ] J&#39;ai ajouté des tests qui prouvent que ma correction est efficace ou que ma fonctionnalité fonctionne
++ - [ ] Les tests unitaires nouveaux et existants passent localement avec mes changements
++ - [ ] Les vérifications CI passent (lint, typecheck, build)
++ 
++ ## Tests
++ 
++ &lt;!-- Décrivez les tests que vous avez effectués pour vérifier vos changements --&gt;
++ 
++ - [ ] Tests manuels effectués
++ - [ ] Tests automatisés ajoutés/modifiés
++ - [ ] Vérification du build local réussie
++ - [ ] Vérification du linting réussie
++ - [ ] Vérification du type checking réussie
++ 
++ ## Captures d&#39;écran / Démonstration
++ 
++ &lt;!-- Si applicable, ajoutez des captures d&#39;écran ou une démonstration de vos changements --&gt;
++ 
++ ## Informations supplémentaires
++ 
++ &lt;!-- Ajoutez toute autre information pertinente pour les reviewers --&gt;
++ 
++ ## Liens
++ 
++ &lt;!-- Si applicable, ajoutez des liens vers des issues, discussions, ou documentation --&gt;
++ 
++ - Closes #&lt;!-- numéro d&#39;issue --&gt;
++ - Relates to #&lt;!-- numéro d&#39;issue --&gt;
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: .github/PULL_REQUEST_CI.md</summary>
+
+**Chunk 1**
+Lines added: 53, lines removed: 1
+
+```diff
+@@ -1,1 +1,53 @@
+- 
++ ## 🚀 Ajout de la configuration CI/CD
++ 
++ ### Description
++ 
++ Cette PR ajoute la configuration CI/CD complète pour le projet avec GitHub Actions.
++ 
++ ### Changements apportés
++ 
++ - ✅ **Workflow CI** (&#96;.github/workflows/ci.yml&#96;)
++   - Vérification automatique du linting avec ESLint
++   - Vérification des types TypeScript
++   - Build automatique du projet Next.js
++   - Upload des artifacts de build pour inspection
++ 
++ - ✅ **Workflow de déploiement** (&#96;.github/workflows/deploy.yml&#96;)
++   - Déploiement automatique sur GitHub Pages lors des push sur &#96;main&#96;
++   - Support optionnel pour Vercel (commenté, prêt à activer)
++ 
++ ### Type de changement
++ 
++ - [x] 🔧 Configuration CI/CD
++ 
++ ### Checklist
++ 
++ - [x] Les workflows sont correctement configurés
++ - [x] Les secrets GitHub doivent être configurés manuellement (voir instructions ci-dessous)
++ - [x] La documentation est incluse dans cette PR
++ 
++ ### Configuration requise
++ 
++ ⚠️ **Action requise avant merge** : Configurer les secrets GitHub suivants dans Settings → Secrets and variables → Actions :
++ 
++ - &#96;NEXT_PUBLIC_SUPABASE_URL&#96;
++ - &#96;NEXT_PUBLIC_SUPABASE_ANON_KEY&#96;
++ 
++ ### Tests
++ 
++ - [x] Les workflows ont été testés localement (syntaxe YAML validée)
++ - [x] La configuration est compatible avec Next.js 13 et l&#39;export statique
++ 
++ ### Informations supplémentaires
++ 
++ - Les workflows se déclencheront automatiquement sur les branches &#96;main&#96; et &#96;develop&#96;
++ - Le workflow de déploiement ne s&#39;exécute que sur &#96;main&#96;
++ - Les artifacts de build sont conservés pendant 7 jours
++ - Le cache npm est activé pour accélérer les builds
++ 
++ ### Prochaines étapes après merge
++ 
++ 1. Configurer les secrets GitHub (voir section &quot;Configuration requise&quot;)
++ 2. Activer GitHub Pages dans les paramètres du dépôt (si utilisation de GitHub Pages)
++ 3. Faire un test push sur &#96;main&#96; pour vérifier le fonctionnement
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+Deux fichiers créés :
+
+## Fichiers créés
+
+### 1. `.github/pull_request_template.md`
+Template réutilisable pour toutes les pull requests. Il inclut :
+- Sections de description
+- Types de changements (bug fix, nouvelle fonctionnalité, CI/CD, etc.)
+- Checklist de vérification
+- Sections pour tests, captures d'écran, liens
+
+### 2. `.github/PULL_REQUEST_CI.md`
+Description prête à l'emploi pour la PR du CI/CD. Elle inclut :
+- Description des changements
+- Détails des workflows créés
+- Instructions de configuration des secrets
+- Checklist et prochaines étapes
+
+## Utilisation
+
+### Pour la PR actuelle (CI/CD)
+Copiez le contenu de `.github/PULL_REQUEST_CI.md` dans la description de votre pull request.
+
+### Pour les futures PRs
+GitHub utilisera automatiquement `.github/pull_request_template.md` comme template par défaut lors de la création d'une nouvelle pull request.
+
+## Note
+
+Le template est en français, cohérent avec votre projet. Si vous préférez l'anglais, je peux le modifier.
+
+Souhaitez-vous que je crée aussi un template pour les issues GitHub ?
+
+---
+
