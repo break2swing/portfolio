@@ -79,6 +79,27 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 
 ## WORKFLOW & RELEASE RULES
 
+*   When creating a pull request, analyze recent file changes to understand the modifications.
+*   Utilize tools like `read_file`, `codebase_search`, and `grep` to identify changes.
+*   Search for specific keywords or patterns related to the changes (e.g., "admin/(photos|music|videos|texts)" in `components/Sidebar.tsx`).
+*   Search for "CHANGELOG" to track changes.
+*   Based on the analysis, generate a detailed pull request description including:
+    *   A summary of the changes.
+    *   A list of the main changes.
+    *   The files modified.
+    *   Technical details.
+    *   A checklist of tests performed.
+    *   Screenshots (if applicable).
+    *   Links to related issues.
+    *   The type of change (e.g., feature).
+    *   The impact of the change.
+    *   Whether there are any breaking changes.
+* When implementing new features that require database changes, such as adding a tagging system, the pull request description must include:
+    * Database schema changes, including new tables, columns, and relationships.
+    * RLS (Row Level Security) configurations for new tables.
+    * Migration scripts (SQL) to apply the database changes.
+    * Suggested default tags for the new feature, where applicable.
+
 ## CODING STANDARDS
 
 ## DEBUGGING

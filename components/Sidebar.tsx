@@ -37,7 +37,7 @@ const mainNavItems: NavItem[] = [
   { href: '/photos', icon: Image, label: 'Photo' },
   { href: '/videos', icon: Video, label: 'Vidéo' },
   { href: '/textes', icon: FileText, label: 'Texte' },
-  { href: '/applications', icon: AppWindow, label: 'Applications' },
+  { href: '/applications', icon: AppWindow, label: 'Application' },
   { href: '/a-propos', icon: Info, label: 'À propos' },
   { href: '/contact', icon: Mail, label: 'Contact' },
 ];

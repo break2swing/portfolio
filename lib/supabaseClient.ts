@@ -80,8 +80,38 @@ export type TextTag = {
   created_at: string;
 };
 
+export type MusicTag = {
+  music_track_id: string;
+  tag_id: string;
+  created_at: string;
+};
+
+export type VideoTag = {
+  video_id: string;
+  tag_id: string;
+  created_at: string;
+};
+
+export type PhotoTag = {
+  photo_id: string;
+  tag_id: string;
+  created_at: string;
+};
+
 export type TextWithMetadata = Text & {
   category?: Category | null;
+  tags?: Tag[];
+};
+
+export type MusicTrackWithTags = MusicTrack & {
+  tags?: Tag[];
+};
+
+export type VideoWithTags = Video & {
+  tags?: Tag[];
+};
+
+export type PhotoWithTags = Photo & {
   tags?: Tag[];
 };
 
@@ -146,6 +176,21 @@ export type Database = {
       text_tags: {
         Row: TextTag;
         Insert: TextTag;
+        Update: never;
+      };
+      music_tags: {
+        Row: MusicTag;
+        Insert: MusicTag;
+        Update: never;
+      };
+      video_tags: {
+        Row: VideoTag;
+        Insert: VideoTag;
+        Update: never;
+      };
+      photo_tags: {
+        Row: PhotoTag;
+        Insert: PhotoTag;
         Update: never;
       };
       videos: {
