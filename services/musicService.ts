@@ -1,4 +1,5 @@
-import { supabaseClient, MusicTrack } from '@/lib/supabaseClient';
+import { supabaseClient, MusicTrack, MusicTrackWithTags } from '@/lib/supabaseClient';
+import { musicTagService } from './musicTagService';
 
 export const musicService = {
   async getAllTracks() {
@@ -8,6 +9,27 @@ export const musicService = {
       .order('display_order', { ascending: true });
 
     return { tracks: data as MusicTrack[] | null, error };
+  },
+
+  async getAllTracksWithTags() {
+    const { data, error } = await supabaseClient
+      .from('music_tracks')
+      .select(`
+        *,
+        music_tags(tag:tags(*))
+      `)
+      .order('display_order', { ascending: true });
+
+    if (error) return { tracks: null, error };
+
+    const tracks = data.map((track: any) => ({
+      ...track,
+      tags: track.music_tags?.map((mt: any) => mt.tag).filter(Boolean) || [],
+    }));
+
+    tracks.forEach((track: any) => delete track.music_tags);
+
+    return { tracks: tracks as MusicTrackWithTags[], error: null };
   },
 
   async getTrackById(id: string) {
@@ -136,5 +158,34 @@ export const musicService = {
       .eq('id', id);
 
     return { error };
+  },
+
+  async createTrackWithTags(
+    trackData: {
+      title: string;
+      artist: string | null;
+      album: string | null;
+      audio_url: string;
+      cover_image_url: string | null;
+      duration: number | null;
+      display_order: number;
+    },
+    tagIds: string[] = []
+  ) {
+    const { track, error } = await this.createTrack(trackData);
+
+    if (error || !track) {
+      return { track: null, error };
+    }
+
+    // Ajouter les tags
+    if (tagIds.length > 0) {
+      const { error: tagsError } = await musicTagService.setTagsForMusicTrack(track.id, tagIds);
+      if (tagsError) {
+        console.error('[MUSIC SERVICE] Error setting tags:', tagsError);
+      }
+    }
+
+    return { track, error: null };
   },
 };

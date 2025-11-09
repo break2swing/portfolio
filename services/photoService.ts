@@ -1,4 +1,5 @@
-import { supabaseClient, Photo } from '@/lib/supabaseClient';
+import { supabaseClient, Photo, PhotoWithTags } from '@/lib/supabaseClient';
+import { photoTagService } from './photoTagService';
 
 export const photoService = {
   async getAllPhotos() {
@@ -8,6 +9,27 @@ export const photoService = {
       .order('display_order', { ascending: true });
 
     return { photos: data as Photo[] | null, error };
+  },
+
+  async getAllPhotosWithTags() {
+    const { data, error } = await supabaseClient
+      .from('photos')
+      .select(`
+        *,
+        photo_tags(tag:tags(*))
+      `)
+      .order('display_order', { ascending: true});
+
+    if (error) return { photos: null, error };
+
+    const photos = data.map((photo: any) => ({
+      ...photo,
+      tags: photo.photo_tags?.map((pt: any) => pt.tag).filter(Boolean) || [],
+    }));
+
+    photos.forEach((photo: any) => delete photo.photo_tags);
+
+    return { photos: photos as PhotoWithTags[], error: null };
   },
 
   async getPhotoById(id: string) {
@@ -73,5 +95,31 @@ export const photoService = {
       .eq('id', id);
 
     return { error };
+  },
+
+  async createPhotoWithTags(
+    photoData: {
+      title: string;
+      description: string | null;
+      image_url: string;
+      display_order: number;
+    },
+    tagIds: string[] = []
+  ) {
+    const { photo, error } = await this.createPhoto(photoData);
+
+    if (error || !photo) {
+      return { photo: null, error };
+    }
+
+    // Ajouter les tags
+    if (tagIds.length > 0) {
+      const { error: tagsError } = await photoTagService.setTagsForPhoto(photo.id, tagIds);
+      if (tagsError) {
+        console.error('[PHOTO SERVICE] Error setting tags:', tagsError);
+      }
+    }
+
+    return { photo, error: null };
   },
 };

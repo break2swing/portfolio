@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef, DragEvent } from 'react';
+import { useState, useRef, useEffect, DragEvent } from 'react';
+import { Tag } from '@/lib/supabaseClient';
 import { musicService } from '@/services/musicService';
 import { storageService } from '@/services/storageService';
+import { tagService } from '@/services/tagService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Upload, X, Loader2, Music } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { TagBadge } from '@/components/texts/TagBadge';
 
 interface MusicUploadFormProps {
   onSuccess: () => void;
@@ -29,8 +32,35 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    loadTags();
+  }, []);
+
+  const loadTags = async () => {
+    setLoadingTags(true);
+    try {
+      const { tags: tgs } = await tagService.getAllTags();
+      setTags(tgs || []);
+    } catch (error) {
+      console.error('Error loading tags:', error);
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds(prev =>
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    );
+  };
 
   const validateAudioFile = (file: File): string | null => {
     if (!ACCEPTED_AUDIO_TYPES.includes(file.type)) {
@@ -195,8 +225,8 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
       const duration = await getAudioDuration(audioFile);
       console.log('[FORM] Duration:', duration);
 
-      console.log('[FORM] Step 6: Creating track in database');
-      const { error: insertError } = await musicService.createTrack({
+      console.log('[FORM] Step 6: Creating track in database with tags');
+      const { error: insertError } = await musicService.createTrackWithTags({
         title: title.trim(),
         artist: artist.trim() || null,
         album: album.trim() || null,
@@ -204,7 +234,7 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
         cover_image_url: coverPublicUrl,
         duration: duration > 0 ? duration : null,
         display_order: nextOrder,
-      });
+      }, selectedTagIds);
 
       if (insertError) {
         console.error('[FORM] Database insert failed:', insertError);
@@ -240,6 +270,7 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
       setTitle('');
       setArtist('');
       setAlbum('');
+      setSelectedTagIds([]);
       clearAudioFile();
       clearCoverFile();
       onSuccess();
@@ -430,6 +461,22 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
           </Card>
         )}
       </div>
+
+      {!loadingTags && tags.length > 0 && (
+        <div className="space-y-2">
+          <Label>Tags</Label>
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <TagBadge
+                key={tag.id}
+                tag={tag}
+                variant={selectedTagIds.includes(tag.id) ? 'default' : 'outline'}
+                onClick={() => toggleTag(tag.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <Button type="submit" className="w-full" disabled={uploading || !audioFile || !title.trim()}>
         {uploading ? (

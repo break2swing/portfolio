@@ -1,4 +1,5 @@
-import { supabaseClient, Video } from '@/lib/supabaseClient';
+import { supabaseClient, Video, VideoWithTags } from '@/lib/supabaseClient';
+import { videoTagService } from './videoTagService';
 
 export const videoService = {
   async getAllVideos() {
@@ -8,6 +9,27 @@ export const videoService = {
       .order('display_order', { ascending: true });
 
     return { videos: data as Video[] | null, error };
+  },
+
+  async getAllVideosWithTags() {
+    const { data, error } = await supabaseClient
+      .from('videos')
+      .select(`
+        *,
+        video_tags(tag:tags(*))
+      `)
+      .order('display_order', { ascending: true });
+
+    if (error) return { videos: null, error };
+
+    const videos = data.map((video: any) => ({
+      ...video,
+      tags: video.video_tags?.map((vt: any) => vt.tag).filter(Boolean) || [],
+    }));
+
+    videos.forEach((video: any) => delete video.video_tags);
+
+    return { videos: videos as VideoWithTags[], error: null };
   },
 
   async getVideoById(id: string) {
@@ -133,5 +155,33 @@ export const videoService = {
       .eq('id', id);
 
     return { error };
+  },
+
+  async createVideoWithTags(
+    videoData: {
+      title: string;
+      description: string | null;
+      video_url: string;
+      thumbnail_url: string | null;
+      duration: number | null;
+      display_order: number;
+    },
+    tagIds: string[] = []
+  ) {
+    const { video, error } = await this.createVideo(videoData);
+
+    if (error || !video) {
+      return { video: null, error };
+    }
+
+    // Ajouter les tags
+    if (tagIds.length > 0) {
+      const { error: tagsError } = await videoTagService.setTagsForVideo(video.id, tagIds);
+      if (tagsError) {
+        console.error('[VIDEO SERVICE] Error setting tags:', tagsError);
+      }
+    }
+
+    return { video, error: null };
   },
 };
