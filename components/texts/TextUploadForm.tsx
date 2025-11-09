@@ -5,6 +5,7 @@ import { Category, Tag } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
 import { categoryService } from '@/services/categoryService';
 import { tagService } from '@/services/tagService';
+import { createTextSchema } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,10 +14,11 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { TagBadge } from './TagBadge';
+import type { ZodError } from 'zod';
 
 interface TextUploadFormProps {
   onSuccess: () => void;
@@ -37,6 +39,7 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadData();
@@ -61,10 +64,40 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !content.trim()) {
-      toast.error('Champs requis', {
-        description: 'Veuillez renseigner un titre et du contenu',
-      });
+    // Réinitialiser les erreurs de validation
+    setValidationErrors({});
+
+    // Validation Zod avant soumission
+    const formData = {
+      title: title.trim(),
+      subtitle: subtitle.trim() || null,
+      content: content.trim(),
+      excerpt: excerpt.trim() || null,
+      author: author.trim() || null,
+      published_date: publishedDate || null,
+      category_id: categoryId === 'none' ? null : categoryId,
+      is_published: isPublished,
+    };
+
+    try {
+      const validatedData = createTextSchema.parse(formData);
+      console.log('[FORM] Validation passed:', validatedData);
+    } catch (error) {
+      if (error instanceof Object && 'errors' in error) {
+        const zodError = error as ZodError;
+        const errors: Record<string, string> = {};
+        zodError.errors.forEach((err) => {
+          if (err.path.length > 0) {
+            errors[err.path[0] as string] = err.message;
+          }
+        });
+        setValidationErrors(errors);
+        toast.error('Erreur de validation', {
+          description: 'Veuillez corriger les erreurs dans le formulaire',
+        });
+        return;
+      }
+      console.error('[FORM] Validation error:', error);
       return;
     }
 
@@ -82,14 +115,7 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
       }
 
       const newText = {
-        title: title.trim(),
-        subtitle: subtitle.trim() || null,
-        content: content.trim(),
-        excerpt: excerpt.trim() || null,
-        author: author.trim() || null,
-        published_date: publishedDate || null,
-        category_id: categoryId === 'none' ? null : categoryId,
-        is_published: isPublished,
+        ...formData,
         display_order: (maxOrder ?? -1) + 1,
       };
 
@@ -164,7 +190,15 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={loading}
                 required
+                aria-invalid={!!validationErrors.title}
+                aria-describedby={validationErrors.title ? 'title-error' : undefined}
               />
+              {validationErrors.title && (
+                <p id="title-error" className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {validationErrors.title}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -174,7 +208,15 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
                 disabled={loading}
+                aria-invalid={!!validationErrors.subtitle}
+                aria-describedby={validationErrors.subtitle ? 'subtitle-error' : undefined}
               />
+              {validationErrors.subtitle && (
+                <p id="subtitle-error" className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {validationErrors.subtitle}
+                </p>
+              )}
             </div>
           </div>
 
@@ -186,7 +228,15 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
                 disabled={loading}
+                aria-invalid={!!validationErrors.author}
+                aria-describedby={validationErrors.author ? 'author-error' : undefined}
               />
+              {validationErrors.author && (
+                <p id="author-error" className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {validationErrors.author}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -197,13 +247,25 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
                 value={publishedDate}
                 onChange={(e) => setPublishedDate(e.target.value)}
                 disabled={loading}
+                aria-invalid={!!validationErrors.published_date}
+                aria-describedby={validationErrors.published_date ? 'date-error' : undefined}
               />
+              {validationErrors.published_date && (
+                <p id="date-error" className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {validationErrors.published_date}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="category">Catégorie</Label>
               <Select value={categoryId} onValueChange={setCategoryId} disabled={loading}>
-                <SelectTrigger id="category">
+                <SelectTrigger
+                  id="category"
+                  aria-invalid={!!validationErrors.category_id}
+                  aria-describedby={validationErrors.category_id ? 'category-error' : undefined}
+                >
                   <SelectValue placeholder="Aucune catégorie" />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,6 +277,12 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+              {validationErrors.category_id && (
+                <p id="category-error" className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {validationErrors.category_id}
+                </p>
+              )}
             </div>
           </div>
 
@@ -252,7 +320,15 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
               onChange={(e) => setExcerpt(e.target.value)}
               disabled={loading}
               rows={3}
+              aria-invalid={!!validationErrors.excerpt}
+              aria-describedby={validationErrors.excerpt ? 'excerpt-error' : undefined}
             />
+            {validationErrors.excerpt && (
+              <p id="excerpt-error" className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {validationErrors.excerpt}
+              </p>
+            )}
           </div>
 
           <Tabs defaultValue="edit" className="w-full">
@@ -271,7 +347,15 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
                 rows={15}
                 className="font-mono text-sm"
                 required
+                aria-invalid={!!validationErrors.content}
+                aria-describedby={validationErrors.content ? 'content-error' : undefined}
               />
+              {validationErrors.content && (
+                <p id="content-error" className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {validationErrors.content}
+                </p>
+              )}
             </TabsContent>
 
             <TabsContent value="preview" className="mt-4">

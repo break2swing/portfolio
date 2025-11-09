@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { OptimizedImage } from '@/components/OptimizedImage';
 
 interface PhotoViewerModalProps {
   photos: Photo[];
@@ -207,10 +208,12 @@ export function PhotoViewerModal({ photos, initialIndex, open, onClose }: PhotoV
               className="relative transition-transform duration-200"
               style={{ transform: `scale(${zoom})` }}
             >
-              <img
+              <OptimizedImage
                 src={currentPhoto.image_url}
                 alt={currentPhoto.title}
-                className="max-w-full max-h-[70vh] w-auto h-auto object-contain"
+                className="max-w-full max-h-[70vh]"
+                objectFit="contain"
+                priority={true}
               />
             </div>
           </div>

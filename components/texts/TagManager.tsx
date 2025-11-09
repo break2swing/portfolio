@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Tag } from '@/lib/supabaseClient';
 import { tagService } from '@/services/tagService';
+import { createTagSchema, updateTagSchema } from '@/lib/validators';
 import {
   Card,
   CardContent,
@@ -21,9 +22,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { TagBadge } from './TagBadge';
+import type { ZodError } from 'zod';
 
 const PRESET_COLORS = [
   '#3b82f6', // blue
@@ -46,6 +48,7 @@ export function TagManager() {
   // Form state
   const [name, setName] = useState('');
   const [color, setColor] = useState('#3b82f6');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadTags();
@@ -71,6 +74,7 @@ export function TagManager() {
     setName('');
     setColor('#3b82f6');
     setEditingTag(null);
+    setValidationErrors({});
   };
 
   const handleOpenDialog = (tag?: Tag) => {
@@ -92,8 +96,40 @@ export function TagManager() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim()) {
-      toast.error('Erreur', { description: 'Le nom est requis' });
+    // Réinitialiser les erreurs de validation
+    setValidationErrors({});
+
+    // Préparer les données du formulaire
+    const formData = {
+      name: name.trim(),
+      color,
+    };
+
+    // Validation Zod avant soumission
+    try {
+      if (editingTag) {
+        const validatedData = updateTagSchema.parse(formData);
+        console.log('[TAG] Update validation passed:', validatedData);
+      } else {
+        const validatedData = createTagSchema.parse(formData);
+        console.log('[TAG] Create validation passed:', validatedData);
+      }
+    } catch (error) {
+      if (error instanceof Object && 'errors' in error) {
+        const zodError = error as ZodError;
+        const errors: Record<string, string> = {};
+        zodError.errors.forEach((err) => {
+          if (err.path.length > 0) {
+            errors[err.path[0] as string] = err.message;
+          }
+        });
+        setValidationErrors(errors);
+        toast.error('Erreur de validation', {
+          description: 'Veuillez corriger les erreurs dans le formulaire',
+        });
+        return;
+      }
+      console.error('[TAG] Validation error:', error);
       return;
     }
 
@@ -102,10 +138,7 @@ export function TagManager() {
     try {
       if (editingTag) {
         // Update existing tag
-        const { error } = await tagService.updateTag(editingTag.id, {
-          name: name.trim(),
-          color,
-        });
+        const { error } = await tagService.updateTag(editingTag.id, formData);
 
         if (error) throw error;
 
@@ -114,10 +147,7 @@ export function TagManager() {
         });
       } else {
         // Create new tag
-        const { error } = await tagService.createTag({
-          name: name.trim(),
-          color,
-        });
+        const { error } = await tagService.createTag(formData);
 
         if (error) throw error;
 
@@ -206,11 +236,19 @@ export function TagManager() {
                     onChange={(e) => setName(e.target.value)}
                     disabled={submitting}
                     required
+                    aria-invalid={!!validationErrors.name}
+                    aria-describedby={validationErrors.name ? 'tag-name-error' : undefined}
                   />
+                  {validationErrors.name && (
+                    <p id="tag-name-error" className="text-sm text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      {validationErrors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Couleur</Label>
+                  <Label htmlFor="tag-color-hex">Couleur</Label>
                   <div className="flex gap-2">
                     {PRESET_COLORS.map((presetColor) => (
                       <button
@@ -224,6 +262,7 @@ export function TagManager() {
                         style={{ backgroundColor: presetColor }}
                         onClick={() => setColor(presetColor)}
                         disabled={submitting}
+                        aria-label={`Sélectionner la couleur ${presetColor}`}
                       />
                     ))}
                   </div>
@@ -234,14 +273,25 @@ export function TagManager() {
                       onChange={(e) => setColor(e.target.value)}
                       disabled={submitting}
                       className="w-20 h-10"
+                      aria-label="Sélecteur de couleur"
+                      aria-invalid={!!validationErrors.color}
                     />
                     <Input
+                      id="tag-color-hex"
                       value={color}
                       onChange={(e) => setColor(e.target.value)}
                       disabled={submitting}
                       placeholder="#3b82f6"
+                      aria-invalid={!!validationErrors.color}
+                      aria-describedby={validationErrors.color ? 'tag-color-error' : undefined}
                     />
                   </div>
+                  {validationErrors.color && (
+                    <p id="tag-color-error" className="text-sm text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      {validationErrors.color}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2">

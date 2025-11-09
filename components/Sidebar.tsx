@@ -33,10 +33,10 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { href: '/', icon: Home, label: 'Accueil' },
-  { href: '/musique', icon: Music, label: 'Musique' },
-  { href: '/photos', icon: Image, label: 'Photos' },
-  { href: '/videos', icon: Video, label: 'Vidéos' },
-  { href: '/textes', icon: FileText, label: 'Textes' },
+  { href: '/musique', icon: Music, label: 'Audio' },
+  { href: '/photos', icon: Image, label: 'Photo' },
+  { href: '/videos', icon: Video, label: 'Vidéo' },
+  { href: '/textes', icon: FileText, label: 'Texte' },
   { href: '/applications', icon: AppWindow, label: 'Applications' },
   { href: '/a-propos', icon: Info, label: 'À propos' },
   { href: '/contact', icon: Mail, label: 'Contact' },
@@ -75,6 +75,8 @@ export function Sidebar({ onToggle }: SidebarProps) {
 
   return (
     <aside
+      role="navigation"
+      aria-label="Menu principal"
       className={cn(
         'fixed left-0 top-0 z-40 h-screen border-r bg-background transition-all duration-300',
         isExpanded ? 'w-64' : 'w-16'
@@ -87,6 +89,8 @@ export function Sidebar({ onToggle }: SidebarProps) {
             size="icon"
             onClick={toggleSidebar}
             className={cn(!isExpanded && 'mx-auto')}
+            aria-label={isExpanded ? 'Réduire le menu' : 'Étendre le menu'}
+            aria-expanded={isExpanded}
           >
             {isExpanded ? (
               <ChevronLeft className="h-5 w-5" />
@@ -96,13 +100,18 @@ export function Sidebar({ onToggle }: SidebarProps) {
           </Button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2" aria-label="Navigation principale">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
 
             return (
-              <Link key={item.href} href={item.href}>
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={!isExpanded ? item.label : undefined}
+              >
                 <div
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
@@ -123,7 +132,11 @@ export function Sidebar({ onToggle }: SidebarProps) {
         <div className="mt-auto border-t px-3 py-2 space-y-1">
           {user && (
             <>
-              <Link href="/admin/photos">
+              <Link
+                href="/admin/photos"
+                aria-current={pathname === '/admin/photos' ? 'page' : undefined}
+                aria-label={!isExpanded ? 'Admin Photo' : undefined}
+              >
                 <div
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
@@ -134,10 +147,14 @@ export function Sidebar({ onToggle }: SidebarProps) {
                   )}
                 >
                   <Image className="h-5 w-5 flex-shrink-0" />
-                  {isExpanded && <span>Admin Photos</span>}
+                  {isExpanded && <span>Admin Photo</span>}
                 </div>
               </Link>
-              <Link href="/admin/music">
+              <Link
+                href="/admin/music"
+                aria-current={pathname === '/admin/music' ? 'page' : undefined}
+                aria-label={!isExpanded ? 'Admin Audio' : undefined}
+              >
                 <div
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
@@ -148,10 +165,14 @@ export function Sidebar({ onToggle }: SidebarProps) {
                   )}
                 >
                   <Music className="h-5 w-5 flex-shrink-0" />
-                  {isExpanded && <span>Admin Musique</span>}
+                  {isExpanded && <span>Admin Audio</span>}
                 </div>
               </Link>
-              <Link href="/admin/videos">
+              <Link
+                href="/admin/videos"
+                aria-current={pathname === '/admin/videos' ? 'page' : undefined}
+                aria-label={!isExpanded ? 'Admin Vidéo' : undefined}
+              >
                 <div
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
@@ -162,13 +183,35 @@ export function Sidebar({ onToggle }: SidebarProps) {
                   )}
                 >
                   <Video className="h-5 w-5 flex-shrink-0" />
-                  {isExpanded && <span>Admin Vidéos</span>}
+                  {isExpanded && <span>Admin Vidéo</span>}
+                </div>
+              </Link>
+              <Link
+                href="/admin/texts"
+                aria-current={pathname === '/admin/texts' ? 'page' : undefined}
+                aria-label={!isExpanded ? 'Admin Texte' : undefined}
+              >
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                    'hover:bg-accent/50',
+                    pathname === '/admin/texts' && 'bg-foreground text-background font-medium',
+                    pathname !== '/admin/texts' && 'text-muted-foreground',
+                    !isExpanded && 'justify-center px-2'
+                  )}
+                >
+                  <FileText className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && <span>Admin Texte</span>}
                 </div>
               </Link>
             </>
           )}
 
-          <Link href="/parametres">
+          <Link
+            href="/parametres"
+            aria-current={pathname === '/parametres' ? 'page' : undefined}
+            aria-label={!isExpanded ? 'Paramètres' : undefined}
+          >
             <div
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
@@ -191,12 +234,17 @@ export function Sidebar({ onToggle }: SidebarProps) {
                 'hover:bg-accent/50 text-muted-foreground',
                 !isExpanded && 'justify-center px-2'
               )}
+              aria-label={!isExpanded ? 'Déconnexion' : undefined}
             >
               <LogOut className="h-5 w-5 flex-shrink-0" />
               {isExpanded && <span>Déconnexion</span>}
             </button>
           ) : (
-            <Link href="/login">
+            <Link
+              href="/login"
+              aria-current={pathname === '/login' ? 'page' : undefined}
+              aria-label={!isExpanded ? 'Connexion' : undefined}
+            >
               <div
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
