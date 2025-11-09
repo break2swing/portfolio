@@ -99,7 +99,157 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     * RLS (Row Level Security) configurations for new tables.
     * Migration scripts (SQL) to apply the database changes.
     * Suggested default tags for the new feature, where applicable.
+* When creating a pull request for a unified tagging system, the description should include:
+    * A summary of the addition of a unified tagging system for classifying and organizing content (photos, videos, music, texts).
+    * Details about the shared tags across all media types and the centralized management interface.
+    * Information about the database schema:
+        * `tags` table with name, slug (auto-generated), and customizable color.
+        * Many-to-many relationship tables: `photo_tags`, `video_tags`, `music_tags`, and `text_tags`.
+        * Indexes for optimized search queries.
+        * CASCADE constraints for automatic relationship deletion.
+    * Backend services details:
+        * `tagService.ts`: CRUD operations for tags and management of relationships with texts.
+        * `photoTagService.ts`, `videoTagService.ts`, `musicTagService.ts`: management of tag relationships for photos, videos, and music respectively.
+        * `createPhotoWithTags`, `createVideoWithTags`, `createTrackWithTags` methods in respective services.
+        * `getAllPhotosWithTags`, `getAllVideosWithTags`, `getAllTracksWithTags` methods for retrieving media with their tags.
+    * Admin interface details:
+        * `TagManager`: interface for tag management (creation, modification, deletion, color selection, Zod validation, grid display with colored badges).
+        * Integration in admin pages: `/admin/photos`, `/admin/videos`, `/admin/music`, and `/admin/texts`.
+    * UI components details:
+        * `TagBadge`: reusable component for displaying tags with `default`, `outline`, and `secondary` variants, customizable colors, and click/delete support.
+        * Integration in upload forms: `PhotoUploadForm`, `VideoUploadForm`, `MusicUploadForm`, and `TextUploadForm`.
+    * Public display details:
+        * Tags displayed on content cards (photos, videos, texts) with colored badges and consistent styling supporting light/dark themes.
+    * Lists of new and modified files.
+    * TypeScript types, including `Tag`, `PhotoWithTags`, `VideoWithTags`, and `MusicTrackWithTags`.
+    * Migration details, including the creation of relationship tables with primary key constraints, foreign key constraints with CASCADE, indexes, and documentation comments.
+    * Recommended tests (create, modify, delete tags; upload media with tags; verify tag display on public pages; verify color consistency in light/dark mode).
+    * Technical notes (shared tags, auto-generated slugs, hexadecimal color storage, automatic cascading deletion, error management with `{ data, error }` pattern, and Zod validation).
+*   **CI/CD with GitHub Actions:**
+    *   Set up CI/CD workflows using GitHub Actions for automated linting, type checking, building, and deployment.
+    *   Create `.github/workflows/ci.yml` for continuous integration:
+        ```yaml
+        name: CI
+
+        on:
+          push:
+            branches: [ main, develop ]
+          pull_request:
+            branches: [ main, develop ]
+
+        jobs:
+          lint-and-typecheck:
+            name: Lint & Type Check
+            runs-on: ubuntu-latest
+
+            steps:
+              - name: Checkout code
+                uses: actions/checkout@v4
+
+              - name: Setup Node.js
+                uses: actions/setup-node@v4
+                with:
+                  node-version: '20'
+                  cache: 'npm'
+
+              - name: Install dependencies
+                run: npm ci
+
+              - name: Run ESLint
+                run: npm run lint
+
+              - name: Run TypeScript type check
+                run: npm run typecheck
+
+          build:
+            name: Build
+            runs-on: ubuntu-latest
+            needs: lint-and-typecheck
+
+            steps:
+              - name: Checkout code
+                uses: actions/checkout@v4
+
+              - name: Setup Node.js
+                uses: actions/setup-node@v4
+                with:
+                  node-version: '20'
+                  cache: 'npm'
+
+              - name: Install dependencies
+                run: npm ci
+
+              - name: Build project
+                run: npm run build
+                env:
+                  # Variables nécessaires pour le build (même si vides, pour éviter les erreurs)
+                  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || '' }}
+                  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' }}
+
+              - name: Upload build artifacts
+                uses: actions/upload-artifact@v4
+                with:
+                  name: build-output
+                  path: out/
+                  retention-days: 7
+        ```
+    *   Create `.github/workflows/deploy.yml` for automated deployment (optional):
+        ```yaml
+        name: Deploy
+
+        on:
+          push:
+            branches: [ main ]
+
+        jobs:
+          deploy:
+            name: Deploy to Production
+            runs-on: ubuntu-latest
+            if: github.ref == 'refs/heads/main'
+
+            steps:
+              - name: Checkout code
+                uses: actions/checkout@v4
+
+              - name: Setup Node.js
+                uses: actions/setup-node@v4
+                with:
+                  node-version: '20'
+                  cache: 'npm'
+
+              - name: Install dependencies
+                run: npm ci
+
+              - name: Build project
+                run: npm run build
+                env:
+                  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+                  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+              # Option 1: Déploiement sur GitHub Pages
+              - name: Deploy to GitHub Pages
+                uses: peaceiris/actions-gh-pages@v3
+                if: github.ref == 'refs/heads/main'
+                with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  publish_dir: ./out
+
+              # Option 2: Déploiement sur Vercel (décommentez si vous utilisez Vercel)
+              # - name: Deploy to Vercel
+              #   uses: amondnet/vercel-action@v25
+              #   with:
+              #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
+              #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+              #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+              #     vercel-args: '--prod'
+        ```
+    *   Configure GitHub secrets in the repository settings (Settings → Secrets and variables → Actions):
+        *   `NEXT_PUBLIC_SUPABASE_URL`: Supabase URL.
+        *   `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous key.
+        *   (Optional) `GITHUB_TOKEN`: Automatically generated.
+        *   (Optional) `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`: If using Vercel.
+    *   If the main branch is named `master` instead of `main`, update the `.yml` files accordingly.
 
 ## CODING STANDARDS
 
-## DEBUGGING
+## DEBUG
