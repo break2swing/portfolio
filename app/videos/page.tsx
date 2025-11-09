@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { VideoWithTags, Tag } from '@/lib/supabaseClient';
 import { videoService } from '@/services/videoService';
-import { tagService } from '@/services/tagService';
+import { videoTagService } from '@/services/videoTagService';
 import { VideoGrid } from '@/components/videos/VideoGrid';
 import { TagBadge } from '@/components/texts/TagBadge';
 import { Button } from '@/components/ui/button';
@@ -48,8 +48,8 @@ export default function VideosPage() {
         setTagsAvailable(true);
       }
 
-      // Charger les tags disponibles
-      const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
+      // Charger uniquement les tags utilisés dans les vidéos
+      const { tags: tagsData, error: tagsError } = await videoTagService.getAllTagsUsedInVideos();
       if (!tagsError) {
         setTags(tagsData || []);
       }

@@ -4235,3 +4235,793 @@ Le filtrage par tags est maintenant opérationnel sur les trois pages de consult
 
 ---
 
+_**User (2025-11-09 07:58Z)**_
+
+Séparer les tags par type (Audio, Vidéo, Photo, Texte) afin de filter seulement les tag corespondant à la catégorie (ex: depuis la page Photo pouvoir filter sur les tags Photo)
+
+---
+
+_**Agent (model composer-1, mode Plan)**_
+
+
+
+---
+
+
+Analysant la structure actuelle pour préparer un plan permettant de filtrer les tags par type de contenu.
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "How are tags retrieved and filtered by content type?" • **10** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `services/textService.ts` | L1-354 |
+| `services/tagService.ts` | L115 |
+| `services/musicTagService.ts` | L72 |
+| `app/textes/page.tsx` | L13-226 |
+| `services/videoService.ts` | L1-186 |
+| `services/musicService.ts` | L1-190 |
+| `app/videos/page.tsx` | L9-154 |
+| `app/musique/page.tsx` | L11-328 |
+| `services/videoTagService.ts` | L64 |
+| `app/photos/page.tsx` | L10-169 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/tagService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="grep" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "getTagsFor|getAllTags" in "services" • 5 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `services\photoTagService.ts` | `async getTagsForPhoto(photoId: string) \{` | L7 |
+| `services\musicTagService.ts` | `async getTagsForMusicTrack(musicTrackId: string) \{` | L7 |
+| `services\videoTagService.ts` | `async getTagsForVideo(videoId: string) \{` | L7 |
+| `services\tagService.ts` | `async getAllTags() \{` | L4 |
+| `services\tagService.ts` | `async getTagsForText(textId: string) \{` | L68 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Création d'un plan pour séparer les tags par type de contenu :
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="create_plan">
+<details>
+<summary>Tool use: **create_plan**</summary>
+
+
+Parameters:
+
+```json
+{
+  &quot;plan&quot;: &quot;# Plan : Séparer les tags par type de contenu\n\n## Contexte\n\nActuellement, toutes les pages de consultation (&#96;/photos&#96;, &#96;/musique&#96;, &#96;/videos&#96;, &#96;/textes&#96;) chargent tous les tags disponibles via &#96;tagService.getAllTags()&#96;, ce qui affiche des tags qui peuvent ne pas être pertinents pour le type de contenu affiché.\n\n## Objectif\n\nChaque page doit afficher uniquement les tags qui sont réellement utilisés pour son type de contenu :\n- Page Photos : uniquement les tags de la table &#96;photo_tags&#96;\n- Page Musique : uniquement les tags de la table &#96;music_tags&#96;\n- Page Vidéos : uniquement les tags de la table &#96;video_tags&#96;\n- Page Textes : uniquement les tags de la table &#96;text_tags&#96;\n\n## Implémentation\n\n### 1. Ajouter des méthodes dans les services de tags\n\n#### &#96;services/photoTagService.ts&#96;\n- Créer &#96;getAllTagsUsedInPhotos()&#96; qui récupère tous les tags uniques utilisés dans &#96;photo_tags&#96;\n- Requête SQL : &#96;SELECT DISTINCT tag_id, tags(*) FROM photo_tags JOIN tags ON photo_tags.tag_id = tags.id&#96;\n\n#### &#96;services/musicTagService.ts&#96;\n- Créer &#96;getAllTagsUsedInMusicTracks()&#96; qui récupère tous les tags uniques utilisés dans &#96;music_tags&#96;\n- Requête SQL : &#96;SELECT DISTINCT tag_id, tags(*) FROM music_tags JOIN tags ON music_tags.tag_id = tags.id&#96;\n\n#### &#96;services/videoTagService.ts&#96;\n- Créer &#96;getAllTagsUsedInVideos()&#96; qui récupère tous les tags uniques utilisés dans &#96;video_tags&#96;\n- Requête SQL : &#96;SELECT DISTINCT tag_id, tags(*) FROM video_tags JOIN tags ON video_tags.tag_id = tags.id&#96;\n\n#### &#96;services/tagService.ts&#96;\n- Créer &#96;getAllTagsUsedInTexts()&#96; qui récupère tous les tags uniques utilisés dans &#96;text_tags&#96;\n- Requête SQL : &#96;SELECT DISTINCT tag_id, tags(*) FROM text_tags JOIN tags ON text_tags.tag_id = tags.id&#96;\n- Ou utiliser une requête sur &#96;texts&#96; avec &#96;text_tags&#96; pour ne récupérer que les tags des textes publiés\n\n### 2. Modifier les pages de consultation\n\n#### &#96;app/photos/page.tsx&#96;\n- Remplacer &#96;tagService.getAllTags()&#96; par &#96;photoTagService.getAllTagsUsedInPhotos()&#96;\n- Gérer le cas où la table &#96;photo_tags&#96; n&#39;existe pas (fallback sur liste vide)\n\n#### &#96;app/musique/page.tsx&#96;\n- Remplacer &#96;tagService.getAllTags()&#96; par &#96;musicTagService.getAllTagsUsedInMusicTracks()&#96;\n- Gérer le cas où la table &#96;music_tags&#96; n&#39;existe pas (fallback sur liste vide)\n\n#### &#96;app/videos/page.tsx&#96;\n- Remplacer &#96;tagService.getAllTags()&#96; par &#96;videoTagService.getAllTagsUsedInVideos()&#96;\n- Gérer le cas où la table &#96;video_tags&#96; n&#39;existe pas (fallback sur liste vide)\n\n#### &#96;app/textes/page.tsx&#96;\n- Remplacer &#96;tagService.getAllTags()&#96; par &#96;tagService.getAllTagsUsedInTexts()&#96;\n- Filtrer pour ne récupérer que les tags des textes publiés (&#96;is_published: true&#96;)\n\n### 3. Gestion des erreurs\n\n- Si une table de tags n&#39;existe pas, retourner une liste vide de tags au lieu de faire échouer le chargement\n- Logger les erreurs en console pour le débogage\n- Les pages doivent continuer à fonctionner même sans tags disponibles\n\n## Fichiers à modifier\n\n- &#96;services/photoTagService.ts&#96; - Ajouter &#96;getAllTagsUsedInPhotos()&#96;\n- &#96;services/musicTagService.ts&#96; - Ajouter &#96;getAllTagsUsedInMusicTracks()&#96;\n- &#96;services/videoTagService.ts&#96; - Ajouter &#96;getAllTagsUsedInVideos()&#96;\n- &#96;services/tagService.ts&#96; - Ajouter &#96;getAllTagsUsedInTexts()&#96;\n- &#96;app/photos/page.tsx&#96; - Utiliser la nouvelle méthode\n- &#96;app/musique/page.tsx&#96; - Utiliser la nouvelle méthode\n- &#96;app/videos/page.tsx&#96; - Utiliser la nouvelle méthode\n- &#96;app/textes/page.tsx&#96; - Utiliser la nouvelle méthode\n\n## Notes techniques\n\n- Utiliser &#96;DISTINCT&#96; pour éviter les doublons de tags\n- Les méthodes doivent retourner &#96;{ tags: Tag[] | null, error: Error | null }&#96; pour la cohérence\n- Pour les textes, filtrer uniquement les tags des textes publiés pour correspondre à &#96;getPublishedTexts()&#96;\n- Les tags doivent être triés par nom pour une meilleure UX&quot;,
+  &quot;name&quot;: &quot;Ajout édition admin&quot;,
+  &quot;overview&quot;: &quot;Modifier les pages de consultation pour afficher uniquement les tags correspondant au type de contenu (Photos, Musique, Vidéos, Textes) en créant des méthodes de service qui récupèrent les tags utilisés pour chaque type.&quot;
+}
+```
+Additional data:
+
+```json
+{
+  &quot;status&quot;: &quot;pending&quot;,
+  &quot;reviewData&quot;: {
+    &quot;status&quot;: &quot;Requested&quot;,
+    &quot;selectedOption&quot;: &quot;none&quot;,
+    &quot;isShowingInput&quot;: false
+  }
+}
+```
+Result:
+
+```json
+{
+  &quot;rejected&quot;: {}
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+_**User (2025-11-09 07:58Z)**_
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+_**Agent (model composer-1, mode Agent)**_
+
+
+
+---
+
+
+Ajout des méthodes dans les services de tags, puis mise à jour des pages de consultation.
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/photoTagService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/musicTagService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/videoTagService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/tagService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Ajout des méthodes dans chaque service pour récupérer les tags utilisés par type de contenu :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/photoTagService.ts</summary>
+
+**Chunk 1**
+Lines added: 32, lines removed: undefined
+
+```diff
+@@ -71,4 +71,36 @@
+      return { error: null };
+    },
++ 
++   /**
++    * Récupère tous les tags uniques utilisés dans les photos
++    */
++   async getAllTagsUsedInPhotos() {
++     const { data, error } = await supabaseClient
++       .from(&#39;photo_tags&#39;)
++       .select(&#39;tag_id, tags(*)&#39;)
++       .order(&#39;tags(name)&#39;, { ascending: true });
++ 
++     if (error) {
++       // Si la table n&#39;existe pas, retourner une liste vide
++       if (error.code === &#39;PGRST205&#39; || error.message?.includes(&#39;Could not find the table&#39;)) {
++         return { tags: [], error: null };
++       }
++       return { tags: null, error };
++     }
++ 
++     // Extraire les tags uniques
++     const tagMap = new Map&lt;string, Tag&gt;();
++     data.forEach((item: any) =&gt; {
++       if (item.tags &amp;&amp; !tagMap.has(item.tag_id)) {
++         tagMap.set(item.tag_id, item.tags);
++       }
++     });
++ 
++     const tags = Array.from(tagMap.values()).sort((a, b) =&gt; 
++       a.name.localeCompare(b.name)
++     );
++ 
++     return { tags: tags as Tag[], error: null };
++   },
+  };
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/musicTagService.ts</summary>
+
+**Chunk 1**
+Lines added: 32, lines removed: undefined
+
+```diff
+@@ -71,4 +71,36 @@
+      return { error: null };
+    },
++ 
++   /**
++    * Récupère tous les tags uniques utilisés dans les morceaux de musique
++    */
++   async getAllTagsUsedInMusicTracks() {
++     const { data, error } = await supabaseClient
++       .from(&#39;music_tags&#39;)
++       .select(&#39;tag_id, tags(*)&#39;)
++       .order(&#39;tags(name)&#39;, { ascending: true });
++ 
++     if (error) {
++       // Si la table n&#39;existe pas, retourner une liste vide
++       if (error.code === &#39;PGRST205&#39; || error.message?.includes(&#39;Could not find the table&#39;)) {
++         return { tags: [], error: null };
++       }
++       return { tags: null, error };
++     }
++ 
++     // Extraire les tags uniques
++     const tagMap = new Map&lt;string, Tag&gt;();
++     data.forEach((item: any) =&gt; {
++       if (item.tags &amp;&amp; !tagMap.has(item.tag_id)) {
++         tagMap.set(item.tag_id, item.tags);
++       }
++     });
++ 
++     const tags = Array.from(tagMap.values()).sort((a, b) =&gt; 
++       a.name.localeCompare(b.name)
++     );
++ 
++     return { tags: tags as Tag[], error: null };
++   },
+  };
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/videoTagService.ts</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: 1
+
+```diff
+@@ -47,9 +47,14 @@
+    async setTagsForVideo(videoId: string, tagIds: string[]) {
+      // Supprimer tous les tags existants
+-     await supabaseClient
++     const { error: deleteError } = await supabaseClient
+        .from(&#39;video_tags&#39;)
+        .delete()
+        .eq(&#39;video_id&#39;, videoId);
+  
++     if (deleteError) {
++       console.error(&#39;[VIDEO TAG SERVICE] Error deleting existing tags:&#39;, deleteError);
++       return { error: deleteError };
++     }
++ 
+      // Ajouter les nouveaux tags
+      if (tagIds.length &gt; 0) {
+```
+
+**Chunk 2**
+Lines added: 35, lines removed: undefined
+
+```diff
+@@ -58,9 +63,44 @@
+          .insert(tagIds.map(tagId =&gt; ({ video_id: videoId, tag_id: tagId })));
+  
++       if (error) {
++         console.error(&#39;[VIDEO TAG SERVICE] Error inserting tags:&#39;, error);
++       }
+        return { error };
+      }
+  
+      return { error: null };
+    },
++ 
++   /**
++    * Récupère tous les tags uniques utilisés dans les vidéos
++    */
++   async getAllTagsUsedInVideos() {
++     const { data, error } = await supabaseClient
++       .from(&#39;video_tags&#39;)
++       .select(&#39;tag_id, tags(*)&#39;)
++       .order(&#39;tags(name)&#39;, { ascending: true });
++ 
++     if (error) {
++       // Si la table n&#39;existe pas, retourner une liste vide
++       if (error.code === &#39;PGRST205&#39; || error.message?.includes(&#39;Could not find the table&#39;)) {
++         return { tags: [], error: null };
++       }
++       return { tags: null, error };
++     }
++ 
++     // Extraire les tags uniques
++     const tagMap = new Map&lt;string, Tag&gt;();
++     data.forEach((item: any) =&gt; {
++       if (item.tags &amp;&amp; !tagMap.has(item.tag_id)) {
++         tagMap.set(item.tag_id, item.tags);
++       }
++     });
++ 
++     const tags = Array.from(tagMap.values()).sort((a, b) =&gt; 
++       a.name.localeCompare(b.name)
++     );
++ 
++     return { tags: tags as Tag[], error: null };
++   },
+  };
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/tagService.ts</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: 1
+
+```diff
+@@ -98,9 +98,14 @@
+    async setTagsForText(textId: string, tagIds: string[]) {
+      // Supprimer tous les tags existants
+-     await supabaseClient
++     const { error: deleteError } = await supabaseClient
+        .from(&#39;text_tags&#39;)
+        .delete()
+        .eq(&#39;text_id&#39;, textId);
+  
++     if (deleteError) {
++       console.error(&#39;[TAG SERVICE] Error deleting existing tags:&#39;, deleteError);
++       return { error: deleteError };
++     }
++ 
+      // Ajouter les nouveaux tags
+      if (tagIds.length &gt; 0) {
+```
+
+**Chunk 2**
+Lines added: 32, lines removed: undefined
+
+```diff
+@@ -109,9 +114,41 @@
+          .insert(tagIds.map(tagId =&gt; ({ text_id: textId, tag_id: tagId })));
+  
++       if (error) {
++         console.error(&#39;[TAG SERVICE] Error inserting tags:&#39;, error);
++       }
+        return { error };
+      }
+  
+      return { error: null };
+    },
++ 
++   /**
++    * Récupère tous les tags uniques utilisés dans les textes publiés
++    */
++   async getAllTagsUsedInTexts() {
++     const { data, error } = await supabaseClient
++       .from(&#39;text_tags&#39;)
++       .select(&#39;tag_id, tags(*), text:texts(is_published)&#39;)
++       .eq(&#39;text.is_published&#39;, true)
++       .order(&#39;tags(name)&#39;, { ascending: true });
++ 
++     if (error) {
++       return { tags: null, error };
++     }
++ 
++     // Extraire les tags uniques des textes publiés uniquement
++     const tagMap = new Map&lt;string, Tag&gt;();
++     data.forEach((item: any) =&gt; {
++       if (item.tags &amp;&amp; item.text?.is_published &amp;&amp; !tagMap.has(item.tag_id)) {
++         tagMap.set(item.tag_id, item.tags);
++       }
++     });
++ 
++     const tags = Array.from(tagMap.values()).sort((a, b) =&gt; 
++       a.name.localeCompare(b.name)
++     );
++ 
++     return { tags: tags as Tag[], error: null };
++   },
+  };
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+Corrigeant la requête pour les textes : la syntaxe Supabase nécessite une approche différente.
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/tagService.ts</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: 4
+
+```diff
+@@ -127,9 +127,11 @@
+     */
+    async getAllTagsUsedInTexts() {
++     // Récupérer les tags via les textes publiés
+      const { data, error } = await supabaseClient
+-       .from(&#39;text_tags&#39;)
+-       .select(&#39;tag_id, tags(*), text:texts(is_published)&#39;)
+-       .eq(&#39;text.is_published&#39;, true)
+-       .order(&#39;tags(name)&#39;, { ascending: true });
++       .from(&#39;texts&#39;)
++       .select(&#96;
++         text_tags(tag:tags(*))
++       &#96;)
++       .eq(&#39;is_published&#39;, true);
+  
+      if (error) {
+```
+
+**Chunk 2**
+Lines added: 7, lines removed: 3
+
+```diff
+@@ -139,7 +141,11 @@
+      // Extraire les tags uniques des textes publiés uniquement
+      const tagMap = new Map&lt;string, Tag&gt;();
+-     data.forEach((item: any) =&gt; {
+-       if (item.tags &amp;&amp; item.text?.is_published &amp;&amp; !tagMap.has(item.tag_id)) {
+-         tagMap.set(item.tag_id, item.tags);
++     data.forEach((text: any) =&gt; {
++       if (text.text_tags) {
++         text.text_tags.forEach((tt: any) =&gt; {
++           if (tt.tag &amp;&amp; !tagMap.has(tt.tag.id)) {
++             tagMap.set(tt.tag.id, tt.tag);
++           }
++         });
+        }
+      });
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 4 files</summary>
+      
+Lint paths:
+
+- `services/photoTagService.ts`
+- `services/musicTagService.ts`
+- `services/videoTagService.ts`
+- `services/tagService.ts`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Mise à jour des pages pour utiliser les nouvelles méthodes :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/photos/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -4,5 +4,5 @@
+  import { PhotoWithTags, Tag } from &#39;@/lib/supabaseClient&#39;;
+  import { photoService } from &#39;@/services/photoService&#39;;
+- import { tagService } from &#39;@/services/tagService&#39;;
++ import { photoTagService } from &#39;@/services/photoTagService&#39;;
+  import { PhotoGrid } from &#39;@/components/photos/PhotoGrid&#39;;
+  import { PhotoViewerModal } from &#39;@/components/photos/PhotoViewerModal&#39;;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/photos/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -51,6 +51,6 @@
+        }
+  
+-       // Charger les tags disponibles
+-       const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
++       // Charger uniquement les tags utilisés dans les photos
++       const { tags: tagsData, error: tagsError } = await photoTagService.getAllTagsUsedInPhotos();
+        if (!tagsError) {
+          setTags(tagsData || []);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/musique/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -4,5 +4,5 @@
+  import { MusicTrackWithTags, Tag } from &#39;@/lib/supabaseClient&#39;;
+  import { musicService } from &#39;@/services/musicService&#39;;
+- import { tagService } from &#39;@/services/tagService&#39;;
++ import { musicTagService } from &#39;@/services/musicTagService&#39;;
+  import { AudioPlayer } from &#39;@/components/music/AudioPlayer&#39;;
+  import { TrackList } from &#39;@/components/music/TrackList&#39;;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/musique/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -52,6 +52,6 @@
+        }
+  
+-       // Charger les tags disponibles
+-       const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
++       // Charger uniquement les tags utilisés dans les morceaux de musique
++       const { tags: tagsData, error: tagsError } = await musicTagService.getAllTagsUsedInMusicTracks();
+        if (!tagsError) {
+          setTags(tagsData || []);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/videos/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -4,5 +4,5 @@
+  import { VideoWithTags, Tag } from &#39;@/lib/supabaseClient&#39;;
+  import { videoService } from &#39;@/services/videoService&#39;;
+- import { tagService } from &#39;@/services/tagService&#39;;
++ import { videoTagService } from &#39;@/services/videoTagService&#39;;
+  import { VideoGrid } from &#39;@/components/videos/VideoGrid&#39;;
+  import { TagBadge } from &#39;@/components/texts/TagBadge&#39;;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/videos/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -49,6 +49,6 @@
+        }
+  
+-       // Charger les tags disponibles
+-       const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
++       // Charger uniquement les tags utilisés dans les vidéos
++       const { tags: tagsData, error: tagsError } = await videoTagService.getAllTagsUsedInVideos();
+        if (!tagsError) {
+          setTags(tagsData || []);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/textes/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -41,5 +41,5 @@
+          textService.getPublishedTexts(),
+          categoryService.getAllCategories(),
+-         tagService.getAllTags(),
++         tagService.getAllTagsUsedInTexts(),
+        ]);
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 4 files</summary>
+      
+Lint paths:
+
+- `app/photos/page.tsx`
+- `app/musique/page.tsx`
+- `app/videos/page.tsx`
+- `app/textes/page.tsx`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Vérifiant que la logique de gestion des erreurs est cohérente. Les nouvelles méthodes retournent déjà une liste vide si la table n'existe pas, donc la logique des pages peut être simplifiée :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/photos/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Vérifiant que tout fonctionne correctement. Résumé des modifications :
+
+## Modifications terminées
+
+### 1. Services de tags — nouvelles méthodes
+
+- **`services/photoTagService.ts`** : Ajout de `getAllTagsUsedInPhotos()` qui récupère uniquement les tags utilisés dans les photos
+- **`services/musicTagService.ts`** : Ajout de `getAllTagsUsedInMusicTracks()` qui récupère uniquement les tags utilisés dans les morceaux de musique
+- **`services/videoTagService.ts`** : Ajout de `getAllTagsUsedInVideos()` qui récupère uniquement les tags utilisés dans les vidéos
+- **`services/tagService.ts`** : Ajout de `getAllTagsUsedInTexts()` qui récupère uniquement les tags utilisés dans les textes publiés
+
+Toutes ces méthodes :
+- Gèrent le cas où la table n'existe pas (retournent une liste vide)
+- Retournent des tags uniques (utilisation d'une Map)
+- Trient les tags par nom alphabétique
+- Retournent le format `{ tags: Tag[] | null, error: Error | null }`
+
+### 2. Pages de consultation — utilisation des nouvelles méthodes
+
+- **`app/photos/page.tsx`** : Utilise `photoTagService.getAllTagsUsedInPhotos()` au lieu de `tagService.getAllTags()`
+- **`app/musique/page.tsx`** : Utilise `musicTagService.getAllTagsUsedInMusicTracks()` au lieu de `tagService.getAllTags()`
+- **`app/videos/page.tsx`** : Utilise `videoTagService.getAllTagsUsedInVideos()` au lieu de `tagService.getAllTags()`
+- **`app/textes/page.tsx`** : Utilise `tagService.getAllTagsUsedInTexts()` au lieu de `tagService.getAllTags()`
+
+## Résultat
+
+Chaque page de consultation affiche uniquement les tags pertinents pour son type de contenu :
+- Page Photos : uniquement les tags des photos
+- Page Musique : uniquement les tags des morceaux de musique
+- Page Vidéos : uniquement les tags des vidéos
+- Page Textes : uniquement les tags des textes publiés
+
+Les tags sont séparés par type de contenu, ce qui améliore l'expérience utilisateur en évitant d'afficher des tags non pertinents.
+
+---
+

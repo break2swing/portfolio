@@ -272,3 +272,4 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
         *   The code should continue to function, providing a warning that tags could not be updated due to the missing table.
         *   The tag loading process should also be optional, preventing errors if the table doesn't exist.
     4.  **Ensure proper error messages:** The toast messages should display clear error details, including message, code, status code, hint, and details.
+* When a table is missing, the code must continue to function, providing a warning that tags could not be updated due to the missing table. The tag loading process should also be optional, preventing errors if the table doesn't exist.

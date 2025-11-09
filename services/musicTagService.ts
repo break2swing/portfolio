@@ -70,4 +70,36 @@ export const musicTagService = {
 
     return { error: null };
   },
+
+  /**
+   * Récupère tous les tags uniques utilisés dans les morceaux de musique
+   */
+  async getAllTagsUsedInMusicTracks() {
+    const { data, error } = await supabaseClient
+      .from('music_tags')
+      .select('tag_id, tags(*)')
+      .order('tags(name)', { ascending: true });
+
+    if (error) {
+      // Si la table n'existe pas, retourner une liste vide
+      if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+        return { tags: [], error: null };
+      }
+      return { tags: null, error };
+    }
+
+    // Extraire les tags uniques
+    const tagMap = new Map<string, Tag>();
+    data.forEach((item: any) => {
+      if (item.tags && !tagMap.has(item.tag_id)) {
+        tagMap.set(item.tag_id, item.tags);
+      }
+    });
+
+    const tags = Array.from(tagMap.values()).sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+
+    return { tags: tags as Tag[], error: null };
+  },
 };

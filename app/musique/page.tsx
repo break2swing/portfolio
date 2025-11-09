@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { MusicTrackWithTags, Tag } from '@/lib/supabaseClient';
 import { musicService } from '@/services/musicService';
-import { tagService } from '@/services/tagService';
+import { musicTagService } from '@/services/musicTagService';
 import { AudioPlayer } from '@/components/music/AudioPlayer';
 import { TrackList } from '@/components/music/TrackList';
 import { TagBadge } from '@/components/texts/TagBadge';
@@ -51,8 +51,8 @@ export default function MusiquePage() {
         setTagsAvailable(true);
       }
 
-      // Charger les tags disponibles
-      const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
+      // Charger uniquement les tags utilisés dans les morceaux de musique
+      const { tags: tagsData, error: tagsError } = await musicTagService.getAllTagsUsedInMusicTracks();
       if (!tagsError) {
         setTags(tagsData || []);
       }

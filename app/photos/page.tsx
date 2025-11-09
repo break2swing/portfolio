@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PhotoWithTags, Tag } from '@/lib/supabaseClient';
 import { photoService } from '@/services/photoService';
-import { tagService } from '@/services/tagService';
+import { photoTagService } from '@/services/photoTagService';
 import { PhotoGrid } from '@/components/photos/PhotoGrid';
 import { PhotoViewerModal } from '@/components/photos/PhotoViewerModal';
 import { TagBadge } from '@/components/texts/TagBadge';
@@ -50,8 +50,8 @@ export default function PhotosPage() {
         setTagsAvailable(true);
       }
 
-      // Charger les tags disponibles
-      const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
+      // Charger uniquement les tags utilisés dans les photos
+      const { tags: tagsData, error: tagsError } = await photoTagService.getAllTagsUsedInPhotos();
       if (!tagsError) {
         setTags(tagsData || []);
       }
