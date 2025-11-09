@@ -6,6 +6,7 @@ import { ColorThemeProvider } from '@/contexts/ColorThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/AppLayout';
 import { Toaster } from '@/components/ui/sonner';
+import { WebVitals } from '@/components/WebVitals';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -27,6 +28,7 @@ export default function RootLayout({
             <AuthProvider>
               <AppLayout>{children}</AppLayout>
               <Toaster />
+              <WebVitals />
             </AuthProvider>
           </ColorThemeProvider>
         </ThemeProvider>

@@ -14,6 +14,7 @@ export interface LogEntry {
   namespace: string;
   message: string;
   timestamp: string;
+  sessionId?: string;
   context?: LogContext;
   error?: Error;
 }
@@ -60,6 +61,20 @@ class Logger {
   }
 
   /**
+   * Récupère le session ID depuis sessionStorage (corrélation avec RUM)
+   * @returns Session ID ou null
+   */
+  private getSessionId(): string | null {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      return sessionStorage.getItem('analytics-session-id');
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Sanitize les données pour éviter les fuites de données sensibles
    * @param data Données à sanitizer
    * @returns Données sanitizées
@@ -99,6 +114,7 @@ class Logger {
     if (!this.shouldLog(entry.level)) return;
 
     const timestamp = new Date().toISOString();
+    const sessionId = this.getSessionId();
     const prefix = `[${timestamp}] [${entry.level.toUpperCase()}] [${entry.namespace}]`;
 
     // En développement, utiliser console avec couleurs
@@ -112,6 +128,10 @@ class Logger {
 
       console.log(`%c${prefix}`, styles[entry.level], entry.message);
 
+      if (sessionId) {
+        console.log('Session ID:', sessionId);
+      }
+
       if (entry.context) {
         console.log('Context:', this.sanitize(entry.context));
       }
@@ -124,6 +144,7 @@ class Logger {
       const logData = {
         ...entry,
         timestamp,
+        ...(sessionId && { sessionId }),
       };
 
       // Sanitizer les données sensibles
