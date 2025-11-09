@@ -16,9 +16,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trash2, GripVertical, Loader2 } from 'lucide-react';
+import { Trash2, GripVertical, Loader2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PhotoEditDialog } from './PhotoEditDialog';
 
 interface PhotoListProps {
   photos: Photo[];
@@ -30,6 +31,13 @@ export function PhotoList({ photos, onUpdate }: PhotoListProps) {
   const [deleting, setDeleting] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [editPhoto, setEditPhoto] = useState<Photo | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleEdit = (photo: Photo) => {
+    setEditPhoto(photo);
+    setEditDialogOpen(true);
+  };
 
   const handleDelete = async (photo: Photo) => {
     setDeleting(true);
@@ -161,14 +169,23 @@ export function PhotoList({ photos, onUpdate }: PhotoListProps) {
                     Ordre: {photo.display_order}
                   </p>
                 </div>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => setDeletePhotoId(photo.id)}
-                  disabled={deleting}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleEdit(photo)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => setDeletePhotoId(photo.id)}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -209,6 +226,13 @@ export function PhotoList({ photos, onUpdate }: PhotoListProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PhotoEditDialog
+        photo={editPhoto}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={onUpdate}
+      />
     </>
   );
 }

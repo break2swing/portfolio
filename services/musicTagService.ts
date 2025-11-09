@@ -46,10 +46,15 @@ export const musicTagService = {
    */
   async setTagsForMusicTrack(musicTrackId: string, tagIds: string[]) {
     // Supprimer tous les tags existants
-    await supabaseClient
+    const { error: deleteError } = await supabaseClient
       .from('music_tags')
       .delete()
       .eq('music_track_id', musicTrackId);
+
+    if (deleteError) {
+      console.error('[MUSIC TAG SERVICE] Error deleting existing tags:', deleteError);
+      return { error: deleteError };
+    }
 
     // Ajouter les nouveaux tags
     if (tagIds.length > 0) {
@@ -57,6 +62,9 @@ export const musicTagService = {
         .from('music_tags')
         .insert(tagIds.map(tagId => ({ music_track_id: musicTrackId, tag_id: tagId })));
 
+      if (error) {
+        console.error('[MUSIC TAG SERVICE] Error inserting tags:', error);
+      }
       return { error };
     }
 

@@ -46,10 +46,15 @@ export const photoTagService = {
    */
   async setTagsForPhoto(photoId: string, tagIds: string[]) {
     // Supprimer tous les tags existants
-    await supabaseClient
+    const { error: deleteError } = await supabaseClient
       .from('photo_tags')
       .delete()
       .eq('photo_id', photoId);
+
+    if (deleteError) {
+      console.error('[PHOTO TAG SERVICE] Error deleting existing tags:', deleteError);
+      return { error: deleteError };
+    }
 
     // Ajouter les nouveaux tags
     if (tagIds.length > 0) {
@@ -57,6 +62,9 @@ export const photoTagService = {
         .from('photo_tags')
         .insert(tagIds.map(tagId => ({ photo_id: photoId, tag_id: tagId })));
 
+      if (error) {
+        console.error('[PHOTO TAG SERVICE] Error inserting tags:', error);
+      }
       return { error };
     }
 
