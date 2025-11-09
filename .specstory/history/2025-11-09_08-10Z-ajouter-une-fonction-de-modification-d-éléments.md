@@ -3075,3 +3075,1163 @@ Souhaitez-vous que je vous guide pour exécuter la migration, ou préférez-vous
 
 ---
 
+_**User (2025-11-09 07:58Z)**_
+
+Rendre le filtrage par tag operationnel dans les pages de consultation
+
+---
+
+_**Agent (model composer-1, mode Plan)**_
+
+
+
+---
+
+
+Analysant les pages de consultation et l'état actuel du filtrage par tag pour préparer un plan.
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "How is tag filtering implemented in public pages?" • **9** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `app/textes/page.tsx` | L13-226 |
+| `COMPOSANTS_RESTANTS.md` | L1283-1340 |
+| `app/textes/page.tsx` | L226 |
+| `services/textService.ts` | L1-354 |
+| `COMPOSANTS_RESTANTS.md` | L1228-1286 |
+| `services/videoService.ts` | L1-186 |
+| `services/photoService.ts` | L1-124 |
+| `services/musicService.ts` | L1-190 |
+| `services/tagService.ts` | L115 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="glob_file_search">
+<details>
+<summary>Tool use: **glob_file_search** • Searched codebase "app/**/page.tsx" • **14** results in **1** directory</summary>
+
+Directory: **c:\Users\Gildas\Documents\Projets\Développement\En cours\Portfolio\portfolio** (14 files)
+
+| File |
+|------|
+| `app\admin\photos\page.tsx` |
+| `app\admin\music\page.tsx` |
+| `app\admin\videos\page.tsx` |
+| `app\page.tsx` |
+| `app\videos\page.tsx` |
+| `app\admin\texts\page.tsx` |
+| `app\textes\page.tsx` |
+| `app\login\page.tsx` |
+| `app\photos\page.tsx` |
+| `app\parametres\page.tsx` |
+| `app\musique\page.tsx` |
+| `app\contact\page.tsx` |
+| `app\applications\page.tsx` |
+| `app\a-propos\page.tsx` |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/photos/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/musique/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/textes/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Vérifiant comment les services chargent les données pour photos et musique :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/videos/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "How are photos and music tracks loaded with tags in public pages?" • **14** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `services/musicService.ts` | L1-190 |
+| `services/photoService.ts` | L1-124 |
+| `app/musique/page.tsx` | L222 |
+| `services/musicService.ts` | L190 |
+| `services/photoService.ts` | L124 |
+| `app/photos/page.tsx` | L65 |
+| `services/musicTagService.ts` | L72 |
+| `services/textService.ts` | L1-354 |
+| `lib/supabaseClient.ts` | L117-205 |
+| `app/textes/page.tsx` | L13-226 |
+| `services/photoTagService.ts` | L72 |
+| `app/admin/music/page.tsx` | L131 |
+| `components/music/TrackEditDialog.tsx` | L22-289 |
+| `migrations/002_add_media_tags.sql` | L44 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/photoService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/musicService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Création du plan pour rendre le filtrage par tags opérationnel sur les pages de consultation :
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="create_plan">
+<details>
+<summary>Tool use: **create_plan**</summary>
+
+
+Parameters:
+
+```json
+{
+  &quot;plan&quot;: &quot;# Plan : Rendre le filtrage par tag opérationnel dans les pages de consultation\n\n## Contexte\n\nLa page &#96;/textes&#96; dispose déjà d&#39;un système de filtrage par tags fonctionnel. Les pages &#96;/photos&#96;, &#96;/musique&#96; et &#96;/videos&#96; n&#39;ont pas encore cette fonctionnalité, bien que les services &#96;getAllPhotosWithTags()&#96; et &#96;getAllTracksWithTags()&#96; existent déjà.\n\n## Objectif\n\nAjouter le filtrage par tags sur les pages publiques de consultation pour permettre aux visiteurs de filtrer les contenus par tags.\n\n## Implémentation\n\n### 1. Modifier &#96;app/photos/page.tsx&#96;\n\n- Changer le type de &#96;Photo[]&#96; à &#96;PhotoWithTags[]&#96;\n- Utiliser &#96;photoService.getAllPhotosWithTags()&#96; au lieu de &#96;getAllPhotos()&#96;\n- Ajouter les états pour le filtrage :\n  - &#96;filteredPhotos&#96; : photos filtrées\n  - &#96;selectedTagIds&#96; : tags sélectionnés\n  - &#96;tags&#96; : liste de tous les tags disponibles\n- Charger les tags via &#96;tagService.getAllTags()&#96;\n- Implémenter &#96;applyFilters()&#96; similaire à &#96;/textes&#96; (logique AND : photo doit avoir TOUS les tags sélectionnés)\n- Ajouter l&#39;UI de filtrage :\n  - Section \&quot;Tags\&quot; avec &#96;TagBadge&#96; cliquables\n  - Bouton \&quot;Effacer les filtres\&quot; si des filtres sont actifs\n  - Compteur de résultats\n- Gérer le cas où la table &#96;photo_tags&#96; n&#39;existe pas (afficher un message ou masquer la section tags)\n\n### 2. Modifier &#96;app/musique/page.tsx&#96;\n\n- Changer le type de &#96;MusicTrack[]&#96; à &#96;MusicTrackWithTags[]&#96;\n- Utiliser &#96;musicService.getAllTracksWithTags()&#96; au lieu de &#96;getAllTracks()&#96;\n- Ajouter les états pour le filtrage :\n  - &#96;filteredTracks&#96; : morceaux filtrés\n  - &#96;selectedTagIds&#96; : tags sélectionnés\n  - &#96;tags&#96; : liste de tous les tags disponibles\n- Charger les tags via &#96;tagService.getAllTags()&#96;\n- Implémenter &#96;applyFilters()&#96; similaire à &#96;/textes&#96;\n- Ajouter l&#39;UI de filtrage :\n  - Section \&quot;Tags\&quot; avec &#96;TagBadge&#96; cliquables\n  - Bouton \&quot;Effacer les filtres\&quot; si des filtres sont actifs\n  - Compteur de résultats\n- Gérer le cas où la table &#96;music_tags&#96; n&#39;existe pas (afficher un message ou masquer la section tags)\n- S&#39;assurer que le filtrage fonctionne avec &#96;AudioPlayer&#96; et &#96;TrackList&#96;\n\n### 3. Modifier &#96;app/videos/page.tsx&#96; (optionnel)\n\n- Vérifier si &#96;videoService.getAllVideosWithTags()&#96; existe\n- Si oui, appliquer la même logique que pour photos et musique\n- Si non, créer la méthode dans &#96;videoService.ts&#96; d&#39;abord\n\n### 4. Gestion des erreurs\n\n- Si les tables de tags n&#39;existent pas (&#96;photo_tags&#96;, &#96;music_tags&#96;, &#96;video_tags&#96;), ne pas faire échouer le chargement\n- Afficher les contenus sans filtrage si les tags ne sont pas disponibles\n- Logger les erreurs en console pour le débogage\n\n## Fichiers à modifier\n\n- &#96;app/photos/page.tsx&#96;\n- &#96;app/musique/page.tsx&#96;\n- &#96;app/videos/page.tsx&#96; (si applicable)\n- &#96;services/videoService.ts&#96; (si nécessaire pour créer &#96;getAllVideosWithTags()&#96;)\n\n## Notes techniques\n\n- Suivre le pattern de &#96;/textes/page.tsx&#96; pour la cohérence\n- Utiliser &#96;TagBadge&#96; existant pour l&#39;affichage des tags\n- Logique de filtrage : AND (tous les tags sélectionnés doivent être présents)\n- Les filtres doivent être combinables (tags + recherche si applicable)\n- Gérer gracieusement l&#39;absence des tables de tags&quot;,
+  &quot;name&quot;: &quot;Ajout édition admin&quot;,
+  &quot;overview&quot;: &quot;Ajouter le filtrage par tags sur les pages de consultation publiques (/photos, /musique, /videos) en s&#39;inspirant de l&#39;implémentation existante sur /textes.&quot;
+}
+```
+Additional data:
+
+```json
+{
+  &quot;status&quot;: &quot;accepted&quot;,
+  &quot;reviewData&quot;: {
+    &quot;status&quot;: &quot;Requested&quot;,
+    &quot;selectedOption&quot;: &quot;none&quot;,
+    &quot;isShowingInput&quot;: false
+  }
+}
+```
+Result:
+
+```json
+{
+  &quot;accepted&quot;: {
+    &quot;finalTodos&quot;: [
+      {
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;id&quot;: &quot;1&quot;
+      },
+      {
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;id&quot;: &quot;2&quot;
+      },
+      {
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;id&quot;: &quot;3&quot;
+      },
+      {
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;id&quot;: &quot;4&quot;
+      },
+      {
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;id&quot;: &quot;5&quot;
+      }
+    ]
+  }
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+_**User (2025-11-09 07:58Z)**_
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+_**Agent (model composer-1, mode Agent)**_
+
+
+
+---
+
+
+Mise en place du filtrage par tags sur les pages de consultation, en commençant par la page photos.
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/photos/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/textes/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/videoService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Ajout du filtrage par tags sur la page photos :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/photos/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 68, lines removed: 11
+
+```diff
+@@ -2,33 +2,90 @@
+  
+  import { useState, useEffect } from &#39;react&#39;;
+- import { Photo } from &#39;@/lib/supabaseClient&#39;;
++ import { PhotoWithTags, Tag } from &#39;@/lib/supabaseClient&#39;;
+  import { photoService } from &#39;@/services/photoService&#39;;
++ import { tagService } from &#39;@/services/tagService&#39;;
+  import { PhotoGrid } from &#39;@/components/photos/PhotoGrid&#39;;
+  import { PhotoViewerModal } from &#39;@/components/photos/PhotoViewerModal&#39;;
+- import { Loader2 } from &#39;lucide-react&#39;;
++ import { TagBadge } from &#39;@/components/texts/TagBadge&#39;;
++ import { Button } from &#39;@/components/ui/button&#39;;
++ import { Loader2, X } from &#39;lucide-react&#39;;
+  
+  export default function PhotosPage() {
+-   const [photos, setPhotos] = useState&lt;Photo[]&gt;([]);
++   const [allPhotos, setAllPhotos] = useState&lt;PhotoWithTags[]&gt;([]);
++   const [filteredPhotos, setFilteredPhotos] = useState&lt;PhotoWithTags[]&gt;([]);
++   const [tags, setTags] = useState&lt;Tag[]&gt;([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedPhotoIndex, setSelectedPhotoIndex] = useState&lt;number | null&gt;(null);
++   const [selectedTagIds, setSelectedTagIds] = useState&lt;string[]&gt;([]);
++   const [tagsAvailable, setTagsAvailable] = useState(true);
+  
+    useEffect(() =&gt; {
+-     fetchPhotos();
++     fetchData();
+    }, []);
+  
+-   const fetchPhotos = async () =&gt; {
++   useEffect(() =&gt; {
++     applyFilters();
++   }, [allPhotos, selectedTagIds]);
++ 
++   const fetchData = async () =&gt; {
+      setLoading(true);
+      try {
+-       const { photos: data, error } = await photoService.getAllPhotos();
+- 
+-       if (error) throw error;
+- 
+-       setPhotos(data || []);
++       // Charger les photos avec tags
++       const { photos: photosData, error: photosError } = await photoService.getAllPhotosWithTags();
++       
++       if (photosError) {
++         // Si erreur liée à la table photo_tags, charger sans tags
++         if (photosError.code === &#39;PGRST205&#39; || photosError.message?.includes(&#39;Could not find the table&#39;)) {
++           console.warn(&#39;[PHOTOS PAGE] Table photo_tags does not exist - loading photos without tags&#39;);
++           setTagsAvailable(false);
++           const { photos: photosWithoutTags, error: simpleError } = await photoService.getAllPhotos();
++           if (simpleError) throw simpleError;
++           setAllPhotos((photosWithoutTags || []).map(p =&gt; ({ ...p, tags: [] })));
++         } else {
++           throw photosError;
++         }
++       } else {
++         setAllPhotos(photosData || []);
++         setTagsAvailable(true);
++       }
++ 
++       // Charger les tags disponibles
++       const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
++       if (!tagsError) {
++         setTags(tagsData || []);
++       }
+      } catch (error) {
+-       console.error(&#39;Error fetching photos:&#39;, error);
++       console.error(&#39;Error fetching data:&#39;, error);
+      } finally {
+        setLoading(false);
+      }
+    };
++ 
++   const applyFilters = () =&gt; {
++     let result = [...allPhotos];
++ 
++     // Filter by tags (AND logic: photo must have ALL selected tags)
++     if (selectedTagIds.length &gt; 0) {
++       result = result.filter((photo) =&gt;
++         selectedTagIds.every((tagId) =&gt;
++           photo.tags?.some((tag) =&gt; tag.id === tagId)
++         )
++       );
++     }
++ 
++     setFilteredPhotos(result);
++   };
++ 
++   const toggleTag = (tagId: string) =&gt; {
++     setSelectedTagIds((prev) =&gt;
++       prev.includes(tagId) ? prev.filter((id) =&gt; id !== tagId) : [...prev, tagId]
++     );
++   };
++ 
++   const clearFilters = () =&gt; {
++     setSelectedTagIds([]);
++   };
++ 
++   const hasActiveFilters = selectedTagIds.length &gt; 0;
+  
+    if (loading) {
+```
+
+**Chunk 2**
+Lines added: 48, lines removed: 2
+
+```diff
+@@ -52,9 +109,55 @@
+        &lt;/div&gt;
+  
+-       &lt;PhotoGrid photos={photos} onPhotoClick={setSelectedPhotoIndex} /&gt;
++       {/* Tag Filters */}
++       {tagsAvailable &amp;&amp; tags.length &gt; 0 &amp;&amp; (
++         &lt;div className=&quot;space-y-2&quot;&gt;
++           &lt;h3 className=&quot;text-sm font-medium&quot;&gt;Tags&lt;/h3&gt;
++           &lt;div className=&quot;flex flex-wrap gap-2&quot;&gt;
++             {tags.map((tag) =&gt; (
++               &lt;TagBadge
++                 key={tag.id}
++                 tag={tag}
++                 variant={selectedTagIds.includes(tag.id) ? &#39;default&#39; : &#39;outline&#39;}
++                 onClick={() =&gt; toggleTag(tag.id)}
++               /&gt;
++             ))}
++           &lt;/div&gt;
++         &lt;/div&gt;
++       )}
++ 
++       {/* Clear Filters Button */}
++       {hasActiveFilters &amp;&amp; (
++         &lt;Button variant=&quot;outline&quot; size=&quot;sm&quot; onClick={clearFilters}&gt;
++           &lt;X className=&quot;mr-2 h-4 w-4&quot; /&gt;
++           Effacer les filtres
++         &lt;/Button&gt;
++       )}
++ 
++       {/* Results Count */}
++       {hasActiveFilters &amp;&amp; (
++         &lt;p className=&quot;text-sm text-muted-foreground&quot;&gt;
++           {filteredPhotos.length} {filteredPhotos.length &gt; 1 ? &#39;photos&#39; : &#39;photo&#39;}
++           {&#96; sur ${allPhotos.length}&#96;}
++         &lt;/p&gt;
++       )}
++ 
++       {/* Photos Grid */}
++       {filteredPhotos.length === 0 &amp;&amp; hasActiveFilters ? (
++         &lt;div className=&quot;text-center py-12&quot;&gt;
++           &lt;p className=&quot;text-muted-foreground&quot;&gt;
++             Aucune photo ne correspond aux tags sélectionnés
++           &lt;/p&gt;
++         &lt;/div&gt;
++       ) : (
++         &lt;PhotoGrid photos={filteredPhotos} onPhotoClick={(index) =&gt; {
++           const photo = filteredPhotos[index];
++           const originalIndex = allPhotos.findIndex(p =&gt; p.id === photo.id);
++           setSelectedPhotoIndex(originalIndex &gt;= 0 ? originalIndex : null);
++         }} /&gt;
++       )}
+  
+        {selectedPhotoIndex !== null &amp;&amp; (
+          &lt;PhotoViewerModal
+-           photos={photos}
++           photos={allPhotos}
+            initialIndex={selectedPhotoIndex}
+            open={selectedPhotoIndex !== null}
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+Vérifiant si `PhotoGrid` et `PhotoViewerModal` acceptent `PhotoWithTags` :
+
+
+---
+
+<tool-use data-tool-type="grep" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Photo\[\]|PhotoWithTags\[\]" in "components/photos" • 3 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `components/photos\PhotoList.tsx` | `photos: Photo[];` | L25 |
+| `components/photos\PhotoViewerModal.tsx` | `photos: Photo[];` | L22 |
+| `components/photos\PhotoGrid.tsx` | `photos: Photo[];` | L8 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/photos/PhotoGrid.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/photos/PhotoViewerModal.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Les composants utilisent `Photo[]`, mais `PhotoWithTags` étend `Photo`, donc c'est compatible. Passons à la page musique :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/music/AudioPlayer.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/music/TrackList.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Modifiant la page musique pour ajouter le filtrage par tags :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/musique/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 75, lines removed: 11
+
+```diff
+@@ -2,34 +2,98 @@
+  
+  import { useState, useEffect } from &#39;react&#39;;
+- import { MusicTrack } from &#39;@/lib/supabaseClient&#39;;
++ import { MusicTrackWithTags, Tag } from &#39;@/lib/supabaseClient&#39;;
+  import { musicService } from &#39;@/services/musicService&#39;;
++ import { tagService } from &#39;@/services/tagService&#39;;
+  import { AudioPlayer } from &#39;@/components/music/AudioPlayer&#39;;
+  import { TrackList } from &#39;@/components/music/TrackList&#39;;
+- import { Loader2, Music as MusicIcon } from &#39;lucide-react&#39;;
++ import { TagBadge } from &#39;@/components/texts/TagBadge&#39;;
++ import { Button } from &#39;@/components/ui/button&#39;;
++ import { Loader2, Music as MusicIcon, X } from &#39;lucide-react&#39;;
+  import { Tabs, TabsContent, TabsList, TabsTrigger } from &#39;@/components/ui/tabs&#39;;
+  
+  export default function MusiquePage() {
+-   const [tracks, setTracks] = useState&lt;MusicTrack[]&gt;([]);
++   const [allTracks, setAllTracks] = useState&lt;MusicTrackWithTags[]&gt;([]);
++   const [filteredTracks, setFilteredTracks] = useState&lt;MusicTrackWithTags[]&gt;([]);
++   const [tags, setTags] = useState&lt;Tag[]&gt;([]);
+    const [loading, setLoading] = useState(true);
+    const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
++   const [selectedTagIds, setSelectedTagIds] = useState&lt;string[]&gt;([]);
++   const [tagsAvailable, setTagsAvailable] = useState(true);
+  
+    useEffect(() =&gt; {
+-     fetchTracks();
++     fetchData();
+    }, []);
+  
+-   const fetchTracks = async () =&gt; {
++   useEffect(() =&gt; {
++     applyFilters();
++   }, [allTracks, selectedTagIds]);
++ 
++   const fetchData = async () =&gt; {
+      setLoading(true);
+      try {
+-       const { tracks: data, error } = await musicService.getAllTracks();
+- 
+-       if (error) throw error;
+- 
+-       setTracks(data || []);
++       // Charger les morceaux avec tags
++       const { tracks: tracksData, error: tracksError } = await musicService.getAllTracksWithTags();
++       
++       if (tracksError) {
++         // Si erreur liée à la table music_tags, charger sans tags
++         if (tracksError.code === &#39;PGRST205&#39; || tracksError.message?.includes(&#39;Could not find the table&#39;)) {
++           console.warn(&#39;[MUSIC PAGE] Table music_tags does not exist - loading tracks without tags&#39;);
++           setTagsAvailable(false);
++           const { tracks: tracksWithoutTags, error: simpleError } = await musicService.getAllTracks();
++           if (simpleError) throw simpleError;
++           setAllTracks((tracksWithoutTags || []).map(t =&gt; ({ ...t, tags: [] })));
++         } else {
++           throw tracksError;
++         }
++       } else {
++         setAllTracks(tracksData || []);
++         setTagsAvailable(true);
++       }
++ 
++       // Charger les tags disponibles
++       const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
++       if (!tagsError) {
++         setTags(tagsData || []);
++       }
+      } catch (error) {
+-       console.error(&#39;Error fetching tracks:&#39;, error);
++       console.error(&#39;Error fetching data:&#39;, error);
+      } finally {
+        setLoading(false);
+      }
+    };
++ 
++   const applyFilters = () =&gt; {
++     let result = [...allTracks];
++ 
++     // Filter by tags (AND logic: track must have ALL selected tags)
++     if (selectedTagIds.length &gt; 0) {
++       result = result.filter((track) =&gt;
++         selectedTagIds.every((tagId) =&gt;
++           track.tags?.some((tag) =&gt; tag.id === tagId)
++         )
++       );
++     }
++ 
++     setFilteredTracks(result);
++     
++     // Réinitialiser l&#39;index si le morceau actuel n&#39;est plus dans les résultats filtrés
++     if (currentTrackIndex &gt;= result.length &amp;&amp; result.length &gt; 0) {
++       setCurrentTrackIndex(0);
++     } else if (result.length === 0) {
++       setCurrentTrackIndex(0);
++     }
++   };
++ 
++   const toggleTag = (tagId: string) =&gt; {
++     setSelectedTagIds((prev) =&gt;
++       prev.includes(tagId) ? prev.filter((id) =&gt; id !== tagId) : [...prev, tagId]
++     );
++   };
++ 
++   const clearFilters = () =&gt; {
++     setSelectedTagIds([]);
++   };
++ 
++   const hasActiveFilters = selectedTagIds.length &gt; 0;
+  
+    if (loading) {
+```
+
+**Chunk 2**
+Lines added: 33, lines removed: undefined
+
+```diff
+@@ -52,4 +116,37 @@
+          &lt;/p&gt;
+        &lt;/div&gt;
++ 
++       {/* Tag Filters */}
++       {tagsAvailable &amp;&amp; tags.length &gt; 0 &amp;&amp; (
++         &lt;div className=&quot;space-y-2&quot;&gt;
++           &lt;h3 className=&quot;text-sm font-medium&quot;&gt;Tags&lt;/h3&gt;
++           &lt;div className=&quot;flex flex-wrap gap-2&quot;&gt;
++             {tags.map((tag) =&gt; (
++               &lt;TagBadge
++                 key={tag.id}
++                 tag={tag}
++                 variant={selectedTagIds.includes(tag.id) ? &#39;default&#39; : &#39;outline&#39;}
++                 onClick={() =&gt; toggleTag(tag.id)}
++               /&gt;
++             ))}
++           &lt;/div&gt;
++         &lt;/div&gt;
++       )}
++ 
++       {/* Clear Filters Button */}
++       {hasActiveFilters &amp;&amp; (
++         &lt;Button variant=&quot;outline&quot; size=&quot;sm&quot; onClick={clearFilters}&gt;
++           &lt;X className=&quot;mr-2 h-4 w-4&quot; /&gt;
++           Effacer les filtres
++         &lt;/Button&gt;
++       )}
++ 
++       {/* Results Count */}
++       {hasActiveFilters &amp;&amp; (
++         &lt;p className=&quot;text-sm text-muted-foreground&quot;&gt;
++           {filteredTracks.length} {filteredTracks.length &gt; 1 ? &#39;morceaux&#39; : &#39;morceau&#39;}
++           {&#96; sur ${allTracks.length}&#96;}
++         &lt;/p&gt;
++       )}
+  
+        &lt;Tabs defaultValue=&quot;player&quot; className=&quot;w-full&quot;&gt;
+```
+
+**Chunk 3**
+Lines added: 12, lines removed: 4
+
+```diff
+@@ -60,17 +157,25 @@
+  
+          &lt;TabsContent value=&quot;player&quot; className=&quot;space-y-6 mt-6&quot;&gt;
+-           {tracks.length &gt; 0 ? (
++           {filteredTracks.length &gt; 0 ? (
+              &lt;&gt;
+-               &lt;AudioPlayer tracks={tracks} initialTrackIndex={currentTrackIndex} /&gt;
++               &lt;AudioPlayer tracks={filteredTracks} initialTrackIndex={currentTrackIndex} /&gt;
+  
+                &lt;div&gt;
+                  &lt;h2 className=&quot;text-xl font-semibold mb-4&quot;&gt;Liste de lecture&lt;/h2&gt;
+                  &lt;TrackList
+-                   tracks={tracks}
+-                   currentTrackId={tracks[currentTrackIndex]?.id}
++                   tracks={filteredTracks}
++                   currentTrackId={filteredTracks[currentTrackIndex]?.id}
+                    onTrackSelect={setCurrentTrackIndex}
+                  /&gt;
+                &lt;/div&gt;
+              &lt;/&gt;
++           ) : hasActiveFilters ? (
++             &lt;div className=&quot;flex flex-col items-center justify-center py-12 text-center&quot;&gt;
++               &lt;MusicIcon className=&quot;h-16 w-16 text-muted-foreground mb-4&quot; /&gt;
++               &lt;h3 className=&quot;text-lg font-semibold mb-2&quot;&gt;Aucun morceau ne correspond aux tags sélectionnés&lt;/h3&gt;
++               &lt;p className=&quot;text-sm text-muted-foreground&quot;&gt;
++                 Essayez de sélectionner d&amp;apos;autres tags ou effacez les filtres
++               &lt;/p&gt;
++             &lt;/div&gt;
+            ) : (
+              &lt;div className=&quot;flex flex-col items-center justify-center py-12 text-center&quot;&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+
+---
+
+
+Modifiant la page vidéos pour ajouter le filtrage par tags :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/videos/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="grep" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Video\[\]|VideoWithTags\[\]" in "components/videos" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `components/videos\VideoListAdmin.tsx` | `videos: Video[];` | L25 |
+| `components/videos\VideoGrid.tsx` | `videos: Video[];` | L9 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Modifiant la page vidéos pour ajouter le filtrage par tags :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/videos/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 68, lines removed: 14
+
+```diff
+@@ -2,34 +2,88 @@
+  
+  import { useState, useEffect } from &#39;react&#39;;
+- import { Video } from &#39;@/lib/supabaseClient&#39;;
++ import { VideoWithTags, Tag } from &#39;@/lib/supabaseClient&#39;;
+  import { videoService } from &#39;@/services/videoService&#39;;
++ import { tagService } from &#39;@/services/tagService&#39;;
+  import { VideoGrid } from &#39;@/components/videos/VideoGrid&#39;;
+- import { Loader2 } from &#39;lucide-react&#39;;
++ import { TagBadge } from &#39;@/components/texts/TagBadge&#39;;
++ import { Button } from &#39;@/components/ui/button&#39;;
++ import { Loader2, X } from &#39;lucide-react&#39;;
+  
+  export default function VideosPage() {
+-   const [videos, setVideos] = useState&lt;Video[]&gt;([]);
++   const [allVideos, setAllVideos] = useState&lt;VideoWithTags[]&gt;([]);
++   const [filteredVideos, setFilteredVideos] = useState&lt;VideoWithTags[]&gt;([]);
++   const [tags, setTags] = useState&lt;Tag[]&gt;([]);
+    const [loading, setLoading] = useState(true);
++   const [selectedTagIds, setSelectedTagIds] = useState&lt;string[]&gt;([]);
++   const [tagsAvailable, setTagsAvailable] = useState(true);
+  
+    useEffect(() =&gt; {
+-     fetchVideos();
++     fetchData();
+    }, []);
+  
+-   const fetchVideos = async () =&gt; {
++   useEffect(() =&gt; {
++     applyFilters();
++   }, [allVideos, selectedTagIds]);
++ 
++   const fetchData = async () =&gt; {
+      setLoading(true);
+      try {
+-       const { videos: data, error } = await videoService.getAllVideos();
+- 
+-       if (error) {
+-         console.error(&#39;Error fetching videos:&#39;, error);
+-         return;
+-       }
+- 
+-       setVideos(data || []);
++       // Charger les vidéos avec tags
++       const { videos: videosData, error: videosError } = await videoService.getAllVideosWithTags();
++       
++       if (videosError) {
++         // Si erreur liée à la table video_tags, charger sans tags
++         if (videosError.code === &#39;PGRST205&#39; || videosError.message?.includes(&#39;Could not find the table&#39;)) {
++           console.warn(&#39;[VIDEOS PAGE] Table video_tags does not exist - loading videos without tags&#39;);
++           setTagsAvailable(false);
++           const { videos: videosWithoutTags, error: simpleError } = await videoService.getAllVideos();
++           if (simpleError) throw simpleError;
++           setAllVideos((videosWithoutTags || []).map(v =&gt; ({ ...v, tags: [] })));
++         } else {
++           throw videosError;
++         }
++       } else {
++         setAllVideos(videosData || []);
++         setTagsAvailable(true);
++       }
++ 
++       // Charger les tags disponibles
++       const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
++       if (!tagsError) {
++         setTags(tagsData || []);
++       }
+      } catch (error) {
+-       console.error(&#39;Error fetching videos:&#39;, error);
++       console.error(&#39;Error fetching data:&#39;, error);
+      } finally {
+        setLoading(false);
+      }
+    };
++ 
++   const applyFilters = () =&gt; {
++     let result = [...allVideos];
++ 
++     // Filter by tags (AND logic: video must have ALL selected tags)
++     if (selectedTagIds.length &gt; 0) {
++       result = result.filter((video) =&gt;
++         selectedTagIds.every((tagId) =&gt;
++           video.tags?.some((tag) =&gt; tag.id === tagId)
++         )
++       );
++     }
++ 
++     setFilteredVideos(result);
++   };
++ 
++   const toggleTag = (tagId: string) =&gt; {
++     setSelectedTagIds((prev) =&gt;
++       prev.includes(tagId) ? prev.filter((id) =&gt; id !== tagId) : [...prev, tagId]
++     );
++   };
++ 
++   const clearFilters = () =&gt; {
++     setSelectedTagIds([]);
++   };
++ 
++   const hasActiveFilters = selectedTagIds.length &gt; 0;
+  
+    return (
+```
+
+**Chunk 2**
+Lines added: 45, lines removed: 1
+
+```diff
+@@ -50,5 +104,49 @@
+          &lt;/div&gt;
+        ) : (
+-         &lt;VideoGrid videos={videos} /&gt;
++         &lt;&gt;
++           {/* Tag Filters */}
++           {tagsAvailable &amp;&amp; tags.length &gt; 0 &amp;&amp; (
++             &lt;div className=&quot;space-y-2&quot;&gt;
++               &lt;h3 className=&quot;text-sm font-medium&quot;&gt;Tags&lt;/h3&gt;
++               &lt;div className=&quot;flex flex-wrap gap-2&quot;&gt;
++                 {tags.map((tag) =&gt; (
++                   &lt;TagBadge
++                     key={tag.id}
++                     tag={tag}
++                     variant={selectedTagIds.includes(tag.id) ? &#39;default&#39; : &#39;outline&#39;}
++                     onClick={() =&gt; toggleTag(tag.id)}
++                   /&gt;
++                 ))}
++               &lt;/div&gt;
++             &lt;/div&gt;
++           )}
++ 
++           {/* Clear Filters Button */}
++           {hasActiveFilters &amp;&amp; (
++             &lt;Button variant=&quot;outline&quot; size=&quot;sm&quot; onClick={clearFilters}&gt;
++               &lt;X className=&quot;mr-2 h-4 w-4&quot; /&gt;
++               Effacer les filtres
++             &lt;/Button&gt;
++           )}
++ 
++           {/* Results Count */}
++           {hasActiveFilters &amp;&amp; (
++             &lt;p className=&quot;text-sm text-muted-foreground&quot;&gt;
++               {filteredVideos.length} {filteredVideos.length &gt; 1 ? &#39;vidéos&#39; : &#39;vidéo&#39;}
++               {&#96; sur ${allVideos.length}&#96;}
++             &lt;/p&gt;
++           )}
++ 
++           {/* Videos Grid */}
++           {filteredVideos.length === 0 &amp;&amp; hasActiveFilters ? (
++             &lt;div className=&quot;text-center py-12&quot;&gt;
++               &lt;p className=&quot;text-muted-foreground&quot;&gt;
++                 Aucune vidéo ne correspond aux tags sélectionnés
++               &lt;/p&gt;
++             &lt;/div&gt;
++           ) : (
++             &lt;VideoGrid videos={filteredVideos} /&gt;
++           )}
++         &lt;/&gt;
+        )}
+      &lt;/div&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 3 files</summary>
+      
+Lint paths:
+
+- `app/photos/page.tsx`
+- `app/musique/page.tsx`
+- `app/videos/page.tsx`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Vérifiant que les filtres s'appliquent correctement au chargement initial. Corrigeant un problème potentiel :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/photos/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -26,4 +26,5 @@
+    useEffect(() =&gt; {
+      applyFilters();
++     // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allPhotos, selectedTagIds]);
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/musique/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -27,4 +27,5 @@
+    useEffect(() =&gt; {
+      applyFilters();
++     // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allTracks, selectedTagIds]);
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: app/videos/page.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -24,4 +24,5 @@
+    useEffect(() =&gt; {
+      applyFilters();
++     // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allVideos, selectedTagIds]);
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 3 files</summary>
+      
+Lint paths:
+
+- `app/photos/page.tsx`
+- `app/musique/page.tsx`
+- `app/videos/page.tsx`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Vérifiant que les types sont correctement définis dans `lib/supabaseClient.ts` :
+
+
+---
+
+<tool-use data-tool-type="grep" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "PhotoWithTags|MusicTrackWithTags|VideoWithTags" in "lib/supabaseClient.ts" • 3 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `lib/supabaseClient.ts` | `export type MusicTrackWithTags = MusicTrack & \{` | L106 |
+| `lib/supabaseClient.ts` | `export type VideoWithTags = Video & \{` | L110 |
+| `lib/supabaseClient.ts` | `export type PhotoWithTags = Photo & \{` | L114 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Les types sont correctement définis. Résumé des modifications :
+
+## Modifications terminées
+
+### 1. Page Photos (`app/photos/page.tsx`)
+- Utilise `PhotoWithTags[]` au lieu de `Photo[]`
+- Charge les photos avec `getAllPhotosWithTags()`
+- Ajoute le filtrage par tags avec logique AND
+- Gère l'absence de la table `photo_tags`
+- Affiche les tags cliquables, un bouton pour effacer les filtres et un compteur de résultats
+
+### 2. Page Musique (`app/musique/page.tsx`)
+- Utilise `MusicTrackWithTags[]` au lieu de `MusicTrack[]`
+- Charge les morceaux avec `getAllTracksWithTags()`
+- Ajoute le filtrage par tags avec logique AND
+- Gère l'absence de la table `music_tags`
+- Réinitialise l'index du morceau actuel lors du filtrage
+- Affiche les tags cliquables, un bouton pour effacer les filtres et un compteur de résultats
+
+### 3. Page Vidéos (`app/videos/page.tsx`)
+- Utilise `VideoWithTags[]` au lieu de `Video[]`
+- Charge les vidéos avec `getAllVideosWithTags()`
+- Ajoute le filtrage par tags avec logique AND
+- Gère l'absence de la table `video_tags`
+- Affiche les tags cliquables, un bouton pour effacer les filtres et un compteur de résultats
+
+## Fonctionnalités implémentées
+
+- Filtrage par tags : logique AND (tous les tags sélectionnés doivent être présents)
+- Gestion d'erreurs : si les tables de tags n'existent pas, les pages fonctionnent sans filtrage
+- UI cohérente : même pattern que la page `/textes` avec `TagBadge` cliquables
+- Compteur de résultats : affiche le nombre d'éléments filtrés sur le total
+- Bouton "Effacer les filtres" : visible uniquement quand des filtres sont actifs
+
+Le filtrage par tags est maintenant opérationnel sur les trois pages de consultation publiques.
+
+---
+

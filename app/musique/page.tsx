@@ -1,36 +1,101 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MusicTrack } from '@/lib/supabaseClient';
+import { MusicTrackWithTags, Tag } from '@/lib/supabaseClient';
 import { musicService } from '@/services/musicService';
+import { tagService } from '@/services/tagService';
 import { AudioPlayer } from '@/components/music/AudioPlayer';
 import { TrackList } from '@/components/music/TrackList';
-import { Loader2, Music as MusicIcon } from 'lucide-react';
+import { TagBadge } from '@/components/texts/TagBadge';
+import { Button } from '@/components/ui/button';
+import { Loader2, Music as MusicIcon, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function MusiquePage() {
-  const [tracks, setTracks] = useState<MusicTrack[]>([]);
+  const [allTracks, setAllTracks] = useState<MusicTrackWithTags[]>([]);
+  const [filteredTracks, setFilteredTracks] = useState<MusicTrackWithTags[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagsAvailable, setTagsAvailable] = useState(true);
 
   useEffect(() => {
-    fetchTracks();
+    fetchData();
   }, []);
 
-  const fetchTracks = async () => {
+  useEffect(() => {
+    applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTracks, selectedTagIds]);
+
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const { tracks: data, error } = await musicService.getAllTracks();
+      // Charger les morceaux avec tags
+      const { tracks: tracksData, error: tracksError } = await musicService.getAllTracksWithTags();
+      
+      if (tracksError) {
+        // Si erreur liée à la table music_tags, charger sans tags
+        if (tracksError.code === 'PGRST205' || tracksError.message?.includes('Could not find the table')) {
+          console.warn('[MUSIC PAGE] Table music_tags does not exist - loading tracks without tags');
+          setTagsAvailable(false);
+          const { tracks: tracksWithoutTags, error: simpleError } = await musicService.getAllTracks();
+          if (simpleError) throw simpleError;
+          setAllTracks((tracksWithoutTags || []).map(t => ({ ...t, tags: [] })));
+        } else {
+          throw tracksError;
+        }
+      } else {
+        setAllTracks(tracksData || []);
+        setTagsAvailable(true);
+      }
 
-      if (error) throw error;
-
-      setTracks(data || []);
+      // Charger les tags disponibles
+      const { tags: tagsData, error: tagsError } = await tagService.getAllTags();
+      if (!tagsError) {
+        setTags(tagsData || []);
+      }
     } catch (error) {
-      console.error('Error fetching tracks:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const applyFilters = () => {
+    let result = [...allTracks];
+
+    // Filter by tags (AND logic: track must have ALL selected tags)
+    if (selectedTagIds.length > 0) {
+      result = result.filter((track) =>
+        selectedTagIds.every((tagId) =>
+          track.tags?.some((tag) => tag.id === tagId)
+        )
+      );
+    }
+
+    setFilteredTracks(result);
+    
+    // Réinitialiser l'index si le morceau actuel n'est plus dans les résultats filtrés
+    if (currentTrackIndex >= result.length && result.length > 0) {
+      setCurrentTrackIndex(0);
+    } else if (result.length === 0) {
+      setCurrentTrackIndex(0);
+    }
+  };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const clearFilters = () => {
+    setSelectedTagIds([]);
+  };
+
+  const hasActiveFilters = selectedTagIds.length > 0;
 
   if (loading) {
     return (
@@ -52,6 +117,39 @@ export default function MusiquePage() {
         </p>
       </div>
 
+      {/* Tag Filters */}
+      {tagsAvailable && tags.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Tags</h3>
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <TagBadge
+                key={tag.id}
+                tag={tag}
+                variant={selectedTagIds.includes(tag.id) ? 'default' : 'outline'}
+                onClick={() => toggleTag(tag.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Clear Filters Button */}
+      {hasActiveFilters && (
+        <Button variant="outline" size="sm" onClick={clearFilters}>
+          <X className="mr-2 h-4 w-4" />
+          Effacer les filtres
+        </Button>
+      )}
+
+      {/* Results Count */}
+      {hasActiveFilters && (
+        <p className="text-sm text-muted-foreground">
+          {filteredTracks.length} {filteredTracks.length > 1 ? 'morceaux' : 'morceau'}
+          {` sur ${allTracks.length}`}
+        </p>
+      )}
+
       <Tabs defaultValue="player" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="player">Lecteur Audio</TabsTrigger>
@@ -59,19 +157,27 @@ export default function MusiquePage() {
         </TabsList>
 
         <TabsContent value="player" className="space-y-6 mt-6">
-          {tracks.length > 0 ? (
+          {filteredTracks.length > 0 ? (
             <>
-              <AudioPlayer tracks={tracks} initialTrackIndex={currentTrackIndex} />
+              <AudioPlayer tracks={filteredTracks} initialTrackIndex={currentTrackIndex} />
 
               <div>
                 <h2 className="text-xl font-semibold mb-4">Liste de lecture</h2>
                 <TrackList
-                  tracks={tracks}
-                  currentTrackId={tracks[currentTrackIndex]?.id}
+                  tracks={filteredTracks}
+                  currentTrackId={filteredTracks[currentTrackIndex]?.id}
                   onTrackSelect={setCurrentTrackIndex}
                 />
               </div>
             </>
+          ) : hasActiveFilters ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <MusicIcon className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Aucun morceau ne correspond aux tags sélectionnés</h3>
+              <p className="text-sm text-muted-foreground">
+                Essayez de sélectionner d&apos;autres tags ou effacez les filtres
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <MusicIcon className="h-16 w-16 text-muted-foreground mb-4" />
