@@ -33,10 +33,10 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { href: '/', icon: Home, label: 'Accueil' },
-  { href: '/musique', icon: Music, label: 'Musique' },
-  { href: '/photos', icon: Image, label: 'Photos' },
-  { href: '/videos', icon: Video, label: 'Vidéos' },
-  { href: '/textes', icon: FileText, label: 'Textes' },
+  { href: '/musique', icon: Music, label: 'Audio' },
+  { href: '/photos', icon: Image, label: 'Photo' },
+  { href: '/videos', icon: Video, label: 'Vidéo' },
+  { href: '/textes', icon: FileText, label: 'Texte' },
   { href: '/applications', icon: AppWindow, label: 'Applications' },
   { href: '/a-propos', icon: Info, label: 'À propos' },
   { href: '/contact', icon: Mail, label: 'Contact' },
@@ -135,7 +135,7 @@ export function Sidebar({ onToggle }: SidebarProps) {
               <Link
                 href="/admin/photos"
                 aria-current={pathname === '/admin/photos' ? 'page' : undefined}
-                aria-label={!isExpanded ? 'Admin Photos' : undefined}
+                aria-label={!isExpanded ? 'Admin Photo' : undefined}
               >
                 <div
                   className={cn(
@@ -147,13 +147,13 @@ export function Sidebar({ onToggle }: SidebarProps) {
                   )}
                 >
                   <Image className="h-5 w-5 flex-shrink-0" />
-                  {isExpanded && <span>Admin Photos</span>}
+                  {isExpanded && <span>Admin Photo</span>}
                 </div>
               </Link>
               <Link
                 href="/admin/music"
                 aria-current={pathname === '/admin/music' ? 'page' : undefined}
-                aria-label={!isExpanded ? 'Admin Musique' : undefined}
+                aria-label={!isExpanded ? 'Admin Audio' : undefined}
               >
                 <div
                   className={cn(
@@ -165,13 +165,13 @@ export function Sidebar({ onToggle }: SidebarProps) {
                   )}
                 >
                   <Music className="h-5 w-5 flex-shrink-0" />
-                  {isExpanded && <span>Admin Musique</span>}
+                  {isExpanded && <span>Admin Audio</span>}
                 </div>
               </Link>
               <Link
                 href="/admin/videos"
                 aria-current={pathname === '/admin/videos' ? 'page' : undefined}
-                aria-label={!isExpanded ? 'Admin Vidéos' : undefined}
+                aria-label={!isExpanded ? 'Admin Vidéo' : undefined}
               >
                 <div
                   className={cn(
@@ -183,7 +183,25 @@ export function Sidebar({ onToggle }: SidebarProps) {
                   )}
                 >
                   <Video className="h-5 w-5 flex-shrink-0" />
-                  {isExpanded && <span>Admin Vidéos</span>}
+                  {isExpanded && <span>Admin Vidéo</span>}
+                </div>
+              </Link>
+              <Link
+                href="/admin/texts"
+                aria-current={pathname === '/admin/texts' ? 'page' : undefined}
+                aria-label={!isExpanded ? 'Admin Texte' : undefined}
+              >
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                    'hover:bg-accent/50',
+                    pathname === '/admin/texts' && 'bg-foreground text-background font-medium',
+                    pathname !== '/admin/texts' && 'text-muted-foreground',
+                    !isExpanded && 'justify-center px-2'
+                  )}
+                >
+                  <FileText className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && <span>Admin Texte</span>}
                 </div>
               </Link>
             </>
