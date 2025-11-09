@@ -1,13 +1,30 @@
 import { supabaseClient, Tag } from '@/lib/supabaseClient';
+import { cache } from '@/lib/cache';
 
 export const tagService = {
   async getAllTags() {
+    const CACHE_KEY = 'tags:all';
+    const TTL = 10 * 60 * 1000; // 10 minutes
+
+    // Vérifier le cache
+    const cached = cache.get<{ tags: Tag[]; error: null }>(CACHE_KEY);
+    if (cached) {
+      return cached;
+    }
+
     const { data, error } = await supabaseClient
       .from('tags')
       .select('*')
       .order('name', { ascending: true });
 
-    return { tags: data as Tag[] | null, error };
+    if (error) return { tags: null, error };
+
+    const result = { tags: data as Tag[], error: null };
+
+    // Mettre en cache
+    cache.set(CACHE_KEY, result, { ttl: TTL, storage: 'session' });
+
+    return result;
   },
 
   async getTagById(id: string) {
@@ -41,6 +58,11 @@ export const tagService = {
       .select()
       .single();
 
+    if (!error) {
+      // Invalider le cache des tags
+      cache.invalidatePattern('tags:');
+    }
+
     return { tag: data as Tag | null, error };
   },
 
@@ -52,6 +74,12 @@ export const tagService = {
       .select()
       .single();
 
+    if (!error) {
+      // Invalider le cache des tags et des textes (qui affichent les tags)
+      cache.invalidatePattern('tags:');
+      cache.invalidatePattern('texts:');
+    }
+
     return { tag: data as Tag | null, error };
   },
 
@@ -60,6 +88,12 @@ export const tagService = {
       .from('tags')
       .delete()
       .eq('id', id);
+
+    if (!error) {
+      // Invalider le cache des tags et des textes
+      cache.invalidatePattern('tags:');
+      cache.invalidatePattern('texts:');
+    }
 
     return { error };
   },
@@ -115,9 +149,12 @@ export const tagService = {
 
       if (error) {
         console.error('[TAG SERVICE] Error inserting tags:', error);
+        return { error };
       }
-      return { error };
     }
+
+    // Invalider le cache des textes (les tags des textes ont changé)
+    cache.invalidatePattern('texts:');
 
     return { error: null };
   },

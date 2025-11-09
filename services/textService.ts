@@ -1,5 +1,9 @@
 import { supabaseClient, Text, TextWithMetadata, Category, Tag } from '@/lib/supabaseClient';
 import { tagService } from './tagService';
+import { cache } from '@/lib/cache';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('text-service');
 
 export const textService = {
   async getAllTexts() {
@@ -43,15 +47,14 @@ export const textService = {
     is_published?: boolean;
     display_order: number;
   }) {
-    console.log('[TEXT SERVICE] Create text - Starting');
-    console.log('[TEXT SERVICE] Text data:', JSON.stringify(text, null, 2));
+    logger.debug('Create text - Starting', { title: text.title });
 
     try {
       // Récupérer l'utilisateur connecté
       const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
       if (authError) {
-        console.error('[TEXT SERVICE] Auth error:', authError);
+        logger.error('Auth error during text creation', authError);
         return {
           text: null,
           error: {
@@ -63,7 +66,7 @@ export const textService = {
       }
 
       if (!user) {
-        console.error('[TEXT SERVICE] No user found - user must be authenticated');
+        logger.warn('No user found - authentication required');
         return {
           text: null,
           error: {
@@ -74,15 +77,13 @@ export const textService = {
         };
       }
 
-      console.log('[TEXT SERVICE] User authenticated:', user.id);
+      logger.debug('User authenticated', { userId: user.id });
 
       // Ajouter le user_id au text
       const textWithUser = {
         ...text,
         user_id: user.id
       };
-
-      console.log('[TEXT SERVICE] Inserting text with user_id:', textWithUser);
 
       const { data, error } = await supabaseClient
         .from('texts')
@@ -91,17 +92,21 @@ export const textService = {
         .single();
 
       if (error) {
-        console.error('[TEXT SERVICE] Insert text - ERROR:', error);
-        console.error('[TEXT SERVICE] Error code:', error.code);
-        console.error('[TEXT SERVICE] Error message:', error.message);
-        console.error('[TEXT SERVICE] Error details:', JSON.stringify(error, null, 2));
+        logger.error('Insert text failed', error, {
+          code: error.code,
+          message: error.message,
+        });
         return { text: null, error };
       }
 
-      console.log('[TEXT SERVICE] Insert text - SUCCESS:', data);
+      logger.info('Text created successfully', { textId: data.id, title: data.title });
+
+      // Invalider le cache des textes
+      cache.invalidatePattern('texts:');
+
       return { text: data as Text | null, error: null };
     } catch (err) {
-      console.error('[TEXT SERVICE] Unexpected error:', err);
+      logger.error('Unexpected error during text creation', err as Error);
       return {
         text: null,
         error: {
@@ -120,6 +125,11 @@ export const textService = {
       .select()
       .single();
 
+    if (!error) {
+      // Invalider le cache des textes
+      cache.invalidatePattern('texts:');
+    }
+
     return { text: data as Text | null, error };
   },
 
@@ -128,6 +138,11 @@ export const textService = {
       .from('texts')
       .delete()
       .eq('id', id);
+
+    if (!error) {
+      // Invalider le cache des textes
+      cache.invalidatePattern('texts:');
+    }
 
     return { error };
   },
@@ -143,6 +158,15 @@ export const textService = {
 
   // Méthodes avec métadonnées (catégories et tags)
   async getTextsWithMetadata() {
+    const CACHE_KEY = 'texts:all-with-metadata';
+    const TTL = 5 * 60 * 1000; // 5 minutes
+
+    // Vérifier le cache
+    const cached = cache.get<{ texts: TextWithMetadata[]; error: null }>(CACHE_KEY);
+    if (cached) {
+      return cached;
+    }
+
     const { data, error } = await supabaseClient
       .from('texts')
       .select(`
@@ -164,7 +188,12 @@ export const textService = {
     // Supprimer text_tags car on a déjà tags
     texts.forEach((text: any) => delete text.text_tags);
 
-    return { texts: texts as TextWithMetadata[], error: null };
+    const result = { texts: texts as TextWithMetadata[], error: null };
+
+    // Mettre en cache
+    cache.set(CACHE_KEY, result, { ttl: TTL, storage: 'session' });
+
+    return result;
   },
 
   async getTextWithMetadata(id: string) {

@@ -23,7 +23,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     *   `app/*/page.tsx`
     *   `components/AppLayout.tsx`
     *   `contexts/*.tsx`
-    *   `services/*.ts`
+    *   `services/*.tsx`
     *   `components/Sidebar.tsx`
     *   `components/Topbar.tsx`
     *   `lib/*.ts`
@@ -273,3 +273,8 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
         *   The tag loading process should also be optional, preventing errors if the table doesn't exist.
     4.  **Ensure proper error messages:** The toast messages should display clear error details, including message, code, status code, hint, and details.
 * When a table is missing, the code must continue to function, providing a warning that tags could not be updated due to the missing table. The tag loading process should also be optional, preventing errors if the table doesn't exist.
+* When displaying tags on public pages, ensure that each page displays only the tags that are actually used for its content type:
+    * Page Photos: only tags from the `photo_tags` table.
+    * Page Music: only tags from the `music_tags` table.
+    * Page Videos: only tags from the `video_tags` table.
+    * Page Texts: only tags from the `text_tags` table.

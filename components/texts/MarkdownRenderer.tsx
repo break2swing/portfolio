@@ -1,8 +1,18 @@
 'use client';
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
+
+// Code splitting: charger React Markdown et plugins uniquement quand nécessaire
+const ReactMarkdown = dynamic(() => import('react-markdown'), {
+  loading: () => (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  ),
+  ssr: false,
+});
 
 interface MarkdownRendererProps {
   content: string;
@@ -11,12 +21,17 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
   const [DOMPurify, setDOMPurify] = useState<any>(null);
+  const [remarkGfm, setRemarkGfm] = useState<any>(null);
 
-  // Charger DOMPurify uniquement côté client
+  // Charger DOMPurify et remarkGfm uniquement côté client
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      import('dompurify').then((module) => {
-        setDOMPurify(module.default);
+      Promise.all([
+        import('dompurify'),
+        import('remark-gfm'),
+      ]).then(([dompurifyModule, remarkGfmModule]) => {
+        setDOMPurify(dompurifyModule.default);
+        setRemarkGfm(() => remarkGfmModule.default);
       });
     }
   }, []);
@@ -49,6 +64,15 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       ALLOW_UNKNOWN_PROTOCOLS: false,
     });
   }, [content, DOMPurify]);
+
+  // Afficher un loader si les dépendances ne sont pas encore chargées
+  if (!DOMPurify || !remarkGfm) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div
