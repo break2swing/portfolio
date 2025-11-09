@@ -16,9 +16,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trash2, GripVertical, Loader2, Music } from 'lucide-react';
+import { Trash2, GripVertical, Loader2, Music, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { TrackEditDialog } from './TrackEditDialog';
 
 interface TrackListAdminProps {
   tracks: MusicTrack[];
@@ -30,6 +31,13 @@ export function TrackListAdmin({ tracks, onUpdate }: TrackListAdminProps) {
   const [deleting, setDeleting] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [editTrack, setEditTrack] = useState<MusicTrack | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleEdit = (track: MusicTrack) => {
+    setEditTrack(track);
+    setEditDialogOpen(true);
+  };
 
   const handleDelete = async (track: MusicTrack) => {
     setDeleting(true);
@@ -186,14 +194,23 @@ export function TrackListAdmin({ tracks, onUpdate }: TrackListAdminProps) {
                     Durée: {formatDuration(track.duration)} • Ordre: {track.display_order}
                   </p>
                 </div>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => setDeleteTrackId(track.id)}
-                  disabled={deleting}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleEdit(track)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => setDeleteTrackId(track.id)}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -234,6 +251,13 @@ export function TrackListAdmin({ tracks, onUpdate }: TrackListAdminProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TrackEditDialog
+        track={editTrack}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={onUpdate}
+      />
     </>
   );
 }

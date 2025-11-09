@@ -16,9 +16,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trash2, GripVertical, Loader2, Video as VideoIcon } from 'lucide-react';
+import { Trash2, GripVertical, Loader2, Video as VideoIcon, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { VideoEditDialog } from './VideoEditDialog';
 
 interface VideoListAdminProps {
   videos: Video[];
@@ -30,6 +31,13 @@ export function VideoListAdmin({ videos, onUpdate }: VideoListAdminProps) {
   const [deleting, setDeleting] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [editVideo, setEditVideo] = useState<Video | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleEdit = (video: Video) => {
+    setEditVideo(video);
+    setEditDialogOpen(true);
+  };
 
   const handleDelete = async (video: Video) => {
     setDeleting(true);
@@ -183,14 +191,23 @@ export function VideoListAdmin({ videos, onUpdate }: VideoListAdminProps) {
                     Durée: {formatDuration(video.duration)} • Ordre: {video.display_order}
                   </p>
                 </div>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => setDeleteVideoId(video.id)}
-                  disabled={deleting}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleEdit(video)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => setDeleteVideoId(video.id)}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -231,6 +248,13 @@ export function VideoListAdmin({ videos, onUpdate }: VideoListAdminProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <VideoEditDialog
+        video={editVideo}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={onUpdate}
+      />
     </>
   );
 }

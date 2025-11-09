@@ -97,10 +97,15 @@ export const tagService = {
 
   async setTagsForText(textId: string, tagIds: string[]) {
     // Supprimer tous les tags existants
-    await supabaseClient
+    const { error: deleteError } = await supabaseClient
       .from('text_tags')
       .delete()
       .eq('text_id', textId);
+
+    if (deleteError) {
+      console.error('[TAG SERVICE] Error deleting existing tags:', deleteError);
+      return { error: deleteError };
+    }
 
     // Ajouter les nouveaux tags
     if (tagIds.length > 0) {
@@ -108,9 +113,47 @@ export const tagService = {
         .from('text_tags')
         .insert(tagIds.map(tagId => ({ text_id: textId, tag_id: tagId })));
 
+      if (error) {
+        console.error('[TAG SERVICE] Error inserting tags:', error);
+      }
       return { error };
     }
 
     return { error: null };
+  },
+
+  /**
+   * Récupère tous les tags uniques utilisés dans les textes publiés
+   */
+  async getAllTagsUsedInTexts() {
+    // Récupérer les tags via les textes publiés
+    const { data, error } = await supabaseClient
+      .from('texts')
+      .select(`
+        text_tags(tag:tags(*))
+      `)
+      .eq('is_published', true);
+
+    if (error) {
+      return { tags: null, error };
+    }
+
+    // Extraire les tags uniques des textes publiés uniquement
+    const tagMap = new Map<string, Tag>();
+    data.forEach((text: any) => {
+      if (text.text_tags) {
+        text.text_tags.forEach((tt: any) => {
+          if (tt.tag && !tagMap.has(tt.tag.id)) {
+            tagMap.set(tt.tag.id, tt.tag);
+          }
+        });
+      }
+    });
+
+    const tags = Array.from(tagMap.values()).sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+
+    return { tags: tags as Tag[], error: null };
   },
 };

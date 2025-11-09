@@ -40,7 +40,7 @@ export default function TextesPage() {
       const [{ texts: textsData }, { categories: catsData }, { tags: tagsData }] = await Promise.all([
         textService.getPublishedTexts(),
         categoryService.getAllCategories(),
-        tagService.getAllTags(),
+        tagService.getAllTagsUsedInTexts(),
       ]);
 
       setAllTexts(textsData || []);

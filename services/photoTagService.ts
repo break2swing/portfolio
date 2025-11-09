@@ -46,10 +46,15 @@ export const photoTagService = {
    */
   async setTagsForPhoto(photoId: string, tagIds: string[]) {
     // Supprimer tous les tags existants
-    await supabaseClient
+    const { error: deleteError } = await supabaseClient
       .from('photo_tags')
       .delete()
       .eq('photo_id', photoId);
+
+    if (deleteError) {
+      console.error('[PHOTO TAG SERVICE] Error deleting existing tags:', deleteError);
+      return { error: deleteError };
+    }
 
     // Ajouter les nouveaux tags
     if (tagIds.length > 0) {
@@ -57,9 +62,44 @@ export const photoTagService = {
         .from('photo_tags')
         .insert(tagIds.map(tagId => ({ photo_id: photoId, tag_id: tagId })));
 
+      if (error) {
+        console.error('[PHOTO TAG SERVICE] Error inserting tags:', error);
+      }
       return { error };
     }
 
     return { error: null };
+  },
+
+  /**
+   * Récupère tous les tags uniques utilisés dans les photos
+   */
+  async getAllTagsUsedInPhotos() {
+    const { data, error } = await supabaseClient
+      .from('photo_tags')
+      .select('tag_id, tags(*)')
+      .order('tags(name)', { ascending: true });
+
+    if (error) {
+      // Si la table n'existe pas, retourner une liste vide
+      if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+        return { tags: [], error: null };
+      }
+      return { tags: null, error };
+    }
+
+    // Extraire les tags uniques
+    const tagMap = new Map<string, Tag>();
+    data.forEach((item: any) => {
+      if (item.tags && !tagMap.has(item.tag_id)) {
+        tagMap.set(item.tag_id, item.tags);
+      }
+    });
+
+    const tags = Array.from(tagMap.values()).sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+
+    return { tags: tags as Tag[], error: null };
   },
 };

@@ -159,7 +159,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
                 run: npm run lint
 
               - name: Run TypeScript type check
-                run: npm run typecheck
+                run: npm run type check
 
           build:
             name: Build
@@ -372,3 +372,23 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 ## CODING STANDARDS
 
 ## DEBUG
+
+*   When debugging errors, especially those reported as generic messages like "Impossible de modifier le morceau," follow these steps:
+    1.  **Examine the relevant code:** Start by inspecting the code where the error is occurring, such as the `TrackEditDialog.tsx` or `PhotoEditModal.tsx` components.
+    2.  **Implement detailed logging:** Add `console.log` statements to log data and track the flow of execution. Log details such as function arguments, intermediate values, and any relevant state variables.
+    3.  **Inspect network requests:** Use browser developer tools to inspect network requests and responses. Check the request payload and response status to identify any issues with the data being sent or received.
+    4.  **Improve error handling:** Enhance error handling in the code to provide more specific error messages. Use try-catch blocks to catch errors and log detailed information about the error, including the error message, error code, and any additional details.
+    5.  **Check Supabase permissions (RLS):** Verify that the Supabase Row Level Security (RLS) policies are correctly configured to allow the necessary operations.
+    6.  **Validate data formats:** Ensure that the data being sent to the database is in the correct format and meets any constraints imposed by the database schema.
+    7.  **Test and verify:** After making changes, thoroughly test the code to ensure that the error has been resolved and that no new issues have been introduced.
+*   When debugging the "Impossible de modifier le morceau" error specifically:
+    1.  **Add detailed logs** to each step of the `TrackEditDialog.tsx` and `PhotoEditDialog.tsx` components, including:
+        *   The data being sent for updates.
+        *   The stage at which the error occurs (e.g., updating track information, updating tags).
+        *   Full error objects, including error type, constructor, and stringified details.
+    2.  **Verify `musicTagService.ts` and `photoTagService.ts`** to ensure errors are correctly handled during the deletion of existing tags and insertion of new tags.
+    3.  **If the error is related to missing tables** (e.g., `music_tags`):
+        *   The code should continue to function, providing a warning that tags could not be updated due to the missing table.
+        *   The tag loading process should also be optional, preventing errors if the table doesn't exist.
+    4.  **Ensure proper error messages:** The toast messages should display clear error details, including message, code, status code, hint, and details.
+* When a table is missing, the code must continue to function, providing a warning that tags could not be updated due to the missing table. The tag loading process should also be optional, preventing errors if the table doesn't exist.
