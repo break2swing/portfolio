@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 
@@ -20,53 +20,19 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
-  const [DOMPurify, setDOMPurify] = useState<any>(null);
   const [remarkGfm, setRemarkGfm] = useState<any>(null);
 
-  // Charger DOMPurify et remarkGfm uniquement côté client
+  // Charger remarkGfm uniquement côté client
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      Promise.all([
-        import('isomorphic-dompurify'),
-        import('remark-gfm'),
-      ]).then(([dompurifyModule, remarkGfmModule]) => {
-        setDOMPurify(dompurifyModule.default);
-        setRemarkGfm(() => remarkGfmModule.default);
+      import('remark-gfm').then((module) => {
+        setRemarkGfm(() => module.default);
       });
     }
   }, []);
 
-  // Sanitiser le contenu pour prévenir les attaques XSS
-  // DOMPurify supprime les scripts, événements inline, et autres contenus dangereux
-  const sanitizedContent = useMemo(() => {
-    if (!DOMPurify) return content; // Fallback pendant le chargement
-
-    return DOMPurify.sanitize(content, {
-      // Permet les balises Markdown communes
-      ALLOWED_TAGS: [
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'p', 'br', 'strong', 'em', 'u', 's', 'del', 'ins',
-        'a', 'img',
-        'ul', 'ol', 'li',
-        'blockquote', 'code', 'pre',
-        'table', 'thead', 'tbody', 'tr', 'th', 'td',
-        'hr', 'div', 'span'
-      ],
-      // Permet les attributs nécessaires
-      ALLOWED_ATTR: [
-        'href', 'title', 'alt', 'src',
-        'class', 'id',
-        'align', 'start',
-        'colspan', 'rowspan'
-      ],
-      // Bloque JavaScript dans les URLs
-      ALLOW_DATA_ATTR: false,
-      ALLOW_UNKNOWN_PROTOCOLS: false,
-    });
-  }, [content, DOMPurify]);
-
   // Afficher un loader si les dépendances ne sont pas encore chargées
-  if (!DOMPurify || !remarkGfm) {
+  if (!remarkGfm) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -110,7 +76,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           ),
         }}
       >
-        {sanitizedContent}
+        {content}
       </ReactMarkdown>
     </div>
   );
