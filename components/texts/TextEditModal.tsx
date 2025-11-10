@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { TextWithMetadata, Category, Tag } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
 import { categoryService } from '@/services/categoryService';
 import { tagService } from '@/services/tagService';
-import { updateTextSchema } from '@/lib/validators';
+import { updateTextSchema, type UpdateTextFormData } from '@/lib/validators';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +27,6 @@ import { Loader2, Save, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { TagBadge } from './TagBadge';
-import type { ZodError } from 'zod';
 
 interface TextEditModalProps {
   text: TextWithMetadata;
@@ -35,21 +36,36 @@ interface TextEditModalProps {
 }
 
 export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalProps) {
-  const [title, setTitle] = useState(text.title);
-  const [subtitle, setSubtitle] = useState(text.subtitle || '');
-  const [content, setContent] = useState(text.content);
-  const [excerpt, setExcerpt] = useState(text.excerpt || '');
-  const [author, setAuthor] = useState(text.author || '');
-  const [publishedDate, setPublishedDate] = useState(text.published_date || '');
-  const [categoryId, setCategoryId] = useState<string>(text.category_id || 'none');
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(text.tags?.map(t => t.id) || []);
-  const [isPublished, setIsPublished] = useState(text.is_published);
-
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(text.tags?.map(t => t.id) || []);
   const [loadingData, setLoadingData] = useState(true);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+    reset,
+  } = useForm<UpdateTextFormData>({
+    resolver: zodResolver(updateTextSchema),
+    mode: 'onTouched',
+    defaultValues: {
+      title: text.title,
+      subtitle: text.subtitle || null,
+      content: text.content,
+      excerpt: text.excerpt || null,
+      author: text.author || null,
+      published_date: text.published_date || null,
+      category_id: text.category_id || null,
+      is_published: text.is_published,
+    },
+  });
+
+  const content = watch('content');
+  const isPublished = watch('is_published');
 
   useEffect(() => {
     if (open) {
@@ -73,52 +89,15 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Réinitialiser les erreurs de validation
-    setValidationErrors({});
-
-    // Validation Zod avant soumission
-    const updates = {
-      title: title.trim(),
-      subtitle: subtitle.trim() || null,
-      content: content.trim(),
-      excerpt: excerpt.trim() || null,
-      author: author.trim() || null,
-      published_date: publishedDate || null,
-      category_id: categoryId === 'none' ? null : categoryId,
-      is_published: isPublished,
-    };
+  const onSubmit = async (data: UpdateTextFormData) => {
+    setIsSubmitting(true);
 
     try {
-      const validatedData = updateTextSchema.parse(updates);
-      console.log('[MODAL] Validation passed:', validatedData);
-    } catch (error) {
-      if (error instanceof Object && 'errors' in error) {
-        const zodError = error as ZodError;
-        const errors: Record<string, string> = {};
-        zodError.errors.forEach((err) => {
-          if (err.path.length > 0) {
-            errors[err.path[0] as string] = err.message;
-          }
-        });
-        setValidationErrors(errors);
-        toast.error('Erreur de validation', {
-          description: 'Veuillez corriger les erreurs dans le formulaire',
-        });
-        return;
-      }
-      console.error('[MODAL] Validation error:', error);
-      return;
-    }
+      console.log('[MODAL] Updating text with data:', data);
 
-    setLoading(true);
-
-    try {
       const { error } = await textService.updateTextWithTags(
         text.id,
-        updates,
+        data,
         selectedTagIds
       );
 
@@ -141,7 +120,7 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
         description: error?.message || 'Impossible de modifier le texte',
       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -175,23 +154,22 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-title">Titre *</Label>
               <Input
                 id="edit-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                disabled={loading}
-                required
-                aria-invalid={!!validationErrors.title}
-                aria-describedby={validationErrors.title ? 'edit-title-error' : undefined}
+                {...register('title')}
+                disabled={isSubmitting}
+                aria-invalid={!!errors.title}
+                aria-describedby={errors.title ? 'edit-title-error' : undefined}
+                className={errors.title ? 'border-red-500' : ''}
               />
-              {validationErrors.title && (
-                <p id="edit-title-error" className="text-sm text-destructive flex items-center gap-1">
+              {errors.title && (
+                <p id="edit-title-error" className="text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
-                  {validationErrors.title}
+                  {errors.title.message}
                 </p>
               )}
             </div>
@@ -200,16 +178,16 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
               <Label htmlFor="edit-subtitle">Sous-titre</Label>
               <Input
                 id="edit-subtitle"
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                disabled={loading}
-                aria-invalid={!!validationErrors.subtitle}
-                aria-describedby={validationErrors.subtitle ? 'edit-subtitle-error' : undefined}
+                {...register('subtitle')}
+                disabled={isSubmitting}
+                aria-invalid={!!errors.subtitle}
+                aria-describedby={errors.subtitle ? 'edit-subtitle-error' : undefined}
+                className={errors.subtitle ? 'border-red-500' : ''}
               />
-              {validationErrors.subtitle && (
-                <p id="edit-subtitle-error" className="text-sm text-destructive flex items-center gap-1">
+              {errors.subtitle && (
+                <p id="edit-subtitle-error" className="text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
-                  {validationErrors.subtitle}
+                  {errors.subtitle.message}
                 </p>
               )}
             </div>
@@ -220,16 +198,16 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
               <Label htmlFor="edit-author">Auteur</Label>
               <Input
                 id="edit-author"
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-                disabled={loading}
-                aria-invalid={!!validationErrors.author}
-                aria-describedby={validationErrors.author ? 'edit-author-error' : undefined}
+                {...register('author')}
+                disabled={isSubmitting}
+                aria-invalid={!!errors.author}
+                aria-describedby={errors.author ? 'edit-author-error' : undefined}
+                className={errors.author ? 'border-red-500' : ''}
               />
-              {validationErrors.author && (
-                <p id="edit-author-error" className="text-sm text-destructive flex items-center gap-1">
+              {errors.author && (
+                <p id="edit-author-error" className="text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
-                  {validationErrors.author}
+                  {errors.author.message}
                 </p>
               )}
             </div>
@@ -239,27 +217,32 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
               <Input
                 id="edit-date"
                 type="date"
-                value={publishedDate}
-                onChange={(e) => setPublishedDate(e.target.value)}
-                disabled={loading}
-                aria-invalid={!!validationErrors.published_date}
-                aria-describedby={validationErrors.published_date ? 'edit-date-error' : undefined}
+                {...register('published_date')}
+                disabled={isSubmitting}
+                aria-invalid={!!errors.published_date}
+                aria-describedby={errors.published_date ? 'edit-date-error' : undefined}
+                className={errors.published_date ? 'border-red-500' : ''}
               />
-              {validationErrors.published_date && (
-                <p id="edit-date-error" className="text-sm text-destructive flex items-center gap-1">
+              {errors.published_date && (
+                <p id="edit-date-error" className="text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
-                  {validationErrors.published_date}
+                  {errors.published_date.message}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="edit-category">Catégorie</Label>
-              <Select value={categoryId} onValueChange={setCategoryId} disabled={loading}>
+              <Select
+                value={watch('category_id') || 'none'}
+                onValueChange={(value) => setValue('category_id', value === 'none' ? null : value)}
+                disabled={isSubmitting}
+              >
                 <SelectTrigger
                   id="edit-category"
-                  aria-invalid={!!validationErrors.category_id}
-                  aria-describedby={validationErrors.category_id ? 'edit-category-error' : undefined}
+                  aria-invalid={!!errors.category_id}
+                  aria-describedby={errors.category_id ? 'edit-category-error' : undefined}
+                  className={errors.category_id ? 'border-red-500' : ''}
                 >
                   <SelectValue placeholder="Aucune catégorie" />
                 </SelectTrigger>
@@ -272,10 +255,10 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
                   ))}
                 </SelectContent>
               </Select>
-              {validationErrors.category_id && (
-                <p id="edit-category-error" className="text-sm text-destructive flex items-center gap-1">
+              {errors.category_id && (
+                <p id="edit-category-error" className="text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
-                  {validationErrors.category_id}
+                  {errors.category_id.message}
                 </p>
               )}
             </div>
@@ -299,8 +282,8 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
             <Switch
               id="edit-published"
               checked={isPublished}
-              onCheckedChange={setIsPublished}
-              disabled={loading}
+              onCheckedChange={(checked) => setValue('is_published', checked)}
+              disabled={isSubmitting}
             />
             <Label htmlFor="edit-published">
               Publier ce texte (visible publiquement)
@@ -311,17 +294,17 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
             <Label htmlFor="edit-excerpt">Extrait / Résumé</Label>
             <Textarea
               id="edit-excerpt"
-              value={excerpt}
-              onChange={(e) => setExcerpt(e.target.value)}
-              disabled={loading}
+              {...register('excerpt')}
+              disabled={isSubmitting}
               rows={3}
-              aria-invalid={!!validationErrors.excerpt}
-              aria-describedby={validationErrors.excerpt ? 'edit-excerpt-error' : undefined}
+              aria-invalid={!!errors.excerpt}
+              aria-describedby={errors.excerpt ? 'edit-excerpt-error' : undefined}
+              className={errors.excerpt ? 'border-red-500' : ''}
             />
-            {validationErrors.excerpt && (
-              <p id="edit-excerpt-error" className="text-sm text-destructive flex items-center gap-1">
+            {errors.excerpt && (
+              <p id="edit-excerpt-error" className="text-sm text-red-600 flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" />
-                {validationErrors.excerpt}
+                {errors.excerpt.message}
               </p>
             )}
           </div>
@@ -336,19 +319,17 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
               <Label htmlFor="edit-content">Contenu (Markdown) *</Label>
               <Textarea
                 id="edit-content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                disabled={loading}
+                {...register('content')}
+                disabled={isSubmitting}
                 rows={15}
-                className="font-mono text-sm"
-                required
-                aria-invalid={!!validationErrors.content}
-                aria-describedby={validationErrors.content ? 'edit-content-error' : undefined}
+                className={`font-mono text-sm ${errors.content ? 'border-red-500' : ''}`}
+                aria-invalid={!!errors.content}
+                aria-describedby={errors.content ? 'edit-content-error' : undefined}
               />
-              {validationErrors.content && (
-                <p id="edit-content-error" className="text-sm text-destructive flex items-center gap-1">
+              {errors.content && (
+                <p id="edit-content-error" className="text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
-                  {validationErrors.content}
+                  {errors.content.message}
                 </p>
               )}
             </TabsContent>
@@ -369,11 +350,11 @@ export function TextEditModal({ text, open, onClose, onSuccess }: TextEditModalP
           </Tabs>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button type="submit" disabled={loading || !title.trim() || !content.trim()}>
-              {loading ? (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Enregistrement...

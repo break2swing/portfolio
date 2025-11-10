@@ -63,6 +63,16 @@ export const textSchema = z.object({
     .nullable()
     .transform((val) => (val === '' ? null : val)),
 
+  slug: z
+    .string()
+    .min(1, 'Le slug est requis')
+    .max(200, 'Le slug ne peut pas dépasser 200 caractères')
+    .trim()
+    .regex(
+      /^[a-z0-9-]+$/,
+      'Le slug doit être au format kebab-case (lettres minuscules, chiffres et tirets uniquement)'
+    ),
+
   author: z
     .string()
     .max(100, 'Le nom de l\'auteur ne peut pas dépasser 100 caractères')
@@ -106,7 +116,7 @@ export const categorySchema = z.object({
   name: z
     .string()
     .min(1, 'Le nom est requis')
-    .max(50, 'Le nom ne peut pas dépasser 50 caractères')
+    .max(100, 'Le nom ne peut pas dépasser 100 caractères')
     .trim()
     .refine((val) => val.length > 0, 'Le nom ne peut pas être vide'),
 
@@ -118,7 +128,7 @@ export const categorySchema = z.object({
     .nullable()
     .transform((val) => (val === '' ? null : val)),
 
-  color: hslColorSchema.default('210 100% 50%'),
+  color: hexColorSchema.default('#3b82f6'),
 
   display_order: z.number().int().nonnegative().default(0),
 });
@@ -140,11 +150,11 @@ export const tagSchema = z.object({
   name: z
     .string()
     .min(1, 'Le nom est requis')
-    .max(30, 'Le nom ne peut pas dépasser 30 caractères')
+    .max(50, 'Le nom ne peut pas dépasser 50 caractères')
     .trim()
     .refine((val) => val.length > 0, 'Le nom ne peut pas être vide'),
 
-  color: hexColorSchema.default('#3b82f6'),
+  color: hexColorSchema.optional().default('#3b82f6'),
 });
 
 /**

@@ -123,7 +123,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     * Lists of new and modified files.
     * TypeScript types, including `Tag`, `PhotoWithTags`, `VideoWithTags`, and `MusicTrackWithTags`.
     * Migration details, including the creation of relationship tables with primary key constraints, foreign key constraints with CASCADE, indexes, and documentation comments.
-    * Recommended tests (create, modify, delete tags; upload media with tags; verify tag display on public pages; verify color consistency in light/dark mode).
+    * Recommended tests (create, modify, delete tags; upload media with tags; upload media with tags; verify tag display on public pages; verify color consistency in light/dark mode).
     * Technical notes (shared tags, auto-generated slugs, hexadecimal color storage, automatic cascading deletion, error management with `{ data, error }` pattern, and Zod validation).
 *   **CI/CD with GitHub Actions:**
     *   Set up CI/CD workflows using GitHub Actions for automated linting, type checking, building, and deployment.
@@ -249,6 +249,10 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
         *   (Optional) `GITHUB_TOKEN`: Automatically generated.
         *   (Optional) `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`: If using Vercel.
     *   If the main branch is named `master` instead of `main`, update the `.yml` files accordingly.
+*   When discussing an idea with AI and asking for a PRD:
+    *   For simple projects, use the `example_prd.txt` template.
+    *   For complex systems, use the `example_prd_rpg.txt` template (for dependency-aware task graphs). Save the PRD to `.taskmaster/docs/prd.txt`.
+    *   After the PRD is created, parse it to generate initial tasks using: `task-master parse-prd .taskmaster/docs/prd.txt`. Then, analyze the complexity of these tasks with `task-master analyze-complexity --research` and expand the tasks into sub-tasks with `task-master expand --all --research`. Finally, see the next task to do with `task-master next`.
 
 ## CODING STANDARDS
 

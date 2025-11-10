@@ -1,0 +1,456 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Créer le système de validation Zod pour la sécurité des données",
+        "description": "Implémenter des schémas de validation Zod robustes pour Text, Category et Tag afin de prévenir les injections XSS et assurer la cohérence des données",
+        "details": "Créer `lib/validators.ts` avec des schémas Zod complets incluant: Text schema avec validation longueur titre (1-200 chars), contenu (1-50000 chars), excerpt optionnel (max 500 chars), slug unique format kebab-case; Category schema avec nom (1-100 chars) et couleur hex valide; Tag schema avec nom (1-50 chars) et couleur hex. Utiliser les dernières pratiques Zod v3.22+ avec .trim(), .min(), .max(), .regex() pour validation stricte. Inclure messages d'erreur français personnalisés avec .describe() et types TypeScript inférés.",
+        "testStrategy": "Tests unitaires avec Jest pour chaque schéma : cas valides, cas limites (longueurs min/max), caractères spéciaux, injection XSS tentatives. Validation que les types TypeScript sont correctement inférés. Tests d'intégration avec données existantes pour assurer compatibilité.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Créer le schéma de validation Zod pour Text",
+            "description": "Implémenter le schéma Zod complet pour les entités Text avec validation titre, contenu, excerpt et slug",
+            "dependencies": [],
+            "details": "Créer dans `lib/validators.ts` le schéma TextSchema avec validation : titre (1-200 chars avec trim), contenu (1-50000 chars), excerpt optionnel (max 500 chars), slug format kebab-case avec regex /^[a-z0-9-]+$/. Messages d'erreur français personnalisés avec .describe(). Type TypeScript TextInput inféré avec z.infer<typeof TextSchema>.\n<info added on 2025-11-10T07:39:42.369Z>\nSelon l'analyse du fichier `lib/validators.ts`, je peux voir que le schéma `textSchema` est déjà complètement implémenté avec tous les champs demandés. Le champ `slug` est bien configuré avec la validation regex kebab-case `/^[a-z0-9-]+$/` et tous les types TypeScript sont exportés avec `z.infer`.\n\nImplémentation terminée avec succès dans `lib/validators.ts`. Le `textSchema` inclut désormais le champ `slug` avec validation regex stricte `/^[a-z0-9-]+$/ pour format kebab-case, titre (1-200 caractères), contenu (1-50000 caractères), excerpt optionnel (max 500 caractères), tous avec messages d'erreur français. Types `TextFormData`, `CreateTextFormData` et `UpdateTextFormData` exportés via `z.infer` pour utilisation dans les formulaires React. Le schéma est prêt pour intégration avec react-hook-form et @hookform/resolvers/zod.\n</info added on 2025-11-10T07:39:42.369Z>",
+            "status": "done",
+            "testStrategy": "Tests unitaires Jest : validation longueurs min/max titre/contenu, format slug valide/invalide, excerpt optionnel, tentatives injection XSS dans titre/contenu, vérification types TypeScript inférés",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T07:37:21.211Z"
+          },
+          {
+            "id": 2,
+            "title": "Créer le schéma de validation Zod pour Category",
+            "description": "Implémenter le schéma Zod pour les entités Category avec validation nom et couleur hexadécimale",
+            "dependencies": [],
+            "details": "Créer dans `lib/validators.ts` le schéma CategorySchema avec validation : nom (1-100 chars avec trim), couleur format hex valide avec regex /^#[0-9A-Fa-f]{6}$/. Messages d'erreur français personnalisés avec .describe(). Type TypeScript CategoryInput inféré avec z.infer<typeof CategorySchema>.",
+            "status": "done",
+            "testStrategy": "Tests unitaires Jest : validation longueur nom min/max, formats couleur hex valides (#FF0000, #123abc) et invalides (#GGG, 123456), messages erreur français, vérification types TypeScript",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T07:41:53.677Z"
+          },
+          {
+            "id": 3,
+            "title": "Créer le schéma de validation Zod pour Tag",
+            "description": "Implémenter le schéma Zod pour les entités Tag avec validation nom et couleur hexadécimale",
+            "dependencies": [],
+            "details": "Créer dans `lib/validators.ts` le schéma TagSchema avec validation : nom (1-50 chars avec trim), couleur hex optionnelle avec regex /^#[0-9A-Fa-f]{6}$/. Messages d'erreur français personnalisés avec .describe(). Type TypeScript TagInput inféré avec z.infer<typeof TagSchema>. Export de tous les schémas et types.",
+            "status": "done",
+            "testStrategy": "Tests unitaires Jest : validation longueur nom min/max, couleur hex optionnelle valide/invalide, caractères spéciaux dans nom, messages erreur français, vérification exports et types TypeScript",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T07:44:19.443Z"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Décomposer cette tâche en créant une sous-tâche pour chaque schéma de validation Zod à implémenter : Schéma pour Text, Schéma pour Category, et Schéma pour Tag. Chaque sous-tâche doit inclure la définition du schéma, les messages d'erreur personnalisés et les tests unitaires associés.",
+        "updatedAt": "2025-11-10T07:44:19.443Z"
+      },
+      {
+        "id": "2",
+        "title": "Intégrer la validation Zod dans tous les formulaires",
+        "description": "Modifier tous les formulaires existants pour utiliser les schémas Zod avec react-hook-form et afficher des messages d'erreur accessibles",
+        "details": "Intégrer validation dans TextUploadForm, TextEditModal, CategoryManager, TagManager avec @hookform/resolvers/zod v3.3+. Utiliser zodResolver() avec react-hook-form v7.47+. Implémenter affichage d'erreurs avec aria-invalid, aria-describedby, rôles ARIA appropriés. Ajouter validation temps réel avec mode: 'onTouched'. Styliser erreurs avec classes Tailwind text-red-600, border-red-500. Gérer cas d'erreurs multiples avec ErrorMessage component.",
+        "testStrategy": "Tests Cypress E2E pour chaque formulaire : soumission données valides/invalides, affichage messages d'erreur, accessibilité (screen readers), validation temps réel. Tests d'intégration React Testing Library pour comportement formulaires.",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Intégrer validation Zod dans TextUploadForm",
+            "description": "Modifier le formulaire de téléchargement de texte pour utiliser zodResolver avec react-hook-form et implémenter l'affichage d'erreurs accessibles",
+            "dependencies": [],
+            "details": "Importer zodResolver de @hookform/resolvers/zod. Configurer useForm avec resolver: zodResolver(TextSchema) et mode: 'onTouched'. Ajouter aria-invalid et aria-describedby aux champs de formulaire. Implémenter ErrorMessage component avec classes Tailwind text-red-600. Gérer validation temps réel pour titre, contenu, excerpt et slug.",
+            "status": "done",
+            "testStrategy": "Tests Cypress pour validation champs obligatoires, longueurs min/max, format slug. Tests accessibilité avec screen readers. Validation soumission données valides/invalides.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T07:53:14.482Z"
+          },
+          {
+            "id": 2,
+            "title": "Intégrer validation Zod dans TextEditModal",
+            "description": "Modifier la modale d'édition de texte pour utiliser la validation Zod avec gestion d'erreurs ARIA et validation en temps réel",
+            "dependencies": [
+              1
+            ],
+            "details": "Configurer zodResolver dans TextEditModal avec TextSchema. Implémenter affichage erreurs avec aria-describedby pointant vers messages d'erreur. Ajouter border-red-500 aux champs invalides. Gérer pré-remplissage formulaire avec données existantes et validation onTouched. Support validation catégorie et tags sélectionnés.",
+            "status": "done",
+            "testStrategy": "Tests E2E édition texte existant avec données invalides. Validation que modifications sont sauvegardées correctement. Tests accessibilité navigation clavier et screen readers.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T08:01:39.231Z"
+          },
+          {
+            "id": 3,
+            "title": "Intégrer validation Zod dans CategoryManager",
+            "description": "Ajouter validation Zod au gestionnaire de catégories pour les opérations de création et modification avec feedback utilisateur accessible",
+            "dependencies": [
+              1
+            ],
+            "details": "Implémenter CategorySchema avec zodResolver dans formulaires création/édition catégorie. Validation nom (1-100 chars) et couleur hex. Ajouter ErrorMessage components avec rôles ARIA appropriés. Configuration mode: 'onTouched' pour validation temps réel. Gestion erreurs multiples avec affichage liste accessible.",
+            "status": "done",
+            "testStrategy": "Tests Cypress création catégorie avec nom vide, trop long, couleur invalide. Validation modification catégorie existante. Tests accessibilité focus management et annonces screen reader.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T08:04:15.298Z"
+          },
+          {
+            "id": 4,
+            "title": "Intégrer validation Zod dans TagManager",
+            "description": "Implémenter validation Zod dans le gestionnaire de tags avec affichage d'erreurs accessible et validation en temps réel",
+            "dependencies": [
+              1
+            ],
+            "details": "Configurer TagSchema avec zodResolver pour formulaires tags. Validation nom (1-50 chars) et couleur hex optionnelle. Implémenter ErrorMessage avec aria-live pour annonces dynamiques. Ajouter classes Tailwind pour états d'erreur (text-red-600, border-red-500). Gérer validation lors création/édition tags avec feedback immédiat.",
+            "status": "done",
+            "testStrategy": "Tests E2E gestion tags: création avec données invalides, modification tags existants, suppression avec confirmation. Tests accessibilité navigation et annonces screen reader lors changements état validation.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T08:06:40.121Z"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Générer des sous-tâches pour l'intégration de la validation Zod dans chaque formulaire identifié : TextUploadForm, TextEditModal, CategoryManager, et TagManager. Chaque sous-tâche doit couvrir l'intégration du résolveur Zod, l'implémentation de l'affichage des erreurs accessibles, et la configuration de la validation en temps réel.",
+        "updatedAt": "2025-11-10T08:06:40.121Z"
+      },
+      {
+        "id": "3",
+        "title": "Implémenter la sanitization du contenu Markdown",
+        "description": "Sécuriser le rendu Markdown avec DOMPurify pour prévenir les attaques XSS tout en préservant le formatage",
+        "details": "Intégrer DOMPurify v3.0+ dans MarkdownRenderer.tsx. Configuration sécurisée: ALLOWED_TAGS=['p','strong','em','u','h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote','code','pre','a','img'], ALLOWED_ATTR=['href','src','alt','title','class']. Utiliser DOMPurify.sanitize() avant react-markdown. Configurer ALLOWED_URI_REGEXP pour liens externes sécurisés. Wrapper composant SanitizedMarkdown réutilisable avec props configurables.",
+        "testStrategy": "Tests de sécurité avec payloads XSS connus (script tags, onclick handlers, data: URLs, javascript: URLs). Validation que formatage légitime (gras, italique, liens) fonctionne. Tests performance sur contenu volumineux (10k+ caractères).",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Intégrer et configurer DOMPurify dans MarkdownRenderer",
+            "description": "Installer DOMPurify v3.0+ et créer un wrapper composant SanitizedMarkdown réutilisable avec configuration sécurisée des balises et attributs autorisés",
+            "dependencies": [],
+            "details": "Installer DOMPurify via npm. Modifier MarkdownRenderer.tsx pour utiliser DOMPurify.sanitize() avant react-markdown. Configurer ALLOWED_TAGS=['p','strong','em','u','h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote','code','pre','a','img'] et ALLOWED_ATTR=['href','src','alt','title','class']. Créer ALLOWED_URI_REGEXP pour sécuriser liens externes. Développer composant SanitizedMarkdown avec props configurables pour réutilisation dans l'application.",
+            "status": "pending",
+            "testStrategy": "Tests unitaires vérifiant que la configuration DOMPurify bloque les scripts malveillants tout en préservant le formatage légitime. Validation du wrapper composant avec différentes configurations.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Développer suite de tests de sécurité XSS",
+            "description": "Créer une batterie de tests exhaustive pour valider la sanitization contre tous les vecteurs d'attaque XSS connus et assurer la robustesse du système",
+            "dependencies": [
+              1
+            ],
+            "details": "Développer tests avec payloads XSS variés: script tags, onclick handlers, data: URLs, javascript: URLs, event handlers HTML. Tester contournements d'encodage, attributs malveillants, SVG/iframe attacks. Créer mock data avec contenu Markdown légitime et malveillant. Tests de performance sur contenu volumineux (10k+ caractères). Validation que formatage correct (gras, italique, liens) reste fonctionnel après sanitization.",
+            "status": "pending",
+            "testStrategy": "Tests automatisés avec Jest couvrant tous vecteurs XSS OWASP. Tests de régression pour s'assurer qu'aucun formatage légitime n'est cassé. Benchmarks de performance pour valider l'impact minimal sur le rendu.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Diviser cette tâche en deux parties : 1. Intégration et configuration de DOMPurify dans le composant MarkdownRenderer, y compris la création d'un wrapper réutilisable. 2. Développement d'une suite de tests de sécurité exhaustive pour valider la sanitization contre les vecteurs d'attaque XSS courants."
+      },
+      {
+        "id": "4",
+        "title": "Renforcer la validation RLS Supabase",
+        "description": "Ajouter des contraintes de validation côté serveur dans Supabase pour une sécurité en profondeur",
+        "details": "Créer policies RLS Supabase avec contraintes: texts table - titre max 200 chars, contenu max 50000 chars, slug format valide avec CHECK constraint; categories table - nom max 100 chars, couleur format hex avec regex; tags table - nom max 50 chars. Utiliser Supabase SQL editor pour ALTER TABLE avec ADD CONSTRAINT. Implémenter policies restrictives pour INSERT/UPDATE avec current_user validation. Documentation SQL migrations dans `supabase/migrations/`.",
+        "testStrategy": "Tests SQL directs sur contraintes avec pgTAP ou équivalent. Validation que violations contraintes retournent erreurs explicites. Tests d'intégration frontend pour gestion erreurs Supabase. Vérification policies avec différents utilisateurs authentifiés.",
+        "priority": "high",
+        "dependencies": [
+          "1",
+          "2"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Ajouter des contraintes CHECK au niveau des tables",
+            "description": "Implémenter des contraintes de validation au niveau base de données pour les tables texts, categories et tags avec des règles spécifiques de format et longueur",
+            "dependencies": [],
+            "details": "Utiliser Supabase SQL Editor pour exécuter ALTER TABLE avec ADD CONSTRAINT. Pour texts: titre max 200 chars, contenu max 50000 chars, slug format valide (regex). Pour categories: nom max 100 chars, couleur format hex avec regex validation. Pour tags: nom max 50 chars. Créer migration SQL dans supabase/migrations/ avec rollback approprié.",
+            "status": "pending",
+            "testStrategy": "Tests SQL directs avec pgTAP pour vérifier que les contraintes rejettent les données invalides et acceptent les données valides. Tests spécifiques pour chaque contrainte avec cas limites.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Créer et appliquer les politiques RLS",
+            "description": "Développer des politiques de sécurité au niveau des lignes pour contrôler les opérations INSERT et UPDATE avec validation current_user",
+            "dependencies": [
+              1
+            ],
+            "details": "Implémenter policies restrictives RLS pour tables texts, categories, tags. Utiliser current_user pour validation authentification. Policies INSERT/UPDATE séparées avec conditions auth.uid() IS NOT NULL. Configurer policies SELECT pour lecture publique mais modification authentifiée uniquement. Documenter chaque policy avec commentaires SQL explicites.",
+            "status": "pending",
+            "testStrategy": "Tests avec différents utilisateurs authentifiés et non-authentifiés. Vérification que seuls les utilisateurs autorisés peuvent modifier les données. Tests d'isolation entre utilisateurs.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Mettre en place tests SQL et documentation",
+            "description": "Développer une suite de tests SQL avec pgTAP et documenter toutes les migrations de sécurité implémentées",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Créer tests pgTAP pour valider contraintes CHECK et policies RLS. Tests de régression pour s'assurer que modifications futures ne cassent pas sécurité. Documentation complète dans supabase/migrations/ avec exemples d'utilisation, cas d'erreur gérés, et procédures de rollback. Guide de déploiement avec vérifications post-migration.",
+            "status": "pending",
+            "testStrategy": "Exécution complète suite tests pgTAP en environnement staging. Tests d'intégration frontend pour vérification gestion erreurs Supabase. Validation documentation avec review équipe.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Décomposer cette tâche en trois sous-tâches distinctes : 1. Ajouter des contraintes `CHECK` au niveau des tables pour la validation des formats de données. 2. Créer et appliquer des politiques de sécurité au niveau des lignes (RLS) pour contrôler les opérations `INSERT` et `UPDATE`. 3. Mettre en place les tests SQL (avec pgTAP) et documenter les migrations."
+      },
+      {
+        "id": "5",
+        "title": "Développer le composant OptimizedImage avec lazy loading",
+        "description": "Créer un composant d'image optimisé utilisant Intersection Observer pour le lazy loading et des placeholders blur",
+        "details": "Créer `components/OptimizedImage.tsx` avec Intersection Observer API pour lazy loading natif. Implémenter generateBlurPlaceholder() utilisant canvas API pour LQIP (Low Quality Image Placeholder). Support srcset/sizes pour responsive: générer 320w, 640w, 1024w, 1920w. Utiliser loading='lazy' natif + polyfill pour navigateurs anciens. État de chargement avec skeleton loader. Props: src, alt, sizes, className, priority (pour above-fold). TypeScript strict avec interface OptimizedImageProps.",
+        "testStrategy": "Tests Cypress pour comportement lazy loading (images hors viewport ne chargent pas). Tests performance Lighthouse pour amélioration LCP. Tests responsive sur différents viewports. Tests accessibilité pour alt text et focus management.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "in-progress",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Mise en place de la structure de base du composant OptimizedImage",
+            "description": "Créer le fichier du composant, définir les props avec TypeScript et mettre en place le rendu initial de l'image sans optimisations.",
+            "dependencies": [],
+            "details": "Créer `components/OptimizedImage.tsx`. Définir l'interface `OptimizedImageProps` avec TypeScript (src, alt, sizes, className, priority). Mettre en place le squelette du composant retournant une balise `<img>` standard.",
+            "status": "done",
+            "testStrategy": "Vérifier que le composant rend une image simple avec les props `src` et `alt` correctement appliquées via un test unitaire avec React Testing Library.",
+            "updatedAt": "2025-11-10T08:12:42.843Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implémenter le lazy loading avec l'API Intersection Observer",
+            "description": "Intégrer l'API Intersection Observer pour ne charger l'image que lorsqu'elle entre dans le viewport de l'utilisateur, avec un fallback sur l'attribut natif.",
+            "dependencies": [
+              1
+            ],
+            "details": "Utiliser un hook personnalisé `useIntersectionObserver` pour détecter la visibilité du composant. L'image réelle (prop `src`) ne sera chargée que lorsque le composant est visible. Utiliser l'attribut natif `loading='lazy'` comme fallback ou polyfill.",
+            "status": "done",
+            "testStrategy": "Utiliser Cypress pour simuler le défilement. Vérifier dans l'onglet réseau que la requête pour l'image n'est déclenchée que lorsque le composant devient visible à l'écran.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T08:13:00.485Z"
+          },
+          {
+            "id": 3,
+            "title": "Développer la génération de placeholder flou (LQIP)",
+            "description": "Créer une fonction pour générer un placeholder de basse qualité (Low Quality Image Placeholder) sous forme de data URL pour un affichage immédiat.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implémenter une fonction `generateBlurPlaceholder()` qui utilise l'API Canvas pour dessiner une version très petite de l'image, l'exporter en tant que data URL, et l'appliquer comme `src` initial. Appliquer un filtre CSS `blur()` pour l'effet de flou.",
+            "status": "in-progress",
+            "testStrategy": "Tests unitaires pour la fonction `generateBlurPlaceholder` pour s'assurer qu'elle retourne une data URL valide. Test visuel pour confirmer que le placeholder flou s'affiche correctement.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-10T08:25:57.438Z"
+          },
+          {
+            "id": 4,
+            "title": "Intégrer la gestion des images responsives avec `srcset` et `sizes`",
+            "description": "Ajouter le support des attributs `srcset` et `sizes` pour permettre au navigateur de choisir la source d'image la plus appropriée en fonction de la taille du viewport.",
+            "dependencies": [
+              2
+            ],
+            "details": "Modifier le composant pour qu'il accepte un `srcset` généré (ex: 320w, 640w, 1024w). La logique de lazy loading devra charger dynamiquement `srcset` et `sizes` au lieu de `src` seul lorsque l'élément devient visible.",
+            "status": "pending",
+            "testStrategy": "Utiliser les outils de développement du navigateur pour simuler différentes tailles de viewport et vérifier que la source d'image correcte est chargée depuis le `srcset`.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Finaliser le composant avec les états de chargement et l'accessibilité",
+            "description": "Ajouter un état de chargement visuel (skeleton loader), gérer les cas d'erreur, et s'assurer que le composant est entièrement accessible.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Implémenter un état qui affiche un skeleton loader pendant le téléchargement. Gérer l'événement `onError` pour afficher une image de fallback. S'assurer que l'attribut `alt` est toujours présent. Gérer la prop `priority` pour désactiver le lazy loading.",
+            "status": "pending",
+            "testStrategy": "Tests Cypress pour vérifier l'affichage du skeleton loader et du fallback en cas d'erreur (URL 404). Audit d'accessibilité avec Lighthouse ou axe pour valider la présence du texte alternatif.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Structurer le développement de ce composant en plusieurs sous-tâches : 1. Mise en place de la structure de base du composant. 2. Implémentation du lazy loading avec l'API Intersection Observer. 3. Développement de la génération de placeholder flou (LQIP). 4. Intégration de la gestion des images responsives (`srcset` et `sizes`). 5. Finalisation avec les états de chargement, les fallbacks et l'accessibilité.",
+        "updatedAt": "2025-11-10T08:25:57.438Z"
+      },
+      {
+        "id": "6",
+        "title": "Ajouter la compression d'images côté client",
+        "description": "Intégrer browser-image-compression pour réduire la taille des images avant upload vers Supabase Storage",
+        "details": "Intégrer browser-image-compression v2.0+ dans storageService.ts. Configuration: maxSizeMB: 2, maxWidthOrHeight: 1920, useWebWorker: true, fileType: 'image/jpeg' pour photos, maintenir PNG pour transparence. Fonction compressImage() async avec gestion erreurs. Progress callback pour barre de progression upload. Fallback sur image originale si compression échoue. Support EXIF rotation avec exif-js.",
+        "testStrategy": "Tests avec images diverses tailles (100KB à 50MB). Validation qualité compression acceptable (SSIM > 0.9). Tests performance compression (< 5s pour 10MB). Tests Worker threads fonctionnement. Validation métadonnées EXIF préservées si nécessaire.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 5,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Diviser l'implémentation en trois étapes : 1. Intégrer `browser-image-compression` dans le service d'upload. 2. Développer les composants UI pour afficher la progression et gérer les erreurs. 3. Ajouter la prise en charge des métadonnées EXIF et implémenter une logique de fallback robuste."
+      },
+      {
+        "id": "7",
+        "title": "Remplacer toutes les images par OptimizedImage",
+        "description": "Migrer tous les composants utilisant des balises img vers le nouveau composant OptimizedImage",
+        "details": "Remplacer <img> par <OptimizedImage> dans: PhotoCard.tsx, VideoCard.tsx, page photos, page vidéos. Configurer sizes appropriées: PhotoCard='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw', hero images='100vw'. Ajouter priority={true} pour images above-the-fold. Implémenter fallback gracieux avec onError handler. Audit complet codebase avec grep pour <img tags restantes.",
+        "testStrategy": "Tests visuels de régression avec Percy ou équivalent. Tests performance avant/après avec Lighthouse. Validation responsive behavior sur tous devices. Tests fonctionnels que toutes images s'affichent correctement avec nouveaux composants.",
+        "priority": "medium",
+        "dependencies": [
+          "5",
+          "6"
+        ],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 4,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Planifier cette migration en plusieurs phases : 1. Audit complet du code pour identifier toutes les instances `<img>`. 2. Remplacement dans les composants réutilisables (ex: PhotoCard). 3. Remplacement dans les mises en page principales. 4. Mettre en place des tests de régression visuelle pour valider les changements."
+      },
+      {
+        "id": "8",
+        "title": "Créer le système de cache côté client",
+        "description": "Implémenter une classe de cache simple avec TTL pour réduire les appels API redondants",
+        "details": "Créer `lib/cache.ts` avec classe SimpleCache<T> utilisant Map<string, CacheEntry<T>>. Interface CacheEntry: {data: T, timestamp: number, ttl: number}. Méthodes: get(), set(), delete(), clear(), isExpired(). Utiliser WeakRef pour éviter memory leaks sur gros objets. Configuration TTL par défaut: texts 5min, categories/tags 10min. Cleanup automatique avec setInterval pour entries expirées. Optionnel: persistence dans sessionStorage avec JSON.stringify/parse.",
+        "testStrategy": "Tests unitaires Jest: expiration TTL correcte, cleanup automatique, gestion mémoire. Tests d'intégration avec services réels. Tests performance avec 1000+ entries. Validation pas de memory leaks avec heap profiling.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 6,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Décomposer la création du cache : 1. Définir la structure de données et l'API de base (`get`, `set`). 2. Implémenter la logique d'expiration basée sur le TTL. 3. Mettre en place un mécanisme de nettoyage automatique pour gérer la mémoire. 4. Rédiger une suite de tests unitaires complète."
+      },
+      {
+        "id": "9",
+        "title": "Intégrer le cache dans les services de données",
+        "description": "Wrapper les méthodes des services existants avec le système de cache pour optimiser les performances",
+        "details": "Wrapper getTextsWithMetadata(), getAllCategories(), getAllTags() dans textService.ts, categoryService.ts, tagService.ts avec cache. Pattern: vérifier cache d'abord, fetch si manquant, stocker résultat. Invalidation cache sur mutations (create, update, delete) avec cache.delete(key). Utiliser cache keys descriptives: 'texts_all', 'categories_all', 'tags_by_type_{type}'. Ajouter option bypassCache pour forces refresh. Configuration TTL spécifique par endpoint.",
+        "testStrategy": "Tests d'intégration: données fraîches en cache, invalidation sur mutations, performance amélioration mesurable. Tests que données cache === données fraîches. Validation comportement concurrentiel (multiple requests simultanés).",
+        "priority": "medium",
+        "dependencies": [
+          "8"
+        ],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 5,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Générer des sous-tâches pour l'intégration du cache : 1. Wrapper les fonctions `get` dans le `textService`. 2. Wrapper les fonctions `get` dans les `categoryService` et `tagService`. 3. Implémenter la logique d'invalidation du cache pour toutes les fonctions de mutation. 4. Ajouter des tests d'intégration pour vérifier le cycle de vie complet du cache."
+      },
+      {
+        "id": "10",
+        "title": "Ajouter l'invalidation de cache et boutons de rafraîchissement",
+        "description": "Implémenter la logique d'invalidation automatique du cache et des contrôles manuels pour les administrateurs",
+        "details": "Ajouter bouton 'Rafraîchir' dans pages admin avec icône RotateCcw de lucide-react. Fonction refreshData() appelant cache.clear() + refetch. Loading state avec spinner. Toast confirmation 'Données rafraîchies'. Auto-invalidation sur create/update/delete avec cache keys spécifiques. Gérer invalidation granulaire: modification texte invalide 'texts_*' seulement. Hook useCache() pour composants avec auto-refresh capabilities.",
+        "testStrategy": "Tests E2E: créer texte → cache invalidé → nouvelle donnée visible. Tests UX: bouton rafraîchir fonctionne, loading states corrects, toasts affichés. Validation invalidation granulaire (pas over-invalidation).",
+        "priority": "medium",
+        "dependencies": [
+          "9"
+        ],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 3,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Décomposer cette tâche en trois parties : 1. Créer le composant bouton de rafraîchissement avec gestion des états de chargement et notifications. 2. Implémenter le hook `useCache` pour encapsuler la logique. 3. Développer des tests E2E pour valider le flux utilisateur."
+      },
+      {
+        "id": "11",
+        "title": "Installer et configurer l'analyse de bundle",
+        "description": "Mettre en place @next/bundle-analyzer pour identifier les opportunités d'optimisation du bundle JavaScript",
+        "details": "Installer @next/bundle-analyzer v14.0+. Configurer next.config.js avec withBundleAnalyzer() wrapper. Script npm 'analyze': 'ANALYZE=true npm run build' pour génération rapport. Analyser bundle actuel: identifier chunks > 100KB, libraries lourdes (react-markdown, date-fns), duplications. Documentation findings dans `docs/bundle-analysis.md`. Setup budgets performance: maxAssetSize 250KB, maxEntrypointSize 400KB dans next.config.js.",
+        "testStrategy": "Validation rapport généré correctement. Benchmark taille bundle avant optimisations. Identification précise des plus gros contributeurs. Tests que budgets performance détectent régressions futures.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 2,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Cette tâche est suffisamment simple pour ne pas nécessiter de décomposition. Elle consiste à installer un paquet, modifier un fichier de configuration, et exécuter un script."
+      },
+      {
+        "id": "12",
+        "title": "Implémenter le code splitting sur les composants lourds",
+        "description": "Appliquer dynamic import sur les composants volumineux pour améliorer le Time to Interactive",
+        "details": "Utiliser next/dynamic pour lazy loading: TextEditModal, MarkdownRenderer, upload modals avec dynamic(() => import(), {loading: () => <Skeleton />}). Code splitting routes admin avec dynamic imports. Split react-markdown avec dynamic import seulement quand nécessaire (page texte individuel). Configurer webpack splitChunks dans next.config.js pour vendor chunks optimaux. Préload critical chunks avec rel='modulepreload'.",
+        "testStrategy": "Tests performance Lighthouse: amélioration TTI mesurable. Validation chunks créés correctement avec noms descriptifs. Tests que components lazy-loadés fonctionnent correctement. Validation network waterfall optimisé.",
+        "priority": "medium",
+        "dependencies": [
+          "11"
+        ],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 5,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Diviser cette tâche en fonction des cibles d'optimisation : 1. Identifier les composants candidats au code splitting. 2. Appliquer l'importation dynamique aux modales et aux composants d'UI lourds. 3. Isoler les bibliothèques volumineuses via des importations dynamiques. Mesurer l'impact sur les performances après chaque étape."
+      },
+      {
+        "id": "13",
+        "title": "Créer le système de recherche fuzzy avancée",
+        "description": "Développer une fonction de recherche fuzzy avec algorithme de distance de Levenshtein et highlighting des résultats",
+        "details": "Créer `lib/search.ts` avec fuzzySearch<T>() utilisant algorithme Levenshtein optimisé. Scoring basé sur: position match (titre > excerpt > contenu), distance Levenshtein, longueur match. Interface SearchResult<T> {item: T, score: number, highlights: string[]}. Fonction highlightMatches() retournant JSX avec <mark> tags. Debounce 300ms sur input avec useDebouncedCallback hook. Support recherche multi-termes avec AND/OR logic.",
+        "testStrategy": "Tests unitaires algorithme Levenshtein avec cas connus. Tests performance sur dataset 1000+ items (< 100ms). Validation scoring pertinence avec échantillon curé. Tests highlighting correct avec caractères spéciaux/accents.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 8,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Décomposer le développement du moteur de recherche : 1. Implémenter et tester l'algorithme de distance de Levenshtein. 2. Concevoir le système de scoring pour classer les résultats par pertinence. 3. Créer la fonction de mise en surbrillance des correspondances. 4. Intégrer la logique avec un debounce et optimiser les performances."
+      },
+      {
+        "id": "14",
+        "title": "Développer le composant de suggestions de recherche",
+        "description": "Créer un composant interactif de suggestions avec navigation clavier et historique",
+        "details": "Créer `SearchSuggestions.tsx` avec navigation clavier: ArrowUp/ArrowDown pour sélection, Enter pour validation, Escape pour fermer. État selectedIndex avec useCallback hooks. Historique recherche dans localStorage (5 dernières) avec gestion privacy. Affichage suggestions par catégorie: historique, suggestions live, résultats populaires. Styling avec Tailwind: dropdown shadow-lg, hover states, focus indicators. Accessibilité: ARIA roles, aria-activedescendant.",
+        "testStrategy": "Tests d'accessibilité avec screen readers. Tests navigation clavier complète. Tests localStorage persistance/privacy. Validation UX: suggestions rapides et pertinentes. Tests responsive mobile/desktop.",
+        "priority": "medium",
+        "dependencies": [
+          "13"
+        ],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 7,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Structurer la création du composant de suggestions : 1. Construire l'interface utilisateur de base. 2. Implémenter la logique de navigation au clavier et la gestion de l'état. 3. Intégrer la persistance de l'historique avec localStorage. 4. Assurer une accessibilité complète avec les rôles et attributs ARIA."
+      },
+      {
+        "id": "15",
+        "title": "Implémenter la recherche combinée avec filtres",
+        "description": "Intégrer la recherche fuzzy avec les filtres de catégories et tags existants pour une expérience de recherche complète",
+        "details": "Modifier page `/textes` pour combiner searchTerm + selectedCategory + selectedTags avec logique AND. Fonction combineFilters() dans lib/search.ts. UI: barre recherche + filtres catégorie/tags + bouton 'Effacer filtres'. Affichage nombre résultats 'X textes trouvés'. État URL avec searchParams pour partage liens recherche. Performance: mémorisation résultats avec useMemo. Integration avec cache système pour recherches répétées.",
+        "testStrategy": "Tests E2E scénarios recherche complexes: terme + catégorie + multiple tags. Validation URL state synchronisation. Tests performance recherche combinée sur gros dataset. Validation UX: filtres clairs, résultats immédiats.",
+        "priority": "medium",
+        "dependencies": [
+          "14",
+          "9"
+        ],
+        "status": "pending",
+        "subtasks": [],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Diviser l'intégration de la recherche combinée : 1. Mettre à jour l'UI pour inclure les contrôles de filtre. 2. Développer la logique qui combine le terme de recherche avec les filtres sélectionnés. 3. Implémenter la synchronisation de l'état de recherche avec les paramètres de l'URL."
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2025-11-10T08:25:57.443Z",
+      "taskCount": 15,
+      "completedCount": 2,
+      "tags": [
+        "master"
+      ]
+    }
+  }
+}

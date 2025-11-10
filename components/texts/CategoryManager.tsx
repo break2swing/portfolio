@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Category } from '@/lib/supabaseClient';
 import { categoryService } from '@/services/categoryService';
-import { createCategorySchema, updateCategorySchema } from '@/lib/validators';
+import { createCategorySchema, updateCategorySchema, type CreateCategoryFormData, type UpdateCategoryFormData } from '@/lib/validators';
 import {
   Card,
   CardContent,
@@ -26,20 +28,31 @@ import {
 import { Loader2, Plus, Edit2, Trash2, GripVertical, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategoryBadge } from './CategoryBadge';
-import type { ZodError } from 'zod';
 
 export function CategoryManager() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Form state
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [color, setColor] = useState('210 100% 50%'); // HSL format
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    formState: { errors },
+    watch,
+    reset,
+  } = useForm<CreateCategoryFormData | UpdateCategoryFormData>({
+    resolver: zodResolver(editingCategory ? updateCategorySchema : createCategorySchema),
+    mode: 'onTouched',
+    defaultValues: {
+      name: '',
+      description: null,
+      color: '#3b82f6',
+    },
+  });
+
+  const color = watch('color');
 
   useEffect(() => {
     loadCategories();
@@ -62,19 +75,22 @@ export function CategoryManager() {
   };
 
   const resetForm = () => {
-    setName('');
-    setDescription('');
-    setColor('210 100% 50%');
+    reset({
+      name: '',
+      description: null,
+      color: '#3b82f6',
+    });
     setEditingCategory(null);
-    setValidationErrors({});
   };
 
   const handleOpenDialog = (category?: Category) => {
     if (category) {
       setEditingCategory(category);
-      setName(category.name);
-      setDescription(category.description || '');
-      setColor(category.color);
+      reset({
+        name: category.name,
+        description: category.description || null,
+        color: category.color,
+      });
     } else {
       resetForm();
     }
@@ -86,53 +102,15 @@ export function CategoryManager() {
     resetForm();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Réinitialiser les erreurs de validation
-    setValidationErrors({});
-
-    // Préparer les données du formulaire
-    const formData = {
-      name: name.trim(),
-      description: description.trim() || null,
-      color,
-    };
-
-    // Validation Zod avant soumission
-    try {
-      if (editingCategory) {
-        const validatedData = updateCategorySchema.parse(formData);
-        console.log('[CATEGORY] Update validation passed:', validatedData);
-      } else {
-        const validatedData = createCategorySchema.parse(formData);
-        console.log('[CATEGORY] Create validation passed:', validatedData);
-      }
-    } catch (error) {
-      if (error instanceof Object && 'errors' in error) {
-        const zodError = error as ZodError;
-        const errors: Record<string, string> = {};
-        zodError.errors.forEach((err) => {
-          if (err.path.length > 0) {
-            errors[err.path[0] as string] = err.message;
-          }
-        });
-        setValidationErrors(errors);
-        toast.error('Erreur de validation', {
-          description: 'Veuillez corriger les erreurs dans le formulaire',
-        });
-        return;
-      }
-      console.error('[CATEGORY] Validation error:', error);
-      return;
-    }
-
-    setSubmitting(true);
+  const onSubmit = async (data: CreateCategoryFormData | UpdateCategoryFormData) => {
+    setIsSubmitting(true);
 
     try {
+      console.log('[CATEGORY] Submitting data:', data);
+
       if (editingCategory) {
         // Update existing category
-        const { error } = await categoryService.updateCategory(editingCategory.id, formData);
+        const { error } = await categoryService.updateCategory(editingCategory.id, data);
 
         if (error) throw error;
 
@@ -143,9 +121,9 @@ export function CategoryManager() {
         // Create new category
         const { maxOrder } = await categoryService.getMaxDisplayOrder();
         const { error } = await categoryService.createCategory({
-          ...formData,
+          ...data,
           display_order: (maxOrder ?? -1) + 1,
-        });
+        } as any);
 
         if (error) throw error;
 
@@ -162,7 +140,7 @@ export function CategoryManager() {
         description: error.message || 'Impossible de sauvegarder la catégorie',
       });
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -225,22 +203,21 @@ export function CategoryManager() {
                     : 'Créez une nouvelle catégorie pour organiser vos textes'}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="category-name">Nom *</Label>
                   <Input
                     id="category-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={submitting}
-                    required
-                    aria-invalid={!!validationErrors.name}
-                    aria-describedby={validationErrors.name ? 'category-name-error' : undefined}
+                    {...register('name')}
+                    disabled={isSubmitting}
+                    aria-invalid={!!errors.name}
+                    aria-describedby={errors.name ? 'category-name-error' : undefined}
+                    className={errors.name ? 'border-red-500' : ''}
                   />
-                  {validationErrors.name && (
-                    <p id="category-name-error" className="text-sm text-destructive flex items-center gap-1">
+                  {errors.name && (
+                    <p id="category-name-error" className="text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
-                      {validationErrors.name}
+                      {errors.name.message}
                     </p>
                   )}
                 </div>
@@ -249,46 +226,46 @@ export function CategoryManager() {
                   <Label htmlFor="category-description">Description</Label>
                   <Textarea
                     id="category-description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={submitting}
+                    {...register('description')}
+                    disabled={isSubmitting}
                     rows={3}
-                    aria-invalid={!!validationErrors.description}
-                    aria-describedby={validationErrors.description ? 'category-description-error' : undefined}
+                    aria-invalid={!!errors.description}
+                    aria-describedby={errors.description ? 'category-description-error' : undefined}
+                    className={errors.description ? 'border-red-500' : ''}
                   />
-                  {validationErrors.description && (
-                    <p id="category-description-error" className="text-sm text-destructive flex items-center gap-1">
+                  {errors.description && (
+                    <p id="category-description-error" className="text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
-                      {validationErrors.description}
+                      {errors.description.message}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category-color">Couleur (HSL)</Label>
+                  <Label htmlFor="category-color">Couleur (Hex)</Label>
                   <div className="flex gap-2">
                     <Input
                       id="category-color"
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      disabled={submitting}
-                      placeholder="210 100% 50%"
-                      aria-invalid={!!validationErrors.color}
-                      aria-describedby={validationErrors.color ? 'category-color-error' : 'category-color-help'}
+                      {...register('color')}
+                      disabled={isSubmitting}
+                      placeholder="#3b82f6"
+                      aria-invalid={!!errors.color}
+                      aria-describedby={errors.color ? 'category-color-error' : 'category-color-help'}
+                      className={errors.color ? 'border-red-500' : ''}
                     />
                     <div
                       className="w-12 h-10 rounded border"
-                      style={{ backgroundColor: `hsl(${color})` }}
+                      style={{ backgroundColor: color }}
                     />
                   </div>
-                  {validationErrors.color && (
-                    <p id="category-color-error" className="text-sm text-destructive flex items-center gap-1">
+                  {errors.color && (
+                    <p id="category-color-error" className="text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
-                      {validationErrors.color}
+                      {errors.color.message}
                     </p>
                   )}
                   <p id="category-color-help" className="text-xs text-muted-foreground">
-                    Format: &quot;teinte saturation luminosité&quot; (ex: 210 100% 50%)
+                    Format hexadécimal : #RRGGBB (ex: #3b82f6)
                   </p>
                 </div>
 
@@ -297,12 +274,12 @@ export function CategoryManager() {
                     type="button"
                     variant="outline"
                     onClick={handleCloseDialog}
-                    disabled={submitting}
+                    disabled={isSubmitting}
                   >
                     Annuler
                   </Button>
-                  <Button type="submit" disabled={submitting || !name.trim()}>
-                    {submitting ? (
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Enregistrement...

@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Tag } from '@/lib/supabaseClient';
 import { tagService } from '@/services/tagService';
-import { createTagSchema, updateTagSchema } from '@/lib/validators';
+import { createTagSchema, updateTagSchema, type CreateTagFormData, type UpdateTagFormData } from '@/lib/validators';
 import {
   Card,
   CardContent,
@@ -25,7 +27,6 @@ import {
 import { Loader2, Plus, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { TagBadge } from './TagBadge';
-import type { ZodError } from 'zod';
 
 const PRESET_COLORS = [
   '#3b82f6', // blue
@@ -41,14 +42,27 @@ const PRESET_COLORS = [
 export function TagManager() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Form state
-  const [name, setName] = useState('');
-  const [color, setColor] = useState('#3b82f6');
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+    reset,
+  } = useForm<CreateTagFormData | UpdateTagFormData>({
+    resolver: zodResolver(editingTag ? updateTagSchema : createTagSchema),
+    mode: 'onTouched',
+    defaultValues: {
+      name: '',
+      color: '#3b82f6',
+    },
+  });
+
+  const color = watch('color');
 
   useEffect(() => {
     loadTags();
@@ -71,17 +85,20 @@ export function TagManager() {
   };
 
   const resetForm = () => {
-    setName('');
-    setColor('#3b82f6');
+    reset({
+      name: '',
+      color: '#3b82f6',
+    });
     setEditingTag(null);
-    setValidationErrors({});
   };
 
   const handleOpenDialog = (tag?: Tag) => {
     if (tag) {
       setEditingTag(tag);
-      setName(tag.name);
-      setColor(tag.color);
+      reset({
+        name: tag.name,
+        color: tag.color,
+      });
     } else {
       resetForm();
     }
@@ -93,52 +110,15 @@ export function TagManager() {
     resetForm();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Réinitialiser les erreurs de validation
-    setValidationErrors({});
-
-    // Préparer les données du formulaire
-    const formData = {
-      name: name.trim(),
-      color,
-    };
-
-    // Validation Zod avant soumission
-    try {
-      if (editingTag) {
-        const validatedData = updateTagSchema.parse(formData);
-        console.log('[TAG] Update validation passed:', validatedData);
-      } else {
-        const validatedData = createTagSchema.parse(formData);
-        console.log('[TAG] Create validation passed:', validatedData);
-      }
-    } catch (error) {
-      if (error instanceof Object && 'errors' in error) {
-        const zodError = error as ZodError;
-        const errors: Record<string, string> = {};
-        zodError.errors.forEach((err) => {
-          if (err.path.length > 0) {
-            errors[err.path[0] as string] = err.message;
-          }
-        });
-        setValidationErrors(errors);
-        toast.error('Erreur de validation', {
-          description: 'Veuillez corriger les erreurs dans le formulaire',
-        });
-        return;
-      }
-      console.error('[TAG] Validation error:', error);
-      return;
-    }
-
-    setSubmitting(true);
+  const onSubmit = async (data: CreateTagFormData | UpdateTagFormData) => {
+    setIsSubmitting(true);
 
     try {
+      console.log('[TAG] Submitting data:', data);
+
       if (editingTag) {
         // Update existing tag
-        const { error } = await tagService.updateTag(editingTag.id, formData);
+        const { error } = await tagService.updateTag(editingTag.id, data);
 
         if (error) throw error;
 
@@ -147,7 +127,7 @@ export function TagManager() {
         });
       } else {
         // Create new tag
-        const { error } = await tagService.createTag(formData);
+        const { error } = await tagService.createTag(data);
 
         if (error) throw error;
 
@@ -164,7 +144,7 @@ export function TagManager() {
         description: error.message || 'Impossible de sauvegarder le tag',
       });
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -227,22 +207,21 @@ export function TagManager() {
                     : 'Créez un nouveau tag pour classifier vos textes'}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="tag-name">Nom *</Label>
                   <Input
                     id="tag-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={submitting}
-                    required
-                    aria-invalid={!!validationErrors.name}
-                    aria-describedby={validationErrors.name ? 'tag-name-error' : undefined}
+                    {...register('name')}
+                    disabled={isSubmitting}
+                    aria-invalid={!!errors.name}
+                    aria-describedby={errors.name ? 'tag-name-error' : undefined}
+                    className={errors.name ? 'border-red-500' : ''}
                   />
-                  {validationErrors.name && (
-                    <p id="tag-name-error" className="text-sm text-destructive flex items-center gap-1">
+                  {errors.name && (
+                    <p id="tag-name-error" className="text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
-                      {validationErrors.name}
+                      {errors.name.message}
                     </p>
                   )}
                 </div>
@@ -260,8 +239,8 @@ export function TagManager() {
                             : 'border-transparent'
                         } transition-all`}
                         style={{ backgroundColor: presetColor }}
-                        onClick={() => setColor(presetColor)}
-                        disabled={submitting}
+                        onClick={() => setValue('color', presetColor)}
+                        disabled={isSubmitting}
                         aria-label={`Sélectionner la couleur ${presetColor}`}
                       />
                     ))}
@@ -270,26 +249,26 @@ export function TagManager() {
                     <Input
                       type="color"
                       value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      disabled={submitting}
+                      onChange={(e) => setValue('color', e.target.value)}
+                      disabled={isSubmitting}
                       className="w-20 h-10"
                       aria-label="Sélecteur de couleur"
-                      aria-invalid={!!validationErrors.color}
+                      aria-invalid={!!errors.color}
                     />
                     <Input
                       id="tag-color-hex"
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      disabled={submitting}
+                      {...register('color')}
+                      disabled={isSubmitting}
                       placeholder="#3b82f6"
-                      aria-invalid={!!validationErrors.color}
-                      aria-describedby={validationErrors.color ? 'tag-color-error' : undefined}
+                      aria-invalid={!!errors.color}
+                      aria-describedby={errors.color ? 'tag-color-error' : undefined}
+                      className={errors.color ? 'border-red-500' : ''}
                     />
                   </div>
-                  {validationErrors.color && (
-                    <p id="tag-color-error" className="text-sm text-destructive flex items-center gap-1">
+                  {errors.color && (
+                    <p id="tag-color-error" className="text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
-                      {validationErrors.color}
+                      {errors.color.message}
                     </p>
                   )}
                 </div>
@@ -299,12 +278,12 @@ export function TagManager() {
                     type="button"
                     variant="outline"
                     onClick={handleCloseDialog}
-                    disabled={submitting}
+                    disabled={isSubmitting}
                   >
                     Annuler
                   </Button>
-                  <Button type="submit" disabled={submitting || !name.trim()}>
-                    {submitting ? (
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Enregistrement...
