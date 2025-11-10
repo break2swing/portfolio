@@ -1,5 +1,6 @@
 import { supabaseClient, MusicTrack, MusicTrackWithTags } from '@/lib/supabaseClient';
 import { musicTagService } from './musicTagService';
+import { cache } from '@/lib/cache';
 
 export const musicService = {
   async getAllTracks() {
@@ -12,6 +13,15 @@ export const musicService = {
   },
 
   async getAllTracksWithTags() {
+    const CACHE_KEY = 'music:all-with-tags';
+    const TTL = 5 * 60 * 1000; // 5 minutes
+
+    // Vérifier le cache
+    const cached = cache.get<{ tracks: MusicTrackWithTags[]; error: null }>(CACHE_KEY);
+    if (cached) {
+      return cached;
+    }
+
     const { data, error } = await supabaseClient
       .from('music_tracks')
       .select(`
@@ -29,7 +39,12 @@ export const musicService = {
 
     tracks.forEach((track: any) => delete track.music_tags);
 
-    return { tracks: tracks as MusicTrackWithTags[], error: null };
+    const result = { tracks: tracks as MusicTrackWithTags[], error: null };
+
+    // Mettre en cache
+    cache.set(CACHE_KEY, result, { ttl: TTL, storage: 'session' });
+
+    return result;
   },
 
   async getTrackById(id: string) {
@@ -118,6 +133,10 @@ export const musicService = {
       }
 
       console.log('[MUSIC SERVICE] Insert track - SUCCESS:', data);
+
+      // Invalider le cache des morceaux
+      cache.invalidatePattern('music:');
+
       return { track: data as MusicTrack | null, error: null };
     } catch (err) {
       console.error('[MUSIC SERVICE] Unexpected error:', err);
@@ -139,6 +158,11 @@ export const musicService = {
       .select()
       .single();
 
+    if (!error) {
+      // Invalider le cache des morceaux
+      cache.invalidatePattern('music:');
+    }
+
     return { track: data as MusicTrack | null, error };
   },
 
@@ -147,6 +171,11 @@ export const musicService = {
       .from('music_tracks')
       .delete()
       .eq('id', id);
+
+    if (!error) {
+      // Invalider le cache des morceaux
+      cache.invalidatePattern('music:');
+    }
 
     return { error };
   },

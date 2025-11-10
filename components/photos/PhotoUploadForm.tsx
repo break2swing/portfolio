@@ -146,10 +146,14 @@ export function PhotoUploadForm({ onSuccess }: PhotoUploadFormProps) {
 
       const publicUrl = storageService.getPublicUrl(fileName);
 
+      // Générer le LQIP pour la photo
+      const blurDataUrl = await storageService.generateLQIPForPhoto(file);
+
       const { error: insertError } = await photoService.createPhotoWithTags({
         title: title.trim(),
         description: description.trim() || null,
         image_url: publicUrl,
+        blur_data_url: blurDataUrl,
         display_order: nextOrder,
       }, selectedTagIds);
 

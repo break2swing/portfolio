@@ -7,6 +7,7 @@ import { musicService } from '@/services/musicService';
 import { MusicUploadForm } from '@/components/music/MusicUploadForm';
 import { TrackListAdmin } from '@/components/music/TrackListAdmin';
 import { TagManager } from '@/components/texts/TagManager';
+import { RefreshButton } from '@/components/RefreshButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -37,9 +38,16 @@ function AdminMusicContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Administration de la Musique</h1>
-        <p className="text-muted-foreground">Gérez votre bibliothèque musicale et les tags</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Administration de la Musique</h1>
+          <p className="text-muted-foreground">Gérez votre bibliothèque musicale et les tags</p>
+        </div>
+        <RefreshButton
+          onRefresh={fetchTracks}
+          cachePattern="music:"
+          label="Rafraîchir"
+        />
       </div>
 
       <Tabs defaultValue="music" className="space-y-6">

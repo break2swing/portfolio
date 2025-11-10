@@ -1,6 +1,7 @@
 'use client';
 
 import { Text } from '@/lib/supabaseClient';
+import dynamic from 'next/dynamic';
 import {
   Dialog,
   DialogContent,
@@ -8,11 +9,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MarkdownRenderer } from './MarkdownRenderer';
 import { Calendar, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load MarkdownRenderer
+const MarkdownRenderer = dynamic(() => import('./MarkdownRenderer').then(mod => ({ default: mod.MarkdownRenderer })), {
+  loading: () => <Skeleton className="h-64 w-full" />,
+  ssr: false,
+});
 
 interface TextDetailModalProps {
   text: Text | null;

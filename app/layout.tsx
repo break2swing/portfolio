@@ -7,6 +7,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/AppLayout';
 import { Toaster } from '@/components/ui/sonner';
 import { WebVitals } from '@/components/WebVitals';
+import { PrefetchData } from '@/components/PrefetchData';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ColorThemeProvider>
             <AuthProvider>
+              <PrefetchData />
               <AppLayout>{children}</AppLayout>
               <Toaster />
               <WebVitals />

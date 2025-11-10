@@ -1,5 +1,6 @@
 import { supabaseClient, Photo, PhotoWithTags } from '@/lib/supabaseClient';
 import { photoTagService } from './photoTagService';
+import { cache } from '@/lib/cache';
 
 export const photoService = {
   async getAllPhotos() {
@@ -12,6 +13,15 @@ export const photoService = {
   },
 
   async getAllPhotosWithTags() {
+    const CACHE_KEY = 'photos:all-with-tags';
+    const TTL = 5 * 60 * 1000; // 5 minutes
+
+    // Vérifier le cache
+    const cached = cache.get<{ photos: PhotoWithTags[]; error: null }>(CACHE_KEY);
+    if (cached) {
+      return cached;
+    }
+
     const { data, error } = await supabaseClient
       .from('photos')
       .select(`
@@ -29,7 +39,12 @@ export const photoService = {
 
     photos.forEach((photo: any) => delete photo.photo_tags);
 
-    return { photos: photos as PhotoWithTags[], error: null };
+    const result = { photos: photos as PhotoWithTags[], error: null };
+
+    // Mettre en cache
+    cache.set(CACHE_KEY, result, { ttl: TTL, storage: 'session' });
+
+    return result;
   },
 
   async getPhotoById(id: string) {
@@ -57,6 +72,7 @@ export const photoService = {
     title: string;
     description: string | null;
     image_url: string;
+    blur_data_url?: string | null;
     display_order: number;
   }) {
     const { data, error } = await supabaseClient
@@ -64,6 +80,11 @@ export const photoService = {
       .insert(photo)
       .select()
       .single();
+
+    if (!error) {
+      // Invalider le cache des photos
+      cache.invalidatePattern('photos:');
+    }
 
     return { photo: data as Photo | null, error };
   },
@@ -76,6 +97,11 @@ export const photoService = {
       .select()
       .single();
 
+    if (!error) {
+      // Invalider le cache des photos
+      cache.invalidatePattern('photos:');
+    }
+
     return { photo: data as Photo | null, error };
   },
 
@@ -84,6 +110,11 @@ export const photoService = {
       .from('photos')
       .delete()
       .eq('id', id);
+
+    if (!error) {
+      // Invalider le cache des photos
+      cache.invalidatePattern('photos:');
+    }
 
     return { error };
   },
@@ -102,6 +133,7 @@ export const photoService = {
       title: string;
       description: string | null;
       image_url: string;
+      blur_data_url?: string | null;
       display_order: number;
     },
     tagIds: string[] = []

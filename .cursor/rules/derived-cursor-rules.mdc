@@ -77,6 +77,8 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 
 ## TECH STACK
 
+*   `@tanstack/react-virtual`
+
 ## WORKFLOW & RELEASE RULES
 
 *   When creating a pull request, analyze recent file changes to understand the modifications.
@@ -253,6 +255,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     *   For simple projects, use the `example_prd.txt` template.
     *   For complex systems, use the `example_prd_rpg.txt` template (for dependency-aware task graphs). Save the PRD to `.taskmaster/docs/prd.txt`.
     *   After the PRD is created, parse it to generate initial tasks using: `task-master parse-prd .taskmaster/docs/prd.txt`. Then, analyze the complexity of these tasks with `task-master analyze-complexity --research` and expand the tasks into sub-tasks with `task-master expand --all --research`. Finally, see the next task to do with `task-master next`.
+*   When aiming to improve performance, start by analyzing existing plans and tasks related to performance optimization.
 
 ## CODING STANDARDS
 
@@ -282,3 +285,4 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     * Page Music: only tags from the `music_tags` table.
     * Page Videos: only tags from the `video_tags` table.
     * Page Texts: only tags from the `text_tags` table.
+* When implementing code splitting with `next/dynamic`, always include a `<Skeleton>` component as the `loading` fallback, and set `ssr: false`.

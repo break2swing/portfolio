@@ -1,17 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { TextWithMetadata } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
-import { TextUploadForm } from '@/components/texts/TextUploadForm';
 import { TextListAdmin } from '@/components/texts/TextListAdmin';
 import { CategoryManager } from '@/components/texts/CategoryManager';
 import { TagManager } from '@/components/texts/TagManager';
+import { RefreshButton } from '@/components/RefreshButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, Settings, FolderTree, Tags } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load TextUploadForm
+const TextUploadForm = dynamic(() => import('@/components/texts/TextUploadForm').then(mod => ({ default: mod.TextUploadForm })), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
 
 export default function AdminTextsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -59,9 +67,16 @@ export default function AdminTextsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Administration des Textes</h1>
-        <p className="text-muted-foreground">Gérez vos écrits, catégories et tags</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Administration des Textes</h1>
+          <p className="text-muted-foreground">Gérez vos écrits, catégories et tags</p>
+        </div>
+        <RefreshButton
+          onRefresh={fetchTexts}
+          cachePattern="texts:"
+          label="Rafraîchir"
+        />
       </div>
 
       <Tabs defaultValue="texts" className="space-y-6">

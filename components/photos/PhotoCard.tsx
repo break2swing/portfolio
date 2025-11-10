@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Photo } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 import { OptimizedImage } from '@/components/OptimizedImage';
@@ -9,7 +10,7 @@ interface PhotoCardProps {
   onClick: () => void;
 }
 
-export function PhotoCard({ photo, onClick }: PhotoCardProps) {
+export const PhotoCard = memo(function PhotoCard({ photo, onClick }: PhotoCardProps) {
   return (
     <div
       className={cn(
@@ -24,6 +25,7 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
         className="aspect-square"
         objectFit="cover"
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        blurDataURL={photo.blur_data_url || undefined}
       />
       <div
         className={cn(
@@ -43,4 +45,4 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
       </div>
     </div>
   );
-}
+});

@@ -1,17 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { TextWithMetadata, Category, Tag } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
 import { categoryService } from '@/services/categoryService';
 import { tagService } from '@/services/tagService';
 import { TextCard } from '@/components/texts/TextCard';
-import { TextDetailModal } from '@/components/texts/TextDetailModal';
+import { VirtualizedTextList } from '@/components/texts/VirtualizedTextList';
 import { CategoryBadge } from '@/components/texts/CategoryBadge';
 import { TagBadge } from '@/components/texts/TagBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, FileText, Search, X } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '@/hooks/useDebounce';
+
+// Lazy load TextDetailModal
+const TextDetailModal = dynamic(() => import('@/components/texts/TextDetailModal').then(mod => ({ default: mod.TextDetailModal })), {
+  loading: () => <Skeleton className="h-[90vh] w-full" />,
+  ssr: false,
+});
 
 export default function TextesPage() {
   const [allTexts, setAllTexts] = useState<TextWithMetadata[]>([]);
@@ -25,14 +34,47 @@ export default function TextesPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  const applyFilters = useMemo(() => {
+    let result = [...allTexts];
+
+    // Filter by category
+    if (selectedCategoryId) {
+      result = result.filter((text) => text.category_id === selectedCategoryId);
+    }
+
+    // Filter by tags (AND logic: text must have ALL selected tags)
+    if (selectedTagIds.length > 0) {
+      result = result.filter((text) =>
+        selectedTagIds.every((tagId) =>
+          text.tags?.some((tag) => tag.id === tagId)
+        )
+      );
+    }
+
+    // Filter by search query (using debounced value)
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase();
+      result = result.filter(
+        (text) =>
+          text.title.toLowerCase().includes(query) ||
+          text.subtitle?.toLowerCase().includes(query) ||
+          text.excerpt?.toLowerCase().includes(query) ||
+          text.content.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [allTexts, selectedCategoryId, selectedTagIds, debouncedSearchQuery]);
+
   useEffect(() => {
-    applyFilters();
-  }, [allTexts, selectedCategoryId, selectedTagIds, searchQuery]);
+    setFilteredTexts(applyFilters);
+  }, [applyFilters]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -52,38 +94,6 @@ export default function TextesPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const applyFilters = () => {
-    let result = [...allTexts];
-
-    // Filter by category
-    if (selectedCategoryId) {
-      result = result.filter((text) => text.category_id === selectedCategoryId);
-    }
-
-    // Filter by tags (AND logic: text must have ALL selected tags)
-    if (selectedTagIds.length > 0) {
-      result = result.filter((text) =>
-        selectedTagIds.every((tagId) =>
-          text.tags?.some((tag) => tag.id === tagId)
-        )
-      );
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (text) =>
-          text.title.toLowerCase().includes(query) ||
-          text.subtitle?.toLowerCase().includes(query) ||
-          text.excerpt?.toLowerCase().includes(query) ||
-          text.content.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredTexts(result);
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -209,6 +219,11 @@ export default function TextesPage() {
             Aucun texte ne correspond à vos critères de recherche
           </p>
         </div>
+      ) : filteredTexts.length > 50 ? (
+        <VirtualizedTextList
+          texts={filteredTexts}
+          onTextClick={setSelectedText}
+        />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredTexts.map((text) => (
