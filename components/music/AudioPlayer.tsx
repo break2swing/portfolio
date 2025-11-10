@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Play,
   Pause,
@@ -10,9 +10,23 @@ import {
   SkipForward,
   ChevronLeft,
   ChevronRight,
+  Shuffle,
+  Repeat,
 } from 'lucide-react';
 import { AudioVisualization, VisualizationType } from './AudioVisualization';
 import { MusicTrack } from '@/lib/supabaseClient';
+import {
+  savePlayerState,
+  getPlayerState,
+  savePlaylistState,
+  getPlaylistState,
+} from '@/lib/audioPlayerStorage';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const VISUALIZATION_TYPES: VisualizationType[] = [
   'bars',
@@ -45,12 +59,184 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [visualizationIndex, setVisualizationIndex] = useState(4);
+  const [shuffle, setShuffle] = useState(false);
+  const [repeat, setRepeat] = useState<'none' | 'one' | 'all'>('none');
+  const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLInputElement>(null);
+  const progressContainerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout>();
 
   const currentTrack = tracks[currentTrackIndex];
   const currentVisualization = VISUALIZATION_TYPES[visualizationIndex];
+
+  // Générer la playlist aléatoire avec Fisher-Yates
+  const generateShuffledPlaylist = useCallback(() => {
+    const indices = tracks.map((_, index) => index);
+    const shuffled = [...indices];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }, [tracks]);
+
+  // Fonctions de navigation
+  const playPrevious = useCallback(() => {
+    if (tracks.length === 0) return;
+
+    if (shuffle && shuffledPlaylist.length > 0) {
+      // Trouver la position actuelle dans la playlist mélangée
+      const currentShuffledIndex = shuffledPlaylist.indexOf(currentTrackIndex);
+      if (currentShuffledIndex > 0) {
+        const prevShuffledIndex = currentShuffledIndex - 1;
+        setCurrentTrackIndex(shuffledPlaylist[prevShuffledIndex]);
+        setIsPlaying(true);
+      } else if (repeat === 'all') {
+        // Aller au dernier morceau de la playlist mélangée
+        setCurrentTrackIndex(shuffledPlaylist[shuffledPlaylist.length - 1]);
+        setIsPlaying(true);
+      }
+    } else {
+      // Ordre normal
+      if (currentTrackIndex > 0) {
+        setCurrentTrackIndex(currentTrackIndex - 1);
+        setIsPlaying(true);
+      } else if (repeat === 'all') {
+        // Aller au dernier morceau
+        setCurrentTrackIndex(tracks.length - 1);
+        setIsPlaying(true);
+      }
+    }
+  }, [tracks.length, shuffle, shuffledPlaylist, currentTrackIndex, repeat]);
+
+  const playNext = useCallback(() => {
+    if (tracks.length === 0) return;
+
+    if (shuffle && shuffledPlaylist.length > 0) {
+      // Trouver la position actuelle dans la playlist mélangée
+      const currentShuffledIndex = shuffledPlaylist.indexOf(currentTrackIndex);
+      if (currentShuffledIndex < shuffledPlaylist.length - 1) {
+        const nextShuffledIndex = currentShuffledIndex + 1;
+        setCurrentTrackIndex(shuffledPlaylist[nextShuffledIndex]);
+        setIsPlaying(true);
+      } else if (repeat === 'all') {
+        // Aller au premier morceau de la playlist mélangée
+        setCurrentTrackIndex(shuffledPlaylist[0]);
+        setIsPlaying(true);
+      } else {
+        setIsPlaying(false);
+      }
+    } else {
+      // Ordre normal
+      if (currentTrackIndex < tracks.length - 1) {
+        setCurrentTrackIndex(currentTrackIndex + 1);
+        setIsPlaying(true);
+      } else if (repeat === 'all') {
+        // Aller au premier morceau
+        setCurrentTrackIndex(0);
+        setIsPlaying(true);
+      } else {
+        setIsPlaying(false);
+      }
+    }
+  }, [tracks.length, shuffle, shuffledPlaylist, currentTrackIndex, repeat]);
+
+  // Générer la playlist aléatoire quand shuffle est activé ou quand les tracks changent
+  useEffect(() => {
+    if (shuffle && tracks.length > 0) {
+      setShuffledPlaylist(generateShuffledPlaylist());
+    }
+  }, [shuffle, tracks, generateShuffledPlaylist]);
+
+  // Restaurer l'état de la playlist au chargement
+  useEffect(() => {
+    const savedState = getPlaylistState();
+    if (savedState && tracks.length > 0) {
+      // Vérifier que les trackIds correspondent
+      const currentTrackIds = tracks.map((t) => t.id);
+      if (
+        savedState.trackIds.length === currentTrackIds.length &&
+        savedState.trackIds.every((id, index) => id === currentTrackIds[index])
+      ) {
+        setShuffle(savedState.shuffle);
+        setRepeat(savedState.repeat);
+        if (savedState.currentIndex >= 0 && savedState.currentIndex < tracks.length) {
+          setCurrentTrackIndex(savedState.currentIndex);
+        }
+      }
+    }
+  }, []); // Seulement au montage
+
+  // Sauvegarder l'état de la playlist quand il change
+  useEffect(() => {
+    if (tracks.length > 0) {
+      const trackIds = tracks.map((t) => t.id);
+      savePlaylistState(trackIds, currentTrackIndex, shuffle, repeat);
+    }
+  }, [tracks, currentTrackIndex, shuffle, repeat]);
+
+  // Restaurer la position et le volume au chargement d'un morceau
+  useEffect(() => {
+    if (currentTrack) {
+      const savedState = getPlayerState(currentTrack.id);
+      if (savedState) {
+        setVolume(savedState.volume);
+        if (audioRef.current && savedState.currentTime > 0) {
+          audioRef.current.currentTime = savedState.currentTime;
+        }
+      }
+    }
+  }, [currentTrack?.id]);
+
+  // Sauvegarder la position toutes les 5 secondes pendant la lecture
+  useEffect(() => {
+    if (isPlaying && currentTrack) {
+      const interval = setInterval(() => {
+        if (audioRef.current) {
+          savePlayerState(
+            currentTrack.id,
+            audioRef.current.currentTime,
+            volume
+          );
+        }
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isPlaying, currentTrack, volume]);
+
+  // Sauvegarder la position au changement de morceau
+  useEffect(() => {
+    return () => {
+      // Cleanup : sauvegarder avant de changer de morceau
+      if (currentTrack && audioRef.current) {
+        savePlayerState(
+          currentTrack.id,
+          audioRef.current.currentTime,
+          volume
+        );
+      }
+    };
+  }, [currentTrackIndex, currentTrack, volume]);
+
+  // Sauvegarder avant le démontage
+  useEffect(() => {
+    return () => {
+      if (currentTrack && audioRef.current) {
+        savePlayerState(
+          currentTrack.id,
+          audioRef.current.currentTime,
+          volume
+        );
+      }
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [currentTrack, volume]);
 
   useEffect(() => {
     console.log('[AUDIO PLAYER] Current track:', currentTrack);
@@ -79,7 +265,16 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
     };
 
     const handleEnded = () => {
-      playNext();
+      if (repeat === 'one') {
+        // Répéter le même morceau
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play();
+        }
+      } else {
+        // Répéter toute la playlist ou pas de répétition
+        playNext();
+      }
     };
 
     const handleError = (e: ErrorEvent) => {
@@ -111,7 +306,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
       audio.removeEventListener('error', handleError as any);
       audio.removeEventListener('canplay', handleCanPlay);
     };
-  }, [currentTrackIndex]);
+  }, [currentTrackIndex, repeat, playNext]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -131,7 +326,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const togglePlay = async () => {
+  const togglePlay = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -152,7 +347,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
       setError('Impossible de lire le fichier audio');
       setIsPlaying(false);
     }
-  };
+  }, [isPlaying]);
 
   const whilePlaying = () => {
     if (progressBarRef.current && audioRef.current) {
@@ -186,22 +381,123 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
       } else if (isMuted) {
         setIsMuted(false);
       }
+      // Sauvegarder le volume
+      if (currentTrack) {
+        savePlayerState(currentTrack.id, currentTime, newVolume);
+      }
     }
   };
 
-  const playPrevious = () => {
-    if (currentTrackIndex > 0) {
-      setCurrentTrackIndex(currentTrackIndex - 1);
-      setIsPlaying(true);
+  // Gestion du survol de la barre de progression
+  const handleProgressMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressContainerRef.current || !duration) return;
+
+    const rect = progressContainerRef.current.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    const time = Math.max(0, Math.min(duration, percent * duration));
+    setHoverTime(time);
+  };
+
+  const handleProgressMouseLeave = () => {
+    setHoverTime(null);
+  };
+
+  // Contrôles clavier
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorer si l'utilisateur est en train de taper dans un input
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Ignorer si un modal est ouvert (vérifier la présence de Dialog)
+      const hasOpenDialog = document.querySelector('[role="dialog"]');
+      if (hasOpenDialog) {
+        return;
+      }
+
+      switch (e.key) {
+        case ' ':
+          e.preventDefault();
+          togglePlay();
+          break;
+        case 'ArrowLeft':
+          if (e.shiftKey) {
+            e.preventDefault();
+            playPrevious();
+          } else {
+            e.preventDefault();
+            if (audioRef.current) {
+              audioRef.current.currentTime = Math.max(
+                0,
+                audioRef.current.currentTime - 5
+              );
+            }
+          }
+          break;
+        case 'ArrowRight':
+          if (e.shiftKey) {
+            e.preventDefault();
+            playNext();
+          } else {
+            e.preventDefault();
+            if (audioRef.current) {
+              audioRef.current.currentTime = Math.min(
+                duration,
+                audioRef.current.currentTime + 5
+              );
+            }
+          }
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          const newVolumeUp = Math.min(1, volume + 0.1);
+          if (audioRef.current) {
+            audioRef.current.volume = newVolumeUp;
+            setVolume(newVolumeUp);
+            if (currentTrack) {
+              savePlayerState(currentTrack.id, currentTime, newVolumeUp);
+            }
+          }
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          const newVolumeDown = Math.max(0, volume - 0.1);
+          if (audioRef.current) {
+            audioRef.current.volume = newVolumeDown;
+            setVolume(newVolumeDown);
+            if (currentTrack) {
+              savePlayerState(currentTrack.id, currentTime, newVolumeDown);
+            }
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [volume, duration, currentTrack, currentTime, togglePlay, playPrevious, playNext]);
+
+  const toggleShuffle = () => {
+    setShuffle(!shuffle);
+    if (!shuffle) {
+      // Activer shuffle : générer nouvelle playlist aléatoire
+      setShuffledPlaylist(generateShuffledPlaylist());
     }
   };
 
-  const playNext = () => {
-    if (currentTrackIndex < tracks.length - 1) {
-      setCurrentTrackIndex(currentTrackIndex + 1);
-      setIsPlaying(true);
+  const toggleRepeat = () => {
+    if (repeat === 'none') {
+      setRepeat('all');
+    } else if (repeat === 'all') {
+      setRepeat('one');
     } else {
-      setIsPlaying(false);
+      setRepeat('none');
     }
   };
 
@@ -267,20 +563,46 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
           visualizationType={currentVisualization}
         />
 
-        <div className="flex items-center space-x-2">
+        <div
+          ref={progressContainerRef}
+          className="flex items-center space-x-2 relative"
+          onMouseMove={handleProgressMouseMove}
+          onMouseLeave={handleProgressMouseLeave}
+        >
           <span className="text-sm text-muted-foreground w-12 text-right">
             {formatTime(currentTime)}
           </span>
-          <input
-            type="range"
-            ref={progressBarRef}
-            defaultValue="0"
-            onChange={changeRange}
-            min="0"
-            max={duration}
-            step="0.01"
-            className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
-          />
+          <div className="flex-1 relative">
+            <input
+              type="range"
+              ref={progressBarRef}
+              defaultValue="0"
+              onChange={changeRange}
+              min="0"
+              max={duration}
+              step="0.01"
+              className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
+            />
+            {hoverTime !== null && duration > 0 && (
+              <div
+                className="absolute top-0 h-2 bg-primary/30 pointer-events-none z-10"
+                style={{
+                  left: `${(hoverTime / duration) * 100}%`,
+                  width: '2px',
+                }}
+              />
+            )}
+            {hoverTime !== null && duration > 0 && (
+              <div
+                className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-2 py-1 rounded text-xs shadow-md pointer-events-none z-20 whitespace-nowrap"
+                style={{
+                  left: `${(hoverTime / duration) * 100}%`,
+                }}
+              >
+                {formatTime(hoverTime)}
+              </div>
+            )}
+          </div>
           <span className="text-sm text-muted-foreground w-12">
             {formatTime(duration)}
           </span>
@@ -288,9 +610,29 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={toggleShuffle}
+                    className={`p-2 rounded-full transition-colors ${
+                      shuffle
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'hover:bg-secondary/80'
+                    }`}
+                    aria-label={shuffle ? 'Désactiver le mode aléatoire' : 'Activer le mode aléatoire'}
+                  >
+                    <Shuffle size={20} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{shuffle ? 'Mode aléatoire activé' : 'Mode aléatoire désactivé'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <button
               onClick={playPrevious}
-              disabled={currentTrackIndex === 0}
+              disabled={tracks.length === 0 || (currentTrackIndex === 0 && repeat !== 'all')}
               className="p-2 rounded-full hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Morceau précédent"
             >
@@ -305,12 +647,51 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
             </button>
             <button
               onClick={playNext}
-              disabled={currentTrackIndex === tracks.length - 1}
+              disabled={tracks.length === 0 || (currentTrackIndex === tracks.length - 1 && repeat !== 'all')}
               className="p-2 rounded-full hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Morceau suivant"
             >
               <SkipForward size={24} />
             </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={toggleRepeat}
+                    className={`p-2 rounded-full transition-colors ${
+                      repeat !== 'none'
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'hover:bg-secondary/80'
+                    }`}
+                    aria-label={
+                      repeat === 'none'
+                        ? 'Activer la répétition'
+                        : repeat === 'all'
+                        ? 'Répéter toute la playlist'
+                        : 'Répéter un morceau'
+                    }
+                  >
+                    {repeat === 'one' ? (
+                      <div className="relative">
+                        <Repeat size={20} />
+                        <span className="absolute -top-1 -right-1 text-xs">1</span>
+                      </div>
+                    ) : (
+                      <Repeat size={20} />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {repeat === 'none'
+                      ? 'Pas de répétition'
+                      : repeat === 'all'
+                      ? 'Répéter toute la playlist'
+                      : 'Répéter un morceau'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="flex items-center space-x-2">
             <button
