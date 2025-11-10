@@ -286,3 +286,4 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     * Page Videos: only tags from the `video_tags` table.
     * Page Texts: only tags from the `text_tags` table.
 * When implementing code splitting with `next/dynamic`, always include a `<Skeleton>` component as the `loading` fallback, and set `ssr: false`.
+* With `output: 'export'`, Next.js does not allow the use of `headers()` in `next.config.js`. For a static export, headers must be configured at the web server or hosting platform level. See `docs/SECURITY.md` for instructions.

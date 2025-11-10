@@ -9752,3 +9752,668 @@ Pour tester localement, vous pouvez utiliser un serveur HTTP simple qui respecte
 
 ---
 
+_**User (2025-11-10 07:02Z)**_
+
+description pull request perdormance et securoté optimisation
+
+---
+
+_**Agent (model composer-1, mode Ask)**_
+
+
+
+---
+
+
+Rédaction d'une description de pull request pour les optimisations de performance et de sécurité. Analyse des fichiers pertinents pour un résumé complet :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: docs/SECURITY.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: docs/BUNDLE_ANALYSIS.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="grep" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "TODO|FIXME|OPTIMIZE" in "." • 11 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\next.config.js` | `images: \{ unoptimized: true \},` | L11 |
+| `.\docs\BUNDLE_ANALYSIS.md` | `- Lazy loading avec `OptimizedImage`` | L134 |
+| `.\docs\BUNDLE_ANALYSIS.md` | `- Les images sont configurées avec `unoptimized: true` pour compatibilité avec l'export statique` | L196 |
+| `.\docs\BUNDLE_ANALYSIS.md` | `- Le lazy loading est géré manuellement avec `OptimizedImage` et Intersection Observer` | L197 |
+| `.\components\photos\PhotoCard.tsx` | `import \{ OptimizedImage \} from '@/components/OptimizedImage';` | L6 |
+| `.\components\photos\PhotoCard.tsx` | `<OptimizedImage` | L22 |
+| `.\components\OptimizedImage.tsx` | `interface OptimizedImageProps \{` | L6 |
+| `.\components\OptimizedImage.tsx` | `* OptimizedImage - Composant d'image optimisé pour les performances` | L22 |
+| `.\components\OptimizedImage.tsx` | `export function OptimizedImage(\{` | L44 |
+| `.\components\OptimizedImage.tsx` | `\}: OptimizedImageProps) \{` | L57 |
+| `.\AMELIORATION.md` | `6. Optimiser stratégies de chargement avec `next/image` (déjà `unoptimized: true`, mais envisager placeholders blur)` | L223 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Description de pull request :
+
+```markdown
+# 🚀 Optimisations Performance & Sécurité
+
+## 📋 Résumé
+
+Cette PR implémente un ensemble complet d'optimisations de performance et de sécurité pour améliorer l'expérience utilisateur et renforcer la protection contre les vulnérabilités courantes.
+
+## ✨ Optimisations de Performance
+
+### Cache côté client avec TTL et invalidation
+- ✅ Cache avec TTL de 5 minutes pour `getAllPhotosWithTags()` et `getAllTracksWithTags()`
+- ✅ Invalidation automatique du cache lors des opérations CRUD (create/update/delete)
+- ✅ Stockage dans `sessionStorage` pour persistance entre les pages
+- ✅ Contrôles UI avec `RefreshButton` pour invalidation manuelle
+
+### Code splitting et lazy loading
+- ✅ Lazy loading de `PhotoViewerModal`, `TextEditModal`, `MarkdownRenderer` avec `next/dynamic`
+- ✅ Composants de chargement `Skeleton` pour améliorer l'UX
+- ✅ Réduction de la taille du bundle initial (~30-40% pour les pages admin)
+
+### Optimisation React
+- ✅ `React.memo` sur `PhotoCard`, `PhotoGrid`, `TextCard` pour éviter les re-renders inutiles
+- ✅ `useMemo` pour les filtres complexes dans toutes les pages de liste
+- ✅ Optimisation des calculs coûteux avec memoization
+
+### Prefetching et optimisations de navigation
+- ✅ Prefetching automatique des catégories et tags au chargement initial
+- ✅ Prefetching au hover sur les liens de navigation dans `Sidebar`
+- ✅ Utilisation de `requestIdleCallback` pour ne pas bloquer le thread principal
+
+### Debounce et virtualisation
+- ✅ Debounce de 300ms sur les inputs de recherche pour réduire les appels API
+- ✅ Virtualisation avec `@tanstack/react-virtual` pour les listes >50 items
+- ✅ Support responsive avec ajustement dynamique du nombre de colonnes
+
+### Optimisation des images
+- ✅ Génération automatique de LQIP (Low Quality Image Placeholder) pour améliorer le LCP
+- ✅ Compression côté client avant upload avec `browser-image-compression`
+- ✅ Migration complète vers `OptimizedImage` avec lazy loading et blur placeholders
+
+### Analyse et budgets de performance
+- ✅ Script `check-bundle` pour vérifier les budgets de performance (250KB assets, 400KB entrypoints)
+- ✅ Configuration Webpack optimisée pour le chunking (vendor, markdown, radix)
+- ✅ Documentation complète dans `docs/BUNDLE_ANALYSIS.md`
+
+## 🔒 Optimisations de Sécurité
+
+### Renforcement RLS Supabase
+- ✅ Migration SQL avec contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- ✅ Ajout de `user_id` à la table `photos` avec vérification d'ownership
+- ✅ Amélioration des policies RLS pour `photos` et `music_tracks` avec vérification `user_id = auth.uid()`
+- ✅ Protection en profondeur au niveau base de données
+
+### Validation avancée des fichiers
+- ✅ Validation par magic bytes pour détecter les falsifications de type MIME
+- ✅ Support pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- ✅ Intégration dans tous les formulaires d'upload (`PhotoUploadForm`, `VideoUploadForm`, `MusicUploadForm`)
+- ✅ Protection contre les uploads malveillants
+
+### Validation des URLs
+- ✅ Validation complète des URLs avant stockage (format, protocole HTTPS, domaine autorisé)
+- ✅ Blocage des protocoles dangereux (`javascript:`, `data:`, `vbscript:`, etc.)
+- ✅ Intégration dans `photoService`, `musicService` et `videoService`
+- ✅ Protection contre les injections d'URL et redirections malveillantes
+
+### Headers de sécurité HTTP
+- ✅ Configuration des headers pour Netlify (`public/_headers`)
+- ✅ Documentation pour Vercel, Nginx et Apache dans `docs/SECURITY.md`
+- ✅ Headers configurés : X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP
+- ✅ Protection contre clickjacking, MIME type sniffing et autres attaques courantes
+
+### Audit de sécurité
+- ✅ Scripts npm pour audit des dépendances (`npm audit`, `npm audit:fix`)
+- ✅ Configuration avec niveau modéré pour détecter les vulnérabilités importantes
+- ✅ Documentation du processus d'audit dans `docs/SECURITY.md`
+
+### Rate limiting côté client
+- ✅ Rate limiter avec `sessionStorage` pour limiter les appels API
+- ✅ Limites : 10/min pour create, 20/min pour update
+- ✅ Intégration dans tous les services avec messages d'erreur clairs
+- ✅ Protection basique contre les abus et spams
+
+### Documentation sécurité
+- ✅ Guide complet dans `docs/SECURITY.md` avec :
+  - Vue d'ensemble des mesures de sécurité
+  - Configuration des headers HTTP par plateforme
+  - Processus d'audit des dépendances
+  - Guide de validation des fichiers et URLs
+  - Bonnes pratiques pour les développeurs
+  - Procédure de réponse aux incidents
+
+## 📁 Fichiers modifiés
+
+### Nouveaux fichiers
+- `lib/cache.ts` - Système de cache avec TTL
+- `lib/fileValidation.ts` - Validation par magic bytes
+- `lib/urlValidation.ts` - Validation des URLs
+- `lib/rateLimiter.ts` - Rate limiting côté client
+- `lib/imageUtils.ts` - Utilitaires pour génération LQIP
+- `hooks/useDebounce.ts` - Hook de debounce
+- `components/RefreshButton.tsx` - Bouton d'invalidation du cache
+- `components/PrefetchData.tsx` - Prefetching initial
+- `components/photos/VirtualizedPhotoGrid.tsx` - Grille virtualisée
+- `components/texts/VirtualizedTextList.tsx` - Liste virtualisée
+- `scripts/check-bundle-size.js` - Script de vérification des budgets
+- `scripts/generate-lqip-for-existing.ts` - Script de migration LQIP
+- `app/admin/migrate-lqip/page.tsx` - Page admin pour migration LQIP
+- `supabase/migrations/20250111_add_security_constraints.sql` - Migration sécurité
+- `docs/BUNDLE_ANALYSIS.md` - Documentation bundle analysis
+- `docs/SECURITY.md` - Documentation sécurité
+- `public/_headers` - Headers pour Netlify
+
+### Fichiers modifiés
+- `services/photoService.ts` - Cache, validation URL, rate limiting, user_id
+- `services/musicService.ts` - Cache, validation URL, rate limiting
+- `services/videoService.ts` - Validation URL, rate limiting
+- `services/storageService.ts` - Génération LQIP
+- `components/photos/PhotoUploadForm.tsx` - Validation magic bytes
+- `components/music/MusicUploadForm.tsx` - Validation magic bytes
+- `components/videos/VideoUploadForm.tsx` - Validation magic bytes
+- `components/photos/PhotoCard.tsx` - React.memo, blurDataURL
+- `components/photos/PhotoGrid.tsx` - React.memo
+- `components/texts/TextCard.tsx` - React.memo
+- `app/photos/page.tsx` - Code splitting, memoization, virtualisation
+- `app/textes/page.tsx` - Code splitting, debounce, memoization, virtualisation
+- `app/musique/page.tsx` - Memoization
+- `app/admin/photos/page.tsx` - Code splitting, RefreshButton
+- `app/admin/texts/page.tsx` - Code splitting, RefreshButton
+- `components/Sidebar.tsx` - Prefetching navigation
+- `app/layout.tsx` - PrefetchData component
+- `lib/supabaseClient.ts` - Types mis à jour (blur_data_url, user_id)
+- `next.config.js` - Configuration Webpack optimisée
+- `package.json` - Scripts audit et check-bundle
+
+## 🧪 Tests
+
+- ✅ Vérification du cache avec invalidation
+- ✅ Tests de validation magic bytes avec différents formats
+- ✅ Tests de validation URL avec cas limites
+- ✅ Vérification des budgets de performance
+- ✅ Tests de rate limiting
+
+## 📊 Impact attendu
+
+### Performance
+- ⚡ Réduction du temps de chargement initial (~30-40%)
+- ⚡ Amélioration du LCP grâce aux LQIP
+- ⚡ Réduction des re-renders inutiles (~50-60%)
+- ⚡ Meilleure réactivité de l'interface avec debounce
+- ⚡ Optimisation du bundle avec code splitting
+
+### Sécurité
+- 🔒 Protection contre les uploads malveillants
+- 🔒 Prévention des injections d'URL
+- 🔒 Renforcement de l'authentification avec vérification d'ownership
+- 🔒 Protection contre les attaques courantes (XSS, clickjacking, etc.)
+- 🔒 Détection précoce des vulnérabilités dans les dépendances
+
+## 📝 Notes importantes
+
+- ⚠️ Les headers HTTP doivent être configurés au niveau du serveur/hébergement pour l'export statique (voir `docs/SECURITY.md`)
+- ⚠️ La migration SQL doit être exécutée sur Supabase avant le déploiement
+- ⚠️ Le rate limiting côté client est une protection basique, le vrai rate limiting doit être configuré côté Supabase
+- ⚠️ Pour générer des LQIP pour les images existantes, utiliser `/admin/migrate-lqip`
+
+## 🔗 Références
+
+- [Documentation Bundle Analysis](./docs/BUNDLE_ANALYSIS.md)
+- [Documentation Sécurité](./docs/SECURITY.md)
+- [Plan d'optimisation](./performance-optimizations-6476c9.plan.md)
+
+## ✅ Checklist
+
+- [x] Cache implémenté avec TTL et invalidation
+- [x] Code splitting pour les composants lourds
+- [x] Optimisation React avec memo et useMemo
+- [x] Prefetching et debounce
+- [x] Virtualisation pour grandes listes
+- [x] Génération LQIP automatique
+- [x] Contraintes RLS Supabase renforcées
+- [x] Validation magic bytes des fichiers
+- [x] Validation des URLs
+- [x] Headers de sécurité HTTP configurés
+- [x] Audit de sécurité des dépendances
+- [x] Rate limiting côté client
+- [x] Documentation complète
+```
+
+Cette description couvre les optimisations de performance et de sécurité. Vous pouvez l'utiliser telle quelle ou l'adapter selon vos besoins.
+
+---
+
+_**User (2025-11-10 07:02Z)**_
+
+Plan d'améliorations fonctionnelles
+
+---
+
+_**Agent (model composer-1, mode Plan)**_
+
+
+
+---
+
+
+Analyse du codebase pour identifier les améliorations fonctionnelles possibles. Exploration de l'état actuel du projet :
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "What are the main features and functionalities currently implemented in the portfolio?" • **15** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `.taskmaster/docs/prd.txt` | L29 |
+| `README.md` | L64-118 |
+| `README.md` | L66 |
+| `app/page.tsx` | L77 |
+| `CLAUDE.md` | L76 |
+| `ENHANCEMENT.md` | L45 |
+| `prompts/claude.md` | L28 |
+| `app/page.tsx` | L3-77 |
+| `WARP.md` | L110-181 |
+| `components/Sidebar.tsx` | L27-283 |
+| `COMPOSANTS_RESTANTS.md` | L1556-1624 |
+| `SETUP_TEXTS.md` | L61 |
+| `WARP.md` | L65-115 |
+| `prompts/gemini.md` | L36 |
+| `ENHANCEMENT.md` | L227-276 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: ENHANCEMENT.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="list_dir">
+<details>
+            <summary>Tool use: **list_directory** • Listed directory undefined • **0** results</summary>
+        
+No results found
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "What user experience issues or missing features are mentioned in comments or documentation?" • **15** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `ENHANCEMENT.md` | L45 |
+| `AMELIORATION.md` | L248-293 |
+| `.taskmaster/docs/prd.txt` | L29 |
+| `.taskmaster/docs/prd.txt` | L163-218 |
+| `ENHANCEMENT.md` | L321-370 |
+| `AMELIORATION.md` | L41 |
+| `AMELIORATION.md` | L377-418 |
+| `.taskmaster/templates/example_prd.txt` | L46 |
+| `AMELIORATION.md` | L338-379 |
+| `.taskmaster/docs/prd.txt` | L214-273 |
+| `ENHANCEMENT.md` | L86-132 |
+| `ENHANCEMENT.md` | L43-88 |
+| `.claude/commands/enhancement.md` | L59-116 |
+| `.kiro/steering/dev_workflow.md` | L116-151 |
+| `.taskmaster/docs/prd.txt` | L559-609 |
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Pour définir le plan d'améliorations fonctionnelles, j'ai besoin de précisions sur le périmètre souhaité.
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/textes/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/photos/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "What features are incomplete or have TODO comments indicating missing functionality?" • **15** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `IMPLEMENTATION_COMPLETE.md` | L57 |
+| `COMPOSANTS_RESTANTS.md` | L59 |
+| `ENHANCEMENT.md` | L43-88 |
+| `ENHANCEMENT.md` | L321-370 |
+| `ENHANCEMENT.md` | L227-276 |
+| `COMPOSANTS_RESTANTS.md` | L1556-1624 |
+| `.kiro/steering/dev_workflow.md` | L116-151 |
+| `ENHANCEMENT.md` | L45 |
+| `.taskmaster/tasks/tasks.json` | L426-455 |
+| `ENHANCEMENT.md` | L129-187 |
+| `AMELIORATION.md` | L338-379 |
+| `.kiro/steering/dev_workflow.md` | L235-268 |
+| `AGENTS.md` | L235-307 |
+| `AGENTS.md` | L42 |
+| `AMELIORATION.md` | L248-293 |
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Pour préciser le périmètre du plan d'améliorations fonctionnelles, quelques précisions :
+
+1. Quel type d'améliorations fonctionnelles souhaitez-vous prioriser ?
+   - a) Nouvelles fonctionnalités pour les utilisateurs (recherche avancée, filtres améliorés, partage social, etc.)
+   - b) Améliorations UX/UI (navigation, accessibilité, animations, feedback utilisateur)
+   - c) Fonctionnalités admin (gestion avancée, analytics dashboard, export/import de données)
+   - d) Fonctionnalités techniques (PWA, tests automatisés, documentation API)
+
+2. Y a-t-il des fonctionnalités spécifiques manquantes que vous avez identifiées ?
+   - a) Oui, j'ai une liste précise (à préciser)
+   - b) Non, je veux un plan basé sur les meilleures pratiques et les opportunités identifiées dans le code
+
+En attendant votre réponse, je prépare un plan couvrant les améliorations fonctionnelles identifiées dans `ENHANCEMENT.md` et les opportunités détectées dans le codebase.
+
+---
+
+_**User (2025-11-10 07:02Z)**_
+
+1 : a 2 : b
+
+---
+
+_**Agent (model composer-1, mode Plan)**_
+
+
+
+---
+
+
+Création d'un plan d'améliorations fonctionnelles axé sur les nouvelles fonctionnalités utilisateur, basé sur les meilleures pratiques et les opportunités identifiées dans le codebase.
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/musique/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/videos/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "What social sharing or user interaction features exist in the codebase?" • **14** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `components/photos/PhotoViewerModal.tsx` | L25-264 |
+| `.github/instructions/dev_workflow.instructions.md` | L160-194 |
+| `.cursor/rules/taskmaster/dev_workflow.mdc` | L161-195 |
+| `.kiro/steering/dev_workflow.md` | L181-213 |
+| `docs/ANALYTICS.md` | L65-125 |
+| `.taskmaster/docs/prd.txt` | L163-218 |
+| `ENHANCEMENT.md` | L273-323 |
+| `.kiro/steering/dev_workflow.md` | L52-74 |
+| `docs/ANALYTICS.md` | L69 |
+| `WARP.md` | L110-181 |
+| `.taskmaster/docs/prd.txt` | L214-273 |
+| `SETUP_TEXTS.md` | L61 |
+| `README.md` | L64-118 |
+| `.cursor/rules/taskmaster/dev_workflow.mdc` | L52-75 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/photos/PhotoViewerModal.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Création d'un plan d'améliorations fonctionnelles axé sur les nouvelles fonctionnalités utilisateur, basé sur les meilleures pratiques et les opportunités identifiées dans le codebase.
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="create_plan">
+<details>
+<summary>Tool use: **create_plan**</summary>
+
+
+Parameters:
+
+```json
+{
+  &quot;plan&quot;: &quot;# Plan d&#39;Améliorations Fonctionnelles Utilisateur\n\n## Vue d&#39;ensemble\n\nCe plan enrichit l&#39;expérience utilisateur du portfolio avec de nouvelles fonctionnalités modernes pour améliorer la découvrabilité du contenu, l&#39;interaction et la navigation. Les améliorations se concentrent sur la recherche, les favoris, le partage social, et les options de tri/filtrage avancées.\n\n## État actuel\n\n**Fonctionnalités existantes** :\n- Recherche basique avec &#96;includes()&#96; sur les textes\n- Filtres par catégories et tags (logique AND)\n- Partage basique via Web Share API dans PhotoViewerModal\n- Navigation clavier dans PhotoViewerModal\n- Affichage des photos, textes, musique et vidéos\n\n**Limitations identifiées** :\n- Recherche non fuzzy, pas de highlighting, pas de suggestions\n- Pas de système de favoris/bookmarks\n- Partage limité à Web Share API (pas de boutons sociaux)\n- Pas de tri avancé (date, popularité, alphabétique)\n- Pas de pagination pour grandes listes\n- Pas de vue détaillée améliorée avec métadonnées\n- Pas de recherche dans les photos/musique/vidéos\n\n## Améliorations à implémenter\n\n### 1. Recherche avancée avec fuzzy search et highlighting\n\n**Objectif** : Améliorer la recherche avec fuzzy matching, highlighting des résultats et suggestions en temps réel.\n\n**Fichiers concernés** :\n- &#96;lib/search.ts&#96; (nouveau) - Fonctions de recherche fuzzy et highlighting\n- &#96;components/texts/SearchSuggestions.tsx&#96; (nouveau) - Composant de suggestions\n- &#96;app/textes/page.tsx&#96; - Intégration recherche avancée\n- &#96;app/photos/page.tsx&#96; - Ajout recherche dans photos\n- &#96;app/musique/page.tsx&#96; - Ajout recherche dans musique\n- &#96;app/videos/page.tsx&#96; - Ajout recherche dans vidéos\n- &#96;components/texts/TextCard.tsx&#96; - Highlighting des résultats\n\n**Implémentation** :\n- Créer fonction &#96;fuzzySearch()&#96; utilisant distance de Levenshtein pour matching approximatif\n- Implémenter &#96;highlightText()&#96; pour surligner les termes recherchés avec &#96;&lt;mark&gt;&#96;\n- Créer composant &#96;SearchSuggestions&#96; avec navigation clavier (↑↓, Enter, Escape)\n- Ajouter debounce de 300ms sur l&#39;input de recherche (déjà fait pour textes)\n- Classer les résultats par pertinence (titre &gt; excerpt &gt; contenu)\n- Sauvegarder historique de recherche dans localStorage (5 dernières recherches)\n- Ajouter bouton pour effacer l&#39;historique dans les paramètres\n\n**Bénéfices** :\n- Recherche plus tolérante aux fautes de frappe\n- Meilleure découvrabilité du contenu\n- Expérience utilisateur moderne avec suggestions\n- Navigation clavier fluide\n\n### 2. Système de favoris/bookmarks\n\n**Objectif** : Permettre aux utilisateurs de sauvegarder leurs contenus favoris pour y accéder rapidement.\n\n**Fichiers concernés** :\n- &#96;lib/favorites.ts&#96; (nouveau) - Gestion des favoris avec localStorage\n- &#96;components/FavoriteButton.tsx&#96; (nouveau) - Bouton favoris réutilisable\n- &#96;app/favoris/page.tsx&#96; (nouveau) - Page de favoris\n- &#96;components/photos/PhotoCard.tsx&#96; - Ajout bouton favoris\n- &#96;components/texts/TextCard.tsx&#96; - Ajout bouton favoris\n- &#96;components/music/TrackCard.tsx&#96; (nouveau ou existant) - Ajout bouton favoris\n- &#96;components/videos/VideoCard.tsx&#96; (nouveau ou existant) - Ajout bouton favoris\n- &#96;components/Sidebar.tsx&#96; - Ajout lien vers favoris\n\n**Implémentation** :\n- Créer système de favoris avec localStorage (structure : &#96;{ photos: [], texts: [], music: [], videos: [] }&#96;)\n- Fonctions &#96;addFavorite()&#96;, &#96;removeFavorite()&#96;, &#96;isFavorite()&#96;, &#96;getAllFavorites()&#96;\n- Bouton favoris avec icône cœur (rempli/vide) et animation\n- Page &#96;/favoris&#96; affichant tous les favoris par catégorie avec onglets\n- Synchronisation avec sessionStorage pour persistance entre sessions\n- Badge avec nombre de favoris dans la sidebar\n- Export/import des favoris en JSON (optionnel)\n\n**Bénéfices** :\n- Engagement utilisateur accru\n- Accès rapide au contenu apprécié\n- Personnalisation de l&#39;expérience\n- Augmentation du temps passé sur le site\n\n### 3. Partage social amélioré\n\n**Objectif** : Étendre le partage avec boutons sociaux (Twitter, Facebook, LinkedIn) et copie de lien améliorée.\n\n**Fichiers concernés** :\n- &#96;components/ShareButton.tsx&#96; (nouveau) - Composant de partage réutilisable\n- &#96;components/photos/PhotoViewerModal.tsx&#96; - Amélioration partage\n- &#96;components/texts/TextDetailModal.tsx&#96; - Ajout partage\n- &#96;components/music/AudioPlayer.tsx&#96; - Ajout partage\n- &#96;lib/shareUtils.ts&#96; (nouveau) - Utilitaires de partage\n\n**Implémentation** :\n- Créer composant &#96;ShareButton&#96; avec menu déroulant (Web Share API + boutons sociaux)\n- Boutons sociaux : Twitter, Facebook, LinkedIn, Email\n- Génération d&#39;URLs de partage avec paramètres UTM pour analytics\n- Copie de lien avec toast de confirmation\n- Partage d&#39;image avec Open Graph meta tags (pour réseaux sociaux)\n- Support du partage de texte avec extrait formaté\n- Fallback gracieux si Web Share API non disponible\n\n**Bénéfices** :\n- Meilleure visibilité sur les réseaux sociaux\n- Partage simplifié pour les utilisateurs\n- Tracking des partages via analytics\n- Support multi-plateformes\n\n### 4. Tri et filtres avancés\n\n**Objectif** : Ajouter des options de tri (date, alphabétique, popularité) et améliorer les filtres combinés.\n\n**Fichiers concernés** :\n- &#96;components/SortSelector.tsx&#96; (nouveau) - Sélecteur de tri réutilisable\n- &#96;app/textes/page.tsx&#96; - Ajout tri et filtres améliorés\n- &#96;app/photos/page.tsx&#96; - Ajout tri et filtres améliorés\n- &#96;app/musique/page.tsx&#96; - Ajout tri et filtres améliorés\n- &#96;app/videos/page.tsx&#96; - Ajout tri et filtres améliorés\n- &#96;lib/sortUtils.ts&#96; (nouveau) - Fonctions de tri\n\n**Implémentation** :\n- Créer composant &#96;SortSelector&#96; avec options : Date (récent/ancien), Alphabétique (A-Z/Z-A), Popularité (si métrique disponible)\n- Fonctions de tri réutilisables dans &#96;sortUtils.ts&#96;\n- Sauvegarder préférence de tri dans localStorage\n- Améliorer filtres combinés avec logique OR pour tags (optionnel)\n- Ajouter filtre par date (dernière semaine, mois, année)\n- Badge avec nombre de résultats filtrés\n- Bouton \&quot;Réinitialiser les filtres\&quot; visible quand filtres actifs\n\n**Bénéfices** :\n- Contrôle utilisateur sur l&#39;affichage\n- Découvrabilité améliorée du contenu\n- Expérience personnalisable\n- Navigation plus efficace\n\n### 5. Pagination et chargement progressif\n\n**Objectif** : Implémenter la pagination pour améliorer les performances sur grandes listes.\n\n**Fichiers concernés** :\n- &#96;components/Pagination.tsx&#96; (nouveau) - Composant de pagination\n- &#96;app/textes/page.tsx&#96; - Intégration pagination\n- &#96;app/photos/page.tsx&#96; - Intégration pagination\n- &#96;app/musique/page.tsx&#96; - Intégration pagination\n- &#96;app/videos/page.tsx&#96; - Intégration pagination\n\n**Implémentation** :\n- Créer composant &#96;Pagination&#96; avec navigation première/dernière/précédente/suivante\n- Pagination de 20 items par page (configurable)\n- URL query params pour la page courante (&#96;?page=2&#96;)\n- Synchronisation avec virtualisation existante (afficher pagination si &lt;100 items, virtualisation si &gt;100)\n- Indicateur de page courante et nombre total de pages\n- Navigation clavier (flèches gauche/droite pour changer de page)\n\n**Bénéfices** :\n- Meilleures performances sur grandes listes\n- Navigation plus claire\n- Réduction de la consommation mémoire\n- Expérience utilisateur améliorée\n\n### 6. Vue détaillée améliorée avec métadonnées\n\n**Objectif** : Enrichir les vues détaillées avec métadonnées, navigation améliorée et actions supplémentaires.\n\n**Fichiers concernés** :\n- &#96;components/texts/TextDetailModal.tsx&#96; - Amélioration vue détaillée\n- &#96;components/photos/PhotoViewerModal.tsx&#96; - Ajout métadonnées\n- &#96;components/music/AudioPlayer.tsx&#96; - Amélioration affichage\n- &#96;components/videos/VideoPlayer.tsx&#96; (nouveau ou existant) - Vue détaillée vidéo\n\n**Implémentation** :\n- Ajouter section métadonnées dans TextDetailModal (date de publication, auteur, catégorie, tags, nombre de vues)\n- Ajouter navigation précédent/suivant dans PhotoViewerModal (déjà partiellement fait)\n- Afficher informations EXIF dans PhotoViewerModal (si disponibles)\n- Ajouter bouton \&quot;Voir dans la galerie\&quot; pour revenir à la liste\n- Breadcrumbs pour navigation hiérarchique\n- Temps de lecture estimé pour les textes\n- Miniatures des items précédent/suivant en bas de la modale\n\n**Bénéfices** :\n- Contexte enrichi pour chaque contenu\n- Navigation améliorée entre items\n- Informations utiles pour les utilisateurs\n- Expérience plus immersive\n\n### 7. Recherche globale avec résultats unifiés\n\n**Objectif** : Créer une barre de recherche globale qui recherche dans tous les types de contenu.\n\n**Fichiers concernés** :\n- &#96;components/GlobalSearch.tsx&#96; (nouveau) - Barre de recherche globale\n- &#96;app/search/page.tsx&#96; (nouveau) - Page de résultats de recherche\n- &#96;components/Sidebar.tsx&#96; - Intégration barre de recherche\n- &#96;components/Topbar.tsx&#96; - Option barre de recherche dans header\n- &#96;lib/search.ts&#96; - Fonctions de recherche unifiées\n\n**Implémentation** :\n- Créer composant &#96;GlobalSearch&#96; avec input et résultats en dropdown\n- Recherche unifiée dans photos, textes, musique, vidéos\n- Résultats groupés par type avec icônes\n- Navigation clavier complète (↑↓, Enter, Escape, Tab)\n- Lien \&quot;Voir tous les résultats\&quot; vers &#96;/search?q=query&#96;\n- Page de résultats avec onglets par type de contenu\n- Historique de recherche global\n- Raccourci clavier &#96;/&#96; pour ouvrir la recherche (comme GitHub)\n\n**Bénéfices** :\n- Accès rapide à tout le contenu\n- Découvrabilité maximale\n- Expérience utilisateur moderne\n- Navigation efficace\n\n### 8. Améliorations du lecteur audio\n\n**Objectif** : Enrichir le lecteur audio avec playlist, mode aléatoire, répétition et visualisation.\n\n**Fichiers concernés** :\n- &#96;components/music/AudioPlayer.tsx&#96; - Amélioration lecteur\n- &#96;components/music/Playlist.tsx&#96; (nouveau) - Composant playlist\n- &#96;app/musique/page.tsx&#96; - Intégration playlist\n\n**Implémentation** :\n- Ajouter boutons mode aléatoire (shuffle) et répétition (repeat one/all)\n- Créer composant &#96;Playlist&#96; affichant la liste des morceaux\n- Navigation automatique vers morceau suivant\n- Sauvegarder position de lecture dans localStorage\n- Barre de progression améliorée avec preview au survol\n- Contrôles clavier (Espace pour play/pause, ←→ pour navigation)\n- Visualisation audio basique avec canvas (optionnel, avancé)\n\n**Bénéfices** :\n- Expérience d&#39;écoute améliorée\n- Navigation fluide entre morceaux\n- Contrôles intuitifs\n- Engagement utilisateur accru\n\n## Ordre d&#39;implémentation recommandé\n\n1. **Recherche avancée** (impact immédiat sur UX, base pour autres fonctionnalités)\n2. **Tri et filtres avancés** (complément naturel de la recherche)\n3. **Système de favoris** (engagement utilisateur)\n4. **Pagination** (performance sur grandes listes)\n5. **Partage social amélioré** (visibilité)\n6. **Vue détaillée améliorée** (contexte enrichi)\n7. **Recherche globale** (découvrabilité maximale)\n8. **Améliorations lecteur audio** (spécifique à la musique)\n\n## Métriques de succès\n\n- **Recherche** : Temps moyen de recherche réduit de 50%\n- **Favoris** : 30% des utilisateurs utilisent les favoris\n- **Partage** : Augmentation de 20% des partages sociaux\n- **Navigation** : Réduction de 40% du temps pour trouver du contenu\n- **Engagement** : Augmentation de 25% du temps passé sur le site\n\n## Notes techniques\n\n- Toutes les fonctionnalités utilisent localStorage pour la persistance côté client\n- Compatible avec l&#39;export statique Next.js\n- Les favoris peuvent être synchronisés avec Supabase si authentification disponible\n- La recherche fuzzy utilise l&#39;algorithme de Levenshtein (implémentation légère)\n- Le partage social génère des URLs avec paramètres UTM pour tracking\n- La pagination peut coexister avec la virtualisation (choix selon nombre d&#39;items)&quot;,
+  &quot;name&quot;: &quot;Performance Optimizations-6476c9&quot;,
+  &quot;overview&quot;: &quot;Plan d&#39;améliorations fonctionnelles pour enrichir l&#39;expérience utilisateur du portfolio avec de nouvelles fonctionnalités : recherche avancée avec fuzzy search et highlighting, système de favoris, partage social amélioré, tri et filtres avancés, pagination, et améliorations des vues détaillées.&quot;
+}
+```
+Additional data:
+
+```json
+{
+  &quot;status&quot;: &quot;pending&quot;,
+  &quot;reviewData&quot;: {
+    &quot;status&quot;: &quot;Requested&quot;,
+    &quot;selectedOption&quot;: &quot;none&quot;,
+    &quot;isShowingInput&quot;: false
+  }
+}
+```
+Result:
+
+```json
+{
+  &quot;rejected&quot;: {}
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+_**User (2025-11-10 07:02Z)**_
+
+@Plan-Features.md planifier  #1 
+
+---
+
+_**Agent (model composer-1, mode Plan)**_
+
+
+
+---
+
+
+Lecture de `Plan-Features.md` pour identifier le point #1, puis création d'un plan détaillé pour cette fonctionnalité.
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Plan-Features.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Création d'un plan détaillé pour la fonctionnalité #1 : Recherche avancée avec fuzzy search et highlighting.
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/textes/page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/texts/TextCard.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "How is search currently implemented in the textes page?" • **5** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `app/textes/page.tsx` | L23-77 |
+| `app/textes/page.tsx` | L126-185 |
+| `app/textes/page.tsx` | L1-23 |
+| `app/textes/page.tsx` | L77-126 |
+| `app/textes/page.tsx` | L185-242 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="create_plan">
+<details>
+<summary>Tool use: **create_plan**</summary>
+
+
+Parameters:
+
+```json
+{
+  &quot;plan&quot;: &quot;# Plan d&#39;Implémentation : Recherche Avancée avec Fuzzy Search et Highlighting\n\n## Vue d&#39;ensemble\n\nImplémentation d&#39;un système de recherche avancée qui améliore significativement l&#39;expérience utilisateur en permettant une recherche tolérante aux fautes de frappe, avec highlighting des résultats et suggestions en temps réel. La recherche sera étendue à toutes les sections (textes, photos, musique, vidéos).\n\n## État actuel\n\n**Recherche existante** :\n- Recherche basique avec &#96;includes()&#96; uniquement sur &#96;/textes&#96;\n- Debounce de 300ms déjà implémenté avec &#96;useDebounce&#96;\n- Filtrage par catégorie et tags fonctionnel\n- Pas de recherche dans photos/musique/vidéos\n\n**Limitations** :\n- Recherche exacte uniquement (pas de tolérance aux fautes)\n- Pas de highlighting des termes trouvés\n- Pas de suggestions pendant la saisie\n- Pas d&#39;historique de recherche\n- Pas de classement par pertinence\n\n## Architecture de la solution\n\n### 1. Module de recherche (&#96;lib/search.ts&#96;)\n\n**Fonctions à créer** :\n- &#96;levenshteinDistance(str1: string, str2: string): number&#96; - Calcul de la distance de Levenshtein\n- &#96;fuzzyMatch(query: string, text: string, threshold: number = 0.7): boolean&#96; - Matching fuzzy avec seuil\n- &#96;highlightText(text: string, query: string): string&#96; - Retourne HTML avec &#96;&lt;mark&gt;&#96; autour des correspondances\n- &#96;calculateRelevanceScore(item: any, query: string, fields: string[]): number&#96; - Score de pertinence\n- &#96;searchInCollection&lt;T&gt;(collection: T[], query: string, searchFields: string[], options?: SearchOptions): T[]&#96; - Recherche générique\n\n**Structure** :\n&#96;&#96;&#96;typescript\ninterface SearchOptions {\n  fuzzy?: boolean;\n  threshold?: number;\n  highlight?: boolean;\n  sortByRelevance?: boolean;\n  maxResults?: number;\n}\n&#96;&#96;&#96;\n\n### 2. Composant de suggestions (&#96;components/texts/SearchSuggestions.tsx&#96;)\n\n**Fonctionnalités** :\n- Dropdown avec résultats de recherche en temps réel\n- Navigation clavier (↑↓ pour sélectionner, Enter pour valider, Escape pour fermer)\n- Affichage du type de contenu avec icône\n- Highlighting des termes recherchés dans les suggestions\n- Limite de 5-8 suggestions visibles\n- Indicateur visuel de l&#39;élément sélectionné au clavier\n\n**Props** :\n&#96;&#96;&#96;typescript\ninterface SearchSuggestionsProps {\n  query: string;\n  results: SearchResult[];\n  onSelect: (result: SearchResult) =&gt; void;\n  onClose: () =&gt; void;\n  isLoading?: boolean;\n}\n&#96;&#96;&#96;\n\n### 3. Gestion de l&#39;historique (&#96;lib/searchHistory.ts&#96;)\n\n**Fonctions** :\n- &#96;saveSearchQuery(query: string): void&#96; - Sauvegarde dans localStorage (max 5)\n- &#96;getSearchHistory(): string[]&#96; - Récupère l&#39;historique\n- &#96;clearSearchHistory(): void&#96; - Efface l&#39;historique\n- &#96;removeSearchQuery(query: string): void&#96; - Supprime une requête spécifique\n\n**Structure localStorage** :\n&#96;&#96;&#96;json\n{\n  \&quot;searchHistory\&quot;: [\&quot;query1\&quot;, \&quot;query2\&quot;, \&quot;query3\&quot;, \&quot;query4\&quot;, \&quot;query5\&quot;]\n}\n&#96;&#96;&#96;\n\n### 4. Intégration dans les pages\n\n**Modifications nécessaires** :\n- &#96;app/textes/page.tsx&#96; : Remplacer recherche &#96;includes()&#96; par &#96;fuzzySearch()&#96;, ajouter composant &#96;SearchSuggestions&#96;\n- &#96;app/photos/page.tsx&#96; : Ajouter input de recherche avec fuzzy search\n- &#96;app/musique/page.tsx&#96; : Ajouter input de recherche avec fuzzy search\n- &#96;app/videos/page.tsx&#96; : Ajouter input de recherche avec fuzzy search\n- &#96;components/texts/TextCard.tsx&#96; : Ajouter prop &#96;highlightQuery&#96; pour afficher le highlighting\n\n## Implémentation détaillée\n\n### Étape 1 : Créer le module de recherche (&#96;lib/search.ts&#96;)\n\n**Fonctionnalités** :\n1. Implémenter &#96;levenshteinDistance()&#96; avec algorithme dynamique\n2. Créer &#96;fuzzyMatch()&#96; avec normalisation (lowercase, accents)\n3. Implémenter &#96;highlightText()&#96; avec escape HTML pour sécurité\n4. Créer &#96;calculateRelevanceScore()&#96; avec pondération (titre: 3, excerpt: 2, contenu: 1)\n5. Créer fonction générique &#96;searchInCollection()&#96; pour tous types de contenu\n\n**Détails techniques** :\n- Distance de Levenshtein optimisée (O(n*m) avec memoization si nécessaire)\n- Seuil de matching configurable (défaut: 0.7 = 70% de similarité)\n- Normalisation Unicode pour gérer accents et caractères spéciaux\n- Support de recherche multi-mots (AND logique)\n\n### Étape 2 : Créer le composant SearchSuggestions\n\n**Composant** :\n- Input avec debounce intégré (300ms)\n- Dropdown positionné sous l&#39;input\n- Liste de suggestions avec highlighting\n- Gestion du focus et navigation clavier\n- Fermeture au clic extérieur (useClickOutside)\n- Animation d&#39;apparition/disparition\n\n**Accessibilité** :\n- &#96;role=\&quot;combobox\&quot;&#96; et &#96;aria-expanded&#96;\n- &#96;aria-activedescendant&#96; pour l&#39;élément sélectionné\n- Support lecteur d&#39;écran\n- Focus trap dans le dropdown\n\n### Étape 3 : Créer le module d&#39;historique (&#96;lib/searchHistory.ts&#96;)\n\n**Fonctionnalités** :\n- Sauvegarde automatique après recherche validée\n- Limite de 5 recherches récentes\n- Affichage dans dropdown avec icône horloge\n- Clic sur historique remplit l&#39;input et lance la recherche\n- Bouton pour effacer l&#39;historique\n\n**Intégration** :\n- Utilisé dans &#96;SearchSuggestions&#96; pour afficher l&#39;historique\n- Bouton de suppression dans page paramètres\n\n### Étape 4 : Intégrer dans page textes\n\n**Modifications** :\n- Remplacer logique de filtrage actuelle par &#96;searchInCollection()&#96;\n- Ajouter composant &#96;SearchSuggestions&#96; au-dessus de la liste\n- Passer &#96;highlightQuery&#96; à &#96;TextCard&#96; pour afficher le highlighting\n- Conserver debounce existant avec &#96;useDebounce&#96;\n- Ajouter badge avec nombre de résultats\n\n**Code existant à modifier** :\n&#96;&#96;&#96;typescript\n// Remplacer cette partie dans applyFilters useMemo\nif (debouncedSearchQuery.trim()) {\n  const query = debouncedSearchQuery.toLowerCase();\n  result = result.filter(\n    (text) =&gt;\n      text.title.toLowerCase().includes(query) ||\n      text.subtitle?.toLowerCase().includes(query) ||\n      text.excerpt?.toLowerCase().includes(query) ||\n      text.content.toLowerCase().includes(query)\n  );\n}\n&#96;&#96;&#96;\n\n### Étape 5 : Ajouter recherche dans photos\n\n**Modifications** :\n- Ajouter input de recherche dans &#96;app/photos/page.tsx&#96;\n- Créer &#96;applySearch&#96; avec &#96;searchInCollection()&#96; sur champs &#96;title&#96;, &#96;description&#96;\n- Intégrer &#96;SearchSuggestions&#96; pour photos\n- Ajouter highlighting dans &#96;PhotoCard&#96; (optionnel, dans titre/description)\n\n### Étape 6 : Ajouter recherche dans musique\n\n**Modifications** :\n- Ajouter input de recherche dans &#96;app/musique/page.tsx&#96;\n- Recherche sur champs &#96;title&#96;, &#96;artist&#96;, &#96;album&#96;\n- Intégrer &#96;SearchSuggestions&#96; pour musique\n- Classement par pertinence (titre &gt; artist &gt; album)\n\n### Étape 7 : Ajouter recherche dans vidéos\n\n**Modifications** :\n- Ajouter input de recherche dans &#96;app/videos/page.tsx&#96;\n- Recherche sur champs &#96;title&#96;, &#96;description&#96;\n- Intégrer &#96;SearchSuggestions&#96; pour vidéos\n- Même logique que pour photos\n\n### Étape 8 : Améliorer TextCard avec highlighting\n\n**Modifications** :\n- Ajouter prop optionnelle &#96;highlightQuery?: string&#96;\n- Utiliser &#96;highlightText()&#96; pour surligner dans titre, excerpt\n- Style &#96;&lt;mark&gt;&#96; avec couleur accent du thème\n- Fallback gracieux si pas de query\n\n### Étape 9 : Ajouter gestion historique dans paramètres\n\n**Modifications** :\n- Ajouter section \&quot;Historique de recherche\&quot; dans &#96;app/parametres/page.tsx&#96;\n- Afficher liste des recherches récentes\n- Bouton \&quot;Effacer l&#39;historique\&quot; avec confirmation\n- Indication du nombre de recherches sauvegardées\n\n## Fichiers à créer/modifier\n\n### Nouveaux fichiers\n- &#96;lib/search.ts&#96; - Module de recherche fuzzy et highlighting\n- &#96;lib/searchHistory.ts&#96; - Gestion de l&#39;historique\n- &#96;components/texts/SearchSuggestions.tsx&#96; - Composant de suggestions\n\n### Fichiers à modifier\n- &#96;app/textes/page.tsx&#96; - Intégration recherche avancée\n- &#96;app/photos/page.tsx&#96; - Ajout recherche\n- &#96;app/musique/page.tsx&#96; - Ajout recherche\n- &#96;app/videos/page.tsx&#96; - Ajout recherche\n- &#96;components/texts/TextCard.tsx&#96; - Ajout highlighting\n- &#96;components/photos/PhotoCard.tsx&#96; - Ajout highlighting optionnel\n- &#96;app/parametres/page.tsx&#96; - Gestion historique\n\n## Tests à effectuer\n\n1. Recherche exacte fonctionne comme avant\n2. Recherche fuzzy trouve résultats avec fautes de frappe (ex: \&quot;photografe\&quot; trouve \&quot;photographie\&quot;)\n3. Highlighting affiche correctement les termes surlignés\n4. Suggestions apparaissent après 300ms de saisie\n5. Navigation clavier fonctionne dans suggestions\n6. Historique sauvegarde et restaure correctement\n7. Recherche fonctionne dans toutes les sections\n8. Performance acceptable avec grandes collections (&gt;1000 items)\n\n## Notes techniques\n\n- Algorithme de Levenshtein : implémentation simple O(n*m), optimisable si nécessaire\n- Highlighting : utiliser &#96;dangerouslySetInnerHTML&#96; avec contenu sanitizé ou composant React avec parsing\n- Debounce : déjà implémenté avec &#96;useDebounce&#96;, réutiliser\n- Performance : pour collections &gt;500 items, considérer Web Worker pour recherche fuzzy\n- Accessibilité : respecter ARIA patterns pour combobox\n- Sécurité : échapper HTML dans highlighting pour éviter XSS&quot;,
+  &quot;name&quot;: &quot;Performance Optimizations-6476c9&quot;,
+  &quot;overview&quot;: &quot;Implémentation d&#39;un système de recherche avancée avec fuzzy matching (distance de Levenshtein), highlighting des résultats, suggestions en temps réel, et historique de recherche pour améliorer la découvrabilité du contenu dans toutes les sections du portfolio.&quot;
+}
+```
+Additional data:
+
+```json
+{
+  &quot;status&quot;: &quot;pending&quot;,
+  &quot;reviewData&quot;: {
+    &quot;status&quot;: &quot;Requested&quot;,
+    &quot;selectedOption&quot;: &quot;none&quot;,
+    &quot;isShowingInput&quot;: false
+  }
+}
+```
+Result:
+
+```json
+{
+  &quot;rejected&quot;: {}
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+_**User (2025-11-10 07:02Z)**_
+
+@Plan-Features.md planifier #2  
+
+---
+
+_**Agent (model composer-1, mode Agent)**_
+
+
+
+---
+
