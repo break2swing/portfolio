@@ -31,11 +31,6 @@ export default function VideosPage() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allVideos, selectedTagIds]);
-
   const fetchData = async () => {
     setLoading(true);
     try {

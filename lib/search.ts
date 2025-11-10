@@ -328,3 +328,155 @@ export function searchInCollection<T>(
   return results;
 }
 
+export interface GlobalSearchItem {
+  id: string;
+  title: string;
+  type: 'text' | 'photo' | 'video' | 'music' | 'application';
+  description?: string;
+  excerpt?: string;
+  url: string;
+  icon?: string;
+}
+
+/**
+ * Recherche globale dans tous les types de contenu
+ * @param query Requête de recherche
+ * @param allContent Objet contenant tous les contenus par type
+ * @param options Options de recherche
+ * @returns Résultats groupés par type
+ */
+export function searchAllContent(
+  query: string,
+  allContent: {
+    texts?: any[];
+    photos?: any[];
+    videos?: any[];
+    music?: any[];
+    applications?: any[];
+  },
+  options: SearchOptions = {}
+): Record<string, GlobalSearchItem[]> {
+  const results: Record<string, GlobalSearchItem[]> = {
+    texts: [],
+    photos: [],
+    videos: [],
+    music: [],
+    applications: [],
+  };
+
+  if (!query || !query.trim()) {
+    return results;
+  }
+
+  if (allContent.texts) {
+    const textResults = searchInCollection(
+      allContent.texts,
+      query,
+      [
+        { field: 'title', weight: 3 },
+        { field: 'subtitle', weight: 2 },
+        { field: 'excerpt', weight: 2 },
+        { field: 'content', weight: 1 },
+      ],
+      { ...options, maxResults: 5 }
+    );
+
+    results.texts = textResults.map(({ item }) => ({
+      id: item.id,
+      title: item.title,
+      type: 'text' as const,
+      description: item.subtitle || item.excerpt,
+      url: `/textes`,
+      icon: 'FileText',
+    }));
+  }
+
+  if (allContent.photos) {
+    const photoResults = searchInCollection(
+      allContent.photos,
+      query,
+      [
+        { field: 'title', weight: 3 },
+        { field: 'description', weight: 2 },
+      ],
+      { ...options, maxResults: 5 }
+    );
+
+    results.photos = photoResults.map(({ item }) => ({
+      id: item.id,
+      title: item.title,
+      type: 'photo' as const,
+      description: item.description,
+      url: `/photos`,
+      icon: 'Image',
+    }));
+  }
+
+  if (allContent.videos) {
+    const videoResults = searchInCollection(
+      allContent.videos,
+      query,
+      [
+        { field: 'title', weight: 3 },
+        { field: 'description', weight: 2 },
+      ],
+      { ...options, maxResults: 5 }
+    );
+
+    results.videos = videoResults.map(({ item }) => ({
+      id: item.id,
+      title: item.title,
+      type: 'video' as const,
+      description: item.description,
+      url: `/videos`,
+      icon: 'Video',
+    }));
+  }
+
+  if (allContent.music) {
+    const musicResults = searchInCollection(
+      allContent.music,
+      query,
+      [
+        { field: 'title', weight: 3 },
+        { field: 'artist', weight: 2 },
+        { field: 'album', weight: 1 },
+      ],
+      { ...options, maxResults: 5 }
+    );
+
+    results.music = musicResults.map(({ item }) => ({
+      id: item.id,
+      title: item.title,
+      type: 'music' as const,
+      description: item.artist,
+      excerpt: item.album,
+      url: `/musique`,
+      icon: 'Music',
+    }));
+  }
+
+  if (allContent.applications) {
+    const appResults = searchInCollection(
+      allContent.applications,
+      query,
+      [
+        { field: 'name', weight: 3 },
+        { field: 'description', weight: 2 },
+      ],
+      { ...options, maxResults: 5 }
+    );
+
+    results.applications = appResults.map(({ item }) => ({
+      id: item.id,
+      title: item.name || item.title,
+      type: 'application' as const,
+      description: item.description,
+      url: `/applications`,
+      icon: 'AppWindow',
+    }));
+  }
+
+  return results;
+}
+

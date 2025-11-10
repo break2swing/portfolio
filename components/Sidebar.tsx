@@ -18,6 +18,7 @@ import {
   Shield,
   LogIn,
   LogOut,
+  Bookmark,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ const mainNavItems: NavItem[] = [
   { href: '/videos', icon: Video, label: 'Vidéo' },
   { href: '/textes', icon: FileText, label: 'Texte' },
   { href: '/applications', icon: AppWindow, label: 'Application' },
+  { href: '/favoris', icon: Bookmark, label: 'Favoris' },
   { href: '/a-propos', icon: Info, label: 'À propos' },
   { href: '/contact', icon: Mail, label: 'Contact' },
 ];

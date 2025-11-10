@@ -3,6 +3,7 @@
 import { MusicTrack } from '@/lib/supabaseClient';
 import { Card, CardContent } from '@/components/ui/card';
 import { Music } from 'lucide-react';
+import { BookmarkButton } from '@/components/BookmarkButton';
 
 interface TrackListProps {
   tracks: MusicTrack[];
@@ -58,11 +59,20 @@ export function TrackList({ tracks, currentTrackId, onTrackSelect }: TrackListPr
                   </p>
                 )}
               </div>
-              {track.duration && track.duration > 0 && (
-                <div className="text-sm text-muted-foreground flex-shrink-0">
-                  {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
-                </div>
-              )}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {track.duration && track.duration > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
+                  </div>
+                )}
+                <BookmarkButton
+                  type="audio"
+                  itemId={track.id}
+                  itemTitle={track.title}
+                  variant="ghost"
+                  size="icon"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

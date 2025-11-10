@@ -4,12 +4,15 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { MobileSidebar } from '@/components/MobileSidebar';
 import { Topbar } from '@/components/Topbar';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { SkipToContent } from '@/components/SkipToContent';
+import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const { isOpen: searchOpen, openSearch, closeSearch } = useGlobalSearch();
 
   useEffect(() => {
     setIsClient(true);
@@ -39,11 +42,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen overflow-hidden">
         <Sidebar onToggle={(expanded) => setSidebarWidth(expanded ? 256 : 64)} />
         <MobileSidebar open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} />
+        <GlobalSearch open={searchOpen} onOpenChange={closeSearch} />
         <div
           className="flex flex-1 flex-col overflow-hidden transition-all duration-300 lg:ml-0"
           style={{ marginLeft: isClient && window.innerWidth >= 1024 ? `${sidebarWidth}px` : '0' }}
         >
-          <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
+          <Topbar onMenuClick={() => setMobileMenuOpen(true)} onSearchClick={openSearch} />
           <main
             id="main-content"
             tabIndex={-1}

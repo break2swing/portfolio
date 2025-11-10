@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Video as VideoIcon, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OptimizedImage } from '@/components/OptimizedImage';
+import { BookmarkButton } from '@/components/BookmarkButton';
 
 interface VideoCardProps {
   video: Video;
@@ -38,6 +39,16 @@ export function VideoCard({ video, onClick }: VideoCardProps) {
               <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
                 <Play className="h-8 w-8 text-foreground ml-1" />
               </div>
+            </div>
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <BookmarkButton
+                type="video"
+                itemId={video.id}
+                itemTitle={video.title}
+                variant="ghost"
+                size="icon"
+                className="bg-black/40 hover:bg-black/60 text-white"
+              />
             </div>
           </>
         ) : (

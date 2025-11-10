@@ -1,21 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { PhotoWithTags, Tag } from '@/lib/supabaseClient';
 import { photoService } from '@/services/photoService';
 import { photoTagService } from '@/services/photoTagService';
 import { PhotoGrid } from '@/components/photos/PhotoGrid';
 import { VirtualizedPhotoGrid } from '@/components/photos/VirtualizedPhotoGrid';
-import { TagBadge } from '@/components/texts/TagBadge';
-import { SearchSuggestions } from '@/components/texts/SearchSuggestions';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Loader2, X, Search } from 'lucide-react';
+import { AdvancedFilters } from '@/components/AdvancedFilters';
+import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useDebounce } from '@/hooks/useDebounce';
-import { searchInCollection, SearchResult } from '@/lib/search';
-import { saveSearchQuery } from '@/lib/searchHistory';
+import { useFilters } from '@/hooks/useFilters';
 
 // Lazy load PhotoViewerModal
 const PhotoViewerModal = dynamic(() => import('@/components/photos/PhotoViewerModal').then(mod => ({ default: mod.PhotoViewerModal })), {
@@ -25,97 +20,32 @@ const PhotoViewerModal = dynamic(() => import('@/components/photos/PhotoViewerMo
 
 export default function PhotosPage() {
   const [allPhotos, setAllPhotos] = useState<PhotoWithTags[]>([]);
-  const [filteredPhotos, setFilteredPhotos] = useState<PhotoWithTags[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagsAvailable, setTagsAvailable] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Utiliser le hook useFilters
+  const {
+    filters,
+    updateFilter,
+    resetFilters,
+    filteredItems: filteredPhotos,
+    availableTags,
+    hasActiveFilters,
+    resultCount,
+    totalCount,
+  } = useFilters({
+    items: allPhotos,
+    searchFields: ['title', 'description'],
+    dateField: 'created_at',
+    tagsField: 'tags',
+    titleField: 'title',
+  });
 
   useEffect(() => {
     fetchData();
   }, []);
-
-  // Recherche fuzzy avec highlighting
-  const searchResultsMemo = useMemo(() => {
-    if (!debouncedSearchQuery.trim()) {
-      return [];
-    }
-
-    const photosToSearch = allPhotos.filter((photo) => {
-      // Appliquer les filtres de tags avant la recherche
-      if (selectedTagIds.length > 0) {
-        if (!selectedTagIds.every((tagId) => photo.tags?.some((tag) => tag.id === tagId))) {
-          return false;
-        }
-      }
-      return true;
-    });
-
-    return searchInCollection(
-      photosToSearch,
-      debouncedSearchQuery,
-      [
-        { field: 'title', weight: 3 },
-        { field: 'description', weight: 2 },
-      ],
-      {
-        fuzzy: true,
-        threshold: 0.7,
-        highlight: true,
-        sortByRelevance: true,
-        maxResults: 8,
-      }
-    );
-  }, [allPhotos, debouncedSearchQuery, selectedTagIds]);
-
-  // Mettre à jour les résultats de recherche pour les suggestions
-  useEffect(() => {
-    setSearchResults(searchResultsMemo);
-    setShowSuggestions(searchQuery.trim().length > 0 && searchResultsMemo.length > 0);
-  }, [searchResultsMemo, searchQuery]);
-
-  const applyFilters = useMemo(() => {
-    let result = [...allPhotos];
-
-    // Filter by tags (AND logic: photo must have ALL selected tags)
-    if (selectedTagIds.length > 0) {
-      result = result.filter((photo) =>
-        selectedTagIds.every((tagId) =>
-          photo.tags?.some((tag) => tag.id === tagId)
-        )
-      );
-    }
-
-    // Filter by search query using fuzzy search
-    if (debouncedSearchQuery.trim()) {
-      const searchResults = searchInCollection(
-        result,
-        debouncedSearchQuery,
-        [
-          { field: 'title', weight: 3 },
-          { field: 'description', weight: 2 },
-        ],
-        {
-          fuzzy: true,
-          threshold: 0.7,
-          sortByRelevance: true,
-        }
-      );
-      result = searchResults.map((r) => r.item);
-    }
-
-    return result;
-  }, [allPhotos, selectedTagIds, debouncedSearchQuery]);
-
-  useEffect(() => {
-    setFilteredPhotos(applyFilters);
-  }, [applyFilters]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -151,43 +81,6 @@ export default function PhotosPage() {
     }
   };
 
-  const toggleTag = (tagId: string) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
-
-  const clearFilters = () => {
-    setSelectedTagIds([]);
-    setSearchQuery('');
-    setShowSuggestions(false);
-  };
-
-  const handleSearchSelect = (result: SearchResult) => {
-    const photo = result.item as PhotoWithTags;
-    const index = filteredPhotos.findIndex((p) => p.id === photo.id);
-    if (index >= 0) {
-      setSelectedPhotoIndex(index);
-    }
-    setShowSuggestions(false);
-    if (searchQuery.trim()) {
-      saveSearchQuery(searchQuery);
-    }
-  };
-
-  const handleHistorySelect = (query: string) => {
-    setSearchQuery(query);
-    setShowSuggestions(false);
-  };
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchResults.length > 0) {
-      handleSearchSelect(searchResults[0]);
-    }
-  };
-
-  const hasActiveFilters = selectedTagIds.length > 0 || searchQuery.trim();
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -208,73 +101,24 @@ export default function PhotosPage() {
         </p>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-        <Input
-          ref={searchInputRef}
-          placeholder="Rechercher une photo..."
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setShowSuggestions(e.target.value.trim().length > 0);
-          }}
-          onFocus={() => {
-            if (searchQuery.trim() || searchResults.length > 0) {
-              setShowSuggestions(true);
-            }
-          }}
-          onKeyDown={handleSearchKeyDown}
-          className="pl-10"
-        />
-        {showSuggestions && (
-          <SearchSuggestions
-            query={searchQuery}
-            results={searchResults}
-            onSelect={handleSearchSelect}
-            onClose={() => setShowSuggestions(false)}
-            contentType="photos"
-            onHistorySelect={handleHistorySelect}
-          />
-        )}
-      </div>
-
-      {/* Tag Filters */}
-      {tagsAvailable && tags.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Tags</h3>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <TagBadge
-                key={tag.id}
-                tag={tag}
-                variant={selectedTagIds.includes(tag.id) ? 'default' : 'outline'}
-                onClick={() => toggleTag(tag.id)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Clear Filters Button */}
-      {hasActiveFilters && (
-        <Button variant="outline" size="sm" onClick={clearFilters}>
-          <X className="mr-2 h-4 w-4" />
-          Effacer les filtres
-        </Button>
-      )}
-
-      {/* Results Count */}
-      <p className="text-sm text-muted-foreground">
-        {filteredPhotos.length} {filteredPhotos.length > 1 ? 'photos' : 'photo'}
-        {hasActiveFilters && ` sur ${allPhotos.length}`}
-      </p>
+      {/* AdvancedFilters Component */}
+      <AdvancedFilters
+        filters={filters}
+        availableTags={availableTags}
+        onFilterChange={updateFilter}
+        onReset={resetFilters}
+        hasActiveFilters={hasActiveFilters}
+        resultCount={resultCount}
+        totalCount={totalCount}
+        showTags={tagsAvailable}
+        showDateRange={false}
+      />
 
       {/* Photos Grid */}
       {filteredPhotos.length === 0 && hasActiveFilters ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">
-            Aucune photo ne correspond aux tags sélectionnés
+            Aucune photo ne correspond aux critères sélectionnés
           </p>
         </div>
       ) : filteredPhotos.length > 50 ? (

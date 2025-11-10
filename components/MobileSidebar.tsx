@@ -15,6 +15,7 @@ import {
   Settings,
   LogIn,
   LogOut,
+  Bookmark,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -38,6 +39,7 @@ const mainNavItems: NavItem[] = [
   { href: '/videos', icon: Video, label: 'Vidéo' },
   { href: '/textes', icon: FileText, label: 'Texte' },
   { href: '/applications', icon: AppWindow, label: 'Application' },
+  { href: '/favoris', icon: Bookmark, label: 'Favoris' },
   { href: '/a-propos', icon: Info, label: 'À propos' },
   { href: '/contact', icon: Mail, label: 'Contact' },
 ];

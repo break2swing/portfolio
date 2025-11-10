@@ -7,6 +7,7 @@ import { Calendar, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { highlightText } from '@/lib/search';
+import { BookmarkButton } from '@/components/BookmarkButton';
 
 interface TextCardProps {
   text: Text;
@@ -25,12 +26,20 @@ export const TextCard = memo(function TextCard({ text, onClick, highlightQuery }
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow"
+      className="cursor-pointer hover:shadow-lg transition-shadow relative group"
       onClick={onClick}
     >
+      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <BookmarkButton
+          type="text"
+          itemId={text.id}
+          itemTitle={text.title}
+        />
+      </div>
+      
       <CardHeader>
         <CardTitle
-          className="line-clamp-2"
+          className="line-clamp-2 pr-8"
           dangerouslySetInnerHTML={highlightQuery ? { __html: highlightedTitle } : undefined}
         >
           {!highlightQuery && text.title}
