@@ -1,0 +1,197 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Créer le système de validation Zod pour la sécurité des données",
+        "description": "Implémenter des schémas de validation Zod robustes pour Text, Category et Tag afin de prévenir les injections XSS et assurer la cohérence des données",
+        "details": "Créer `lib/validators.ts` avec des schémas Zod complets incluant: Text schema avec validation longueur titre (1-200 chars), contenu (1-50000 chars), excerpt optionnel (max 500 chars), slug unique format kebab-case; Category schema avec nom (1-100 chars) et couleur hex valide; Tag schema avec nom (1-50 chars) et couleur hex. Utiliser les dernières pratiques Zod v3.22+ avec .trim(), .min(), .max(), .regex() pour validation stricte. Inclure messages d'erreur français personnalisés avec .describe() et types TypeScript inférés.",
+        "testStrategy": "Tests unitaires avec Jest pour chaque schéma : cas valides, cas limites (longueurs min/max), caractères spéciaux, injection XSS tentatives. Validation que les types TypeScript sont correctement inférés. Tests d'intégration avec données existantes pour assurer compatibilité.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Intégrer la validation Zod dans tous les formulaires",
+        "description": "Modifier tous les formulaires existants pour utiliser les schémas Zod avec react-hook-form et afficher des messages d'erreur accessibles",
+        "details": "Intégrer validation dans TextUploadForm, TextEditModal, CategoryManager, TagManager avec @hookform/resolvers/zod v3.3+. Utiliser zodResolver() avec react-hook-form v7.47+. Implémenter affichage d'erreurs avec aria-invalid, aria-describedby, rôles ARIA appropriés. Ajouter validation temps réel avec mode: 'onTouched'. Styliser erreurs avec classes Tailwind text-red-600, border-red-500. Gérer cas d'erreurs multiples avec ErrorMessage component.",
+        "testStrategy": "Tests Cypress E2E pour chaque formulaire : soumission données valides/invalides, affichage messages d'erreur, accessibilité (screen readers), validation temps réel. Tests d'intégration React Testing Library pour comportement formulaires.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Implémenter la sanitization du contenu Markdown",
+        "description": "Sécuriser le rendu Markdown avec DOMPurify pour prévenir les attaques XSS tout en préservant le formatage",
+        "details": "Intégrer DOMPurify v3.0+ dans MarkdownRenderer.tsx. Configuration sécurisée: ALLOWED_TAGS=['p','strong','em','u','h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote','code','pre','a','img'], ALLOWED_ATTR=['href','src','alt','title','class']. Utiliser DOMPurify.sanitize() avant react-markdown. Configurer ALLOWED_URI_REGEXP pour liens externes sécurisés. Wrapper composant SanitizedMarkdown réutilisable avec props configurables.",
+        "testStrategy": "Tests de sécurité avec payloads XSS connus (script tags, onclick handlers, data: URLs, javascript: URLs). Validation que formatage légitime (gras, italique, liens) fonctionne. Tests performance sur contenu volumineux (10k+ caractères).",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Renforcer la validation RLS Supabase",
+        "description": "Ajouter des contraintes de validation côté serveur dans Supabase pour une sécurité en profondeur",
+        "details": "Créer policies RLS Supabase avec contraintes: texts table - titre max 200 chars, contenu max 50000 chars, slug format valide avec CHECK constraint; categories table - nom max 100 chars, couleur format hex avec regex; tags table - nom max 50 chars. Utiliser Supabase SQL editor pour ALTER TABLE avec ADD CONSTRAINT. Implémenter policies restrictives pour INSERT/UPDATE avec current_user validation. Documentation SQL migrations dans `supabase/migrations/`.",
+        "testStrategy": "Tests SQL directs sur contraintes avec pgTAP ou équivalent. Validation que violations contraintes retournent erreurs explicites. Tests d'intégration frontend pour gestion erreurs Supabase. Vérification policies avec différents utilisateurs authentifiés.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Développer le composant OptimizedImage avec lazy loading",
+        "description": "Créer un composant d'image optimisé utilisant Intersection Observer pour le lazy loading et des placeholders blur",
+        "details": "Créer `components/OptimizedImage.tsx` avec Intersection Observer API pour lazy loading natif. Implémenter generateBlurPlaceholder() utilisant canvas API pour LQIP (Low Quality Image Placeholder). Support srcset/sizes pour responsive: générer 320w, 640w, 1024w, 1920w. Utiliser loading='lazy' natif + polyfill pour navigateurs anciens. État de chargement avec skeleton loader. Props: src, alt, sizes, className, priority (pour above-fold). TypeScript strict avec interface OptimizedImageProps.",
+        "testStrategy": "Tests Cypress pour comportement lazy loading (images hors viewport ne chargent pas). Tests performance Lighthouse pour amélioration LCP. Tests responsive sur différents viewports. Tests accessibilité pour alt text et focus management.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Ajouter la compression d'images côté client",
+        "description": "Intégrer browser-image-compression pour réduire la taille des images avant upload vers Supabase Storage",
+        "details": "Intégrer browser-image-compression v2.0+ dans storageService.ts. Configuration: maxSizeMB: 2, maxWidthOrHeight: 1920, useWebWorker: true, fileType: 'image/jpeg' pour photos, maintenir PNG pour transparence. Fonction compressImage() async avec gestion erreurs. Progress callback pour barre de progression upload. Fallback sur image originale si compression échoue. Support EXIF rotation avec exif-js.",
+        "testStrategy": "Tests avec images diverses tailles (100KB à 50MB). Validation qualité compression acceptable (SSIM > 0.9). Tests performance compression (< 5s pour 10MB). Tests Worker threads fonctionnement. Validation métadonnées EXIF préservées si nécessaire.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Remplacer toutes les images par OptimizedImage",
+        "description": "Migrer tous les composants utilisant des balises img vers le nouveau composant OptimizedImage",
+        "details": "Remplacer <img> par <OptimizedImage> dans: PhotoCard.tsx, VideoCard.tsx, page photos, page vidéos. Configurer sizes appropriées: PhotoCard='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw', hero images='100vw'. Ajouter priority={true} pour images above-the-fold. Implémenter fallback gracieux avec onError handler. Audit complet codebase avec grep pour <img tags restantes.",
+        "testStrategy": "Tests visuels de régression avec Percy ou équivalent. Tests performance avant/après avec Lighthouse. Validation responsive behavior sur tous devices. Tests fonctionnels que toutes images s'affichent correctement avec nouveaux composants.",
+        "priority": "medium",
+        "dependencies": [
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Créer le système de cache côté client",
+        "description": "Implémenter une classe de cache simple avec TTL pour réduire les appels API redondants",
+        "details": "Créer `lib/cache.ts` avec classe SimpleCache<T> utilisant Map<string, CacheEntry<T>>. Interface CacheEntry: {data: T, timestamp: number, ttl: number}. Méthodes: get(), set(), delete(), clear(), isExpired(). Utiliser WeakRef pour éviter memory leaks sur gros objets. Configuration TTL par défaut: texts 5min, categories/tags 10min. Cleanup automatique avec setInterval pour entries expirées. Optionnel: persistence dans sessionStorage avec JSON.stringify/parse.",
+        "testStrategy": "Tests unitaires Jest: expiration TTL correcte, cleanup automatique, gestion mémoire. Tests d'intégration avec services réels. Tests performance avec 1000+ entries. Validation pas de memory leaks avec heap profiling.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Intégrer le cache dans les services de données",
+        "description": "Wrapper les méthodes des services existants avec le système de cache pour optimiser les performances",
+        "details": "Wrapper getTextsWithMetadata(), getAllCategories(), getAllTags() dans textService.ts, categoryService.ts, tagService.ts avec cache. Pattern: vérifier cache d'abord, fetch si manquant, stocker résultat. Invalidation cache sur mutations (create, update, delete) avec cache.delete(key). Utiliser cache keys descriptives: 'texts_all', 'categories_all', 'tags_by_type_{type}'. Ajouter option bypassCache pour forces refresh. Configuration TTL spécifique par endpoint.",
+        "testStrategy": "Tests d'intégration: données fraîches en cache, invalidation sur mutations, performance amélioration mesurable. Tests que données cache === données fraîches. Validation comportement concurrentiel (multiple requests simultanés).",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Ajouter l'invalidation de cache et boutons de rafraîchissement",
+        "description": "Implémenter la logique d'invalidation automatique du cache et des contrôles manuels pour les administrateurs",
+        "details": "Ajouter bouton 'Rafraîchir' dans pages admin avec icône RotateCcw de lucide-react. Fonction refreshData() appelant cache.clear() + refetch. Loading state avec spinner. Toast confirmation 'Données rafraîchies'. Auto-invalidation sur create/update/delete avec cache keys spécifiques. Gérer invalidation granulaire: modification texte invalide 'texts_*' seulement. Hook useCache() pour composants avec auto-refresh capabilities.",
+        "testStrategy": "Tests E2E: créer texte → cache invalidé → nouvelle donnée visible. Tests UX: bouton rafraîchir fonctionne, loading states corrects, toasts affichés. Validation invalidation granulaire (pas over-invalidation).",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Installer et configurer l'analyse de bundle",
+        "description": "Mettre en place @next/bundle-analyzer pour identifier les opportunités d'optimisation du bundle JavaScript",
+        "details": "Installer @next/bundle-analyzer v14.0+. Configurer next.config.js avec withBundleAnalyzer() wrapper. Script npm 'analyze': 'ANALYZE=true npm run build' pour génération rapport. Analyser bundle actuel: identifier chunks > 100KB, libraries lourdes (react-markdown, date-fns), duplications. Documentation findings dans `docs/bundle-analysis.md`. Setup budgets performance: maxAssetSize 250KB, maxEntrypointSize 400KB dans next.config.js.",
+        "testStrategy": "Validation rapport généré correctement. Benchmark taille bundle avant optimisations. Identification précise des plus gros contributeurs. Tests que budgets performance détectent régressions futures.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Implémenter le code splitting sur les composants lourds",
+        "description": "Appliquer dynamic import sur les composants volumineux pour améliorer le Time to Interactive",
+        "details": "Utiliser next/dynamic pour lazy loading: TextEditModal, MarkdownRenderer, upload modals avec dynamic(() => import(), {loading: () => <Skeleton />}). Code splitting routes admin avec dynamic imports. Split react-markdown avec dynamic import seulement quand nécessaire (page texte individuel). Configurer webpack splitChunks dans next.config.js pour vendor chunks optimaux. Préload critical chunks avec rel='modulepreload'.",
+        "testStrategy": "Tests performance Lighthouse: amélioration TTI mesurable. Validation chunks créés correctement avec noms descriptifs. Tests que components lazy-loadés fonctionnent correctement. Validation network waterfall optimisé.",
+        "priority": "medium",
+        "dependencies": [
+          11
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Créer le système de recherche fuzzy avancée",
+        "description": "Développer une fonction de recherche fuzzy avec algorithme de distance de Levenshtein et highlighting des résultats",
+        "details": "Créer `lib/search.ts` avec fuzzySearch<T>() utilisant algorithme Levenshtein optimisé. Scoring basé sur: position match (titre > excerpt > contenu), distance Levenshtein, longueur match. Interface SearchResult<T> {item: T, score: number, highlights: string[]}. Fonction highlightMatches() retournant JSX avec <mark> tags. Debounce 300ms sur input avec useDebouncedCallback hook. Support recherche multi-termes avec AND/OR logic.",
+        "testStrategy": "Tests unitaires algorithme Levenshtein avec cas connus. Tests performance sur dataset 1000+ items (< 100ms). Validation scoring pertinence avec échantillon curé. Tests highlighting correct avec caractères spéciaux/accents.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Développer le composant de suggestions de recherche",
+        "description": "Créer un composant interactif de suggestions avec navigation clavier et historique",
+        "details": "Créer `SearchSuggestions.tsx` avec navigation clavier: ArrowUp/ArrowDown pour sélection, Enter pour validation, Escape pour fermer. État selectedIndex avec useCallback hooks. Historique recherche dans localStorage (5 dernières) avec gestion privacy. Affichage suggestions par catégorie: historique, suggestions live, résultats populaires. Styling avec Tailwind: dropdown shadow-lg, hover states, focus indicators. Accessibilité: ARIA roles, aria-activedescendant.",
+        "testStrategy": "Tests d'accessibilité avec screen readers. Tests navigation clavier complète. Tests localStorage persistance/privacy. Validation UX: suggestions rapides et pertinentes. Tests responsive mobile/desktop.",
+        "priority": "medium",
+        "dependencies": [
+          13
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Implémenter la recherche combinée avec filtres",
+        "description": "Intégrer la recherche fuzzy avec les filtres de catégories et tags existants pour une expérience de recherche complète",
+        "details": "Modifier page `/textes` pour combiner searchTerm + selectedCategory + selectedTags avec logique AND. Fonction combineFilters() dans lib/search.ts. UI: barre recherche + filtres catégorie/tags + bouton 'Effacer filtres'. Affichage nombre résultats 'X textes trouvés'. État URL avec searchParams pour partage liens recherche. Performance: mémorisation résultats avec useMemo. Integration avec cache système pour recherches répétées.",
+        "testStrategy": "Tests E2E scénarios recherche complexes: terme + catégorie + multiple tags. Validation URL state synchronisation. Tests performance recherche combinée sur gros dataset. Validation UX: filtres clairs, résultats immédiats.",
+        "priority": "medium",
+        "dependencies": [
+          14,
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-11-10T06:41:23.187Z",
+      "updated": "2025-11-10T06:41:23.187Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

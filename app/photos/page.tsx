@@ -1,14 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { PhotoWithTags, Tag } from '@/lib/supabaseClient';
 import { photoService } from '@/services/photoService';
 import { photoTagService } from '@/services/photoTagService';
 import { PhotoGrid } from '@/components/photos/PhotoGrid';
-import { PhotoViewerModal } from '@/components/photos/PhotoViewerModal';
+import { VirtualizedPhotoGrid } from '@/components/photos/VirtualizedPhotoGrid';
 import { TagBadge } from '@/components/texts/TagBadge';
 import { Button } from '@/components/ui/button';
 import { Loader2, X } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load PhotoViewerModal
+const PhotoViewerModal = dynamic(() => import('@/components/photos/PhotoViewerModal').then(mod => ({ default: mod.PhotoViewerModal })), {
+  loading: () => <Skeleton className="h-[90vh] w-full" />,
+  ssr: false,
+});
 
 export default function PhotosPage() {
   const [allPhotos, setAllPhotos] = useState<PhotoWithTags[]>([]);
@@ -23,10 +31,24 @@ export default function PhotosPage() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const applyFilters = useMemo(() => {
+    let result = [...allPhotos];
+
+    // Filter by tags (AND logic: photo must have ALL selected tags)
+    if (selectedTagIds.length > 0) {
+      result = result.filter((photo) =>
+        selectedTagIds.every((tagId) =>
+          photo.tags?.some((tag) => tag.id === tagId)
+        )
+      );
+    }
+
+    return result;
   }, [allPhotos, selectedTagIds]);
+
+  useEffect(() => {
+    setFilteredPhotos(applyFilters);
+  }, [applyFilters]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -60,21 +82,6 @@ export default function PhotosPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const applyFilters = () => {
-    let result = [...allPhotos];
-
-    // Filter by tags (AND logic: photo must have ALL selected tags)
-    if (selectedTagIds.length > 0) {
-      result = result.filter((photo) =>
-        selectedTagIds.every((tagId) =>
-          photo.tags?.some((tag) => tag.id === tagId)
-        )
-      );
-    }
-
-    setFilteredPhotos(result);
   };
 
   const toggleTag = (tagId: string) => {
@@ -149,6 +156,15 @@ export default function PhotosPage() {
             Aucune photo ne correspond aux tags sélectionnés
           </p>
         </div>
+      ) : filteredPhotos.length > 50 ? (
+        <VirtualizedPhotoGrid
+          photos={filteredPhotos}
+          onPhotoClick={(index) => {
+            const photo = filteredPhotos[index];
+            const originalIndex = allPhotos.findIndex(p => p.id === photo.id);
+            setSelectedPhotoIndex(originalIndex >= 0 ? originalIndex : null);
+          }}
+        />
       ) : (
         <PhotoGrid photos={filteredPhotos} onPhotoClick={(index) => {
           const photo = filteredPhotos[index];

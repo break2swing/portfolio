@@ -111,6 +111,24 @@ export function Sidebar({ onToggle }: SidebarProps) {
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={!isExpanded ? item.label : undefined}
+                prefetch={true}
+                onMouseEnter={() => {
+                  // Prefetch la page au hover pour améliorer les performances
+                  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+                    requestIdleCallback(() => {
+                      // Next.js prefetch automatique via Link, mais on peut aussi précharger les données critiques
+                      if (item.href === '/textes') {
+                        // Précharger les catégories et tags pour la page textes
+                        import('@/services/categoryService').then(({ categoryService }) => {
+                          categoryService.getAllCategories().catch(() => {});
+                        });
+                        import('@/services/tagService').then(({ tagService }) => {
+                          tagService.getAllTagsUsedInTexts().catch(() => {});
+                        });
+                      }
+                    });
+                  }
+                }}
               >
                 <div
                   className={cn(

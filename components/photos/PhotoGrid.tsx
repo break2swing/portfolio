@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Photo } from '@/lib/supabaseClient';
 import { PhotoCard } from './PhotoCard';
 import { Image } from 'lucide-react';
@@ -9,7 +10,7 @@ interface PhotoGridProps {
   onPhotoClick: (index: number) => void;
 }
 
-export function PhotoGrid({ photos, onPhotoClick }: PhotoGridProps) {
+export const PhotoGrid = memo(function PhotoGrid({ photos, onPhotoClick }: PhotoGridProps) {
   if (photos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4">
@@ -35,4 +36,4 @@ export function PhotoGrid({ photos, onPhotoClick }: PhotoGridProps) {
       ))}
     </div>
   );
-}
+});

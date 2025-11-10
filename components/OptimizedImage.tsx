@@ -10,7 +10,9 @@ interface OptimizedImageProps {
   width?: number;
   height?: number;
   sizes?: string;
+  srcset?: string;
   priority?: boolean;
+  blurDataURL?: string;
   onLoad?: () => void;
   onError?: () => void;
   objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
@@ -32,7 +34,9 @@ interface OptimizedImageProps {
  * @param width - Largeur intrinsèque de l'image
  * @param height - Hauteur intrinsèque de l'image
  * @param sizes - Attribut sizes pour le responsive
+ * @param srcset - Attribut srcset pour les images responsives (ex: "image-320.jpg 320w, image-640.jpg 640w")
  * @param priority - Si true, désactive le lazy loading (pour images above-the-fold)
+ * @param blurDataURL - Data URL du placeholder flou (LQIP) optionnel
  * @param onLoad - Callback appelé quand l'image est chargée
  * @param onError - Callback appelé en cas d'erreur de chargement
  * @param objectFit - Style object-fit CSS
@@ -44,7 +48,9 @@ export function OptimizedImage({
   width,
   height,
   sizes,
+  srcset,
   priority = false,
+  blurDataURL,
   onLoad,
   onError,
   objectFit = 'cover',
@@ -106,8 +112,18 @@ export function OptimizedImage({
         aspectRatio: width && height ? `${width} / ${height}` : undefined,
       }}
     >
-      {/* Placeholder pendant le chargement */}
-      {!isLoaded && !hasError && (
+      {/* Placeholder flou (LQIP) si fourni */}
+      {!isLoaded && !hasError && blurDataURL && (
+        <img
+          src={blurDataURL}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover blur-sm"
+        />
+      )}
+
+      {/* Placeholder animé (fallback) */}
+      {!isLoaded && !hasError && !blurDataURL && (
         <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
 
@@ -115,6 +131,7 @@ export function OptimizedImage({
       <img
         ref={imgRef}
         src={isInView ? (hasError ? fallbackSrc : src) : undefined}
+        srcSet={isInView && !hasError ? srcset : undefined}
         alt={alt}
         width={width}
         height={height}

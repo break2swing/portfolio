@@ -1,5 +1,8 @@
 import { supabaseClient, MusicTrack, MusicTrackWithTags } from '@/lib/supabaseClient';
 import { musicTagService } from './musicTagService';
+import { cache } from '@/lib/cache';
+import { validateMediaUrl } from '@/lib/urlValidation';
+import { checkRateLimit } from '@/lib/rateLimiter';
 
 export const musicService = {
   async getAllTracks() {
@@ -12,6 +15,15 @@ export const musicService = {
   },
 
   async getAllTracksWithTags() {
+    const CACHE_KEY = 'music:all-with-tags';
+    const TTL = 5 * 60 * 1000; // 5 minutes
+
+    // Vérifier le cache
+    const cached = cache.get<{ tracks: MusicTrackWithTags[]; error: null }>(CACHE_KEY);
+    if (cached) {
+      return cached;
+    }
+
     const { data, error } = await supabaseClient
       .from('music_tracks')
       .select(`
@@ -29,7 +41,12 @@ export const musicService = {
 
     tracks.forEach((track: any) => delete track.music_tags);
 
-    return { tracks: tracks as MusicTrackWithTags[], error: null };
+    const result = { tracks: tracks as MusicTrackWithTags[], error: null };
+
+    // Mettre en cache
+    cache.set(CACHE_KEY, result, { ttl: TTL, storage: 'session' });
+
+    return result;
   },
 
   async getTrackById(id: string) {
@@ -62,6 +79,19 @@ export const musicService = {
     duration: number | null;
     display_order: number;
   }) {
+    // Vérifier le rate limit
+    try {
+      checkRateLimit('create');
+    } catch (error) {
+      return {
+        track: null,
+        error: {
+          message: error instanceof Error ? error.message : 'Rate limit atteint',
+          code: 'RATE_LIMIT_EXCEEDED',
+        } as any,
+      };
+    }
+
     console.log('[MUSIC SERVICE] Create track - Starting');
     console.log('[MUSIC SERVICE] Track data:', JSON.stringify(track, null, 2));
 
@@ -101,6 +131,31 @@ export const musicService = {
         user_id: user.id
       };
 
+      // Valider les URLs
+      const audioUrlValidation = validateMediaUrl(trackWithUser.audio_url, 'audio_url');
+      if (!audioUrlValidation.valid) {
+        return {
+          track: null,
+          error: {
+            message: audioUrlValidation.error || 'URL audio invalide',
+            code: 'INVALID_URL',
+          } as any,
+        };
+      }
+
+      if (trackWithUser.cover_image_url) {
+        const coverUrlValidation = validateMediaUrl(trackWithUser.cover_image_url, 'cover_image_url');
+        if (!coverUrlValidation.valid) {
+          return {
+            track: null,
+            error: {
+              message: coverUrlValidation.error || 'URL de couverture invalide',
+              code: 'INVALID_URL',
+            } as any,
+          };
+        }
+      }
+
       console.log('[MUSIC SERVICE] Inserting track with user_id:', trackWithUser);
 
       const { data, error } = await supabaseClient
@@ -118,6 +173,10 @@ export const musicService = {
       }
 
       console.log('[MUSIC SERVICE] Insert track - SUCCESS:', data);
+
+      // Invalider le cache des morceaux
+      cache.invalidatePattern('music:');
+
       return { track: data as MusicTrack | null, error: null };
     } catch (err) {
       console.error('[MUSIC SERVICE] Unexpected error:', err);
@@ -132,12 +191,57 @@ export const musicService = {
   },
 
   async updateTrack(id: string, updates: Partial<MusicTrack>) {
+    // Vérifier le rate limit
+    try {
+      checkRateLimit('update');
+    } catch (error) {
+      return {
+        track: null,
+        error: {
+          message: error instanceof Error ? error.message : 'Rate limit atteint',
+          code: 'RATE_LIMIT_EXCEEDED',
+        } as any,
+      };
+    }
+
+    // Valider les URLs si elles sont mises à jour
+    if (updates.audio_url) {
+      const urlValidation = validateMediaUrl(updates.audio_url, 'audio_url');
+      if (!urlValidation.valid) {
+        return {
+          track: null,
+          error: {
+            message: urlValidation.error || 'URL audio invalide',
+            code: 'INVALID_URL',
+          } as any,
+        };
+      }
+    }
+
+    if (updates.cover_image_url) {
+      const urlValidation = validateMediaUrl(updates.cover_image_url, 'cover_image_url');
+      if (!urlValidation.valid) {
+        return {
+          track: null,
+          error: {
+            message: urlValidation.error || 'URL de couverture invalide',
+            code: 'INVALID_URL',
+          } as any,
+        };
+      }
+    }
+
     const { data, error } = await supabaseClient
       .from('music_tracks')
       .update(updates)
       .eq('id', id)
       .select()
       .single();
+
+    if (!error) {
+      // Invalider le cache des morceaux
+      cache.invalidatePattern('music:');
+    }
 
     return { track: data as MusicTrack | null, error };
   },
@@ -147,6 +251,11 @@ export const musicService = {
       .from('music_tracks')
       .delete()
       .eq('id', id);
+
+    if (!error) {
+      // Invalider le cache des morceaux
+      cache.invalidatePattern('music:');
+    }
 
     return { error };
   },

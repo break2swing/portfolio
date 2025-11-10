@@ -1,5 +1,6 @@
 import { supabaseClient } from '@/lib/supabaseClient';
 import imageCompression from 'browser-image-compression';
+import { generateLQIPFromFile } from '@/lib/imageUtils';
 
 const PHOTO_BUCKET = 'photo-files';
 const AUDIO_BUCKET = 'audio-files';
@@ -46,6 +47,21 @@ export const storageService = {
       });
 
     return { data, error };
+  },
+
+  /**
+   * Génère un LQIP pour un fichier image
+   * @param file - Fichier image
+   * @returns Promise<string | null> - Data URL du LQIP ou null en cas d'erreur
+   */
+  async generateLQIPForPhoto(file: File): Promise<string | null> {
+    try {
+      const lqip = await generateLQIPFromFile(file, 20, 20);
+      return lqip;
+    } catch (error) {
+      console.error('[STORAGE] Error generating LQIP:', error);
+      return null;
+    }
   },
 
   getPublicUrl(fileName: string) {

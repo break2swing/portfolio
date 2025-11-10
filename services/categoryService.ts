@@ -1,13 +1,30 @@
 import { supabaseClient, Category } from '@/lib/supabaseClient';
+import { cache } from '@/lib/cache';
 
 export const categoryService = {
   async getAllCategories() {
+    const CACHE_KEY = 'categories:all';
+    const TTL = 10 * 60 * 1000; // 10 minutes
+
+    // Vérifier le cache
+    const cached = cache.get<{ categories: Category[]; error: null }>(CACHE_KEY);
+    if (cached) {
+      return cached;
+    }
+
     const { data, error } = await supabaseClient
       .from('categories')
       .select('*')
       .order('display_order', { ascending: true });
 
-    return { categories: data as Category[] | null, error };
+    if (error) return { categories: null, error };
+
+    const result = { categories: data as Category[], error: null };
+
+    // Mettre en cache
+    cache.set(CACHE_KEY, result, { ttl: TTL, storage: 'session' });
+
+    return result;
   },
 
   async getCategoryById(id: string) {
@@ -43,6 +60,12 @@ export const categoryService = {
       .select()
       .single();
 
+    if (!error) {
+      // Invalider le cache des catégories et des textes (qui dépendent des catégories)
+      cache.invalidatePattern('categories:');
+      cache.invalidatePattern('texts:');
+    }
+
     return { category: data as Category | null, error };
   },
 
@@ -54,6 +77,12 @@ export const categoryService = {
       .select()
       .single();
 
+    if (!error) {
+      // Invalider le cache des catégories et des textes
+      cache.invalidatePattern('categories:');
+      cache.invalidatePattern('texts:');
+    }
+
     return { category: data as Category | null, error };
   },
 
@@ -62,6 +91,12 @@ export const categoryService = {
       .from('categories')
       .delete()
       .eq('id', id);
+
+    if (!error) {
+      // Invalider le cache des catégories et des textes
+      cache.invalidatePattern('categories:');
+      cache.invalidatePattern('texts:');
+    }
 
     return { error };
   },

@@ -1,0 +1,133 @@
+{
+	"meta": {
+		"generatedAt": "2025-11-10T07:09:21.058Z",
+		"tasksAnalyzed": 15,
+		"totalTasks": 15,
+		"analysisCount": 15,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Créer le système de validation Zod pour la sécurité des données",
+			"complexityScore": 3,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Décomposer cette tâche en créant une sous-tâche pour chaque schéma de validation Zod à implémenter : Schéma pour Text, Schéma pour Category, et Schéma pour Tag. Chaque sous-tâche doit inclure la définition du schéma, les messages d'erreur personnalisés et les tests unitaires associés.",
+			"reasoning": "La complexité est faible car la tâche est bien définie et s'appuie sur une bibliothèque mature (Zod). L'effort principal réside dans la traduction précise des règles métier en schémas, ce qui est un travail de configuration plutôt que de logique complexe. La décomposition par schéma est naturelle et permet un travail en parallèle."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Intégrer la validation Zod dans tous les formulaires",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Générer des sous-tâches pour l'intégration de la validation Zod dans chaque formulaire identifié : TextUploadForm, TextEditModal, CategoryManager, et TagManager. Chaque sous-tâche doit couvrir l'intégration du résolveur Zod, l'implémentation de l'affichage des erreurs accessibles, et la configuration de la validation en temps réel.",
+			"reasoning": "La complexité est moyenne. Bien que l'intégration de Zod avec react-hook-form soit un pattern courant, l'application à plusieurs formulaires existants augmente le risque de régression. L'accent mis sur l'accessibilité (ARIA) et les tests E2E complets ajoute une couche de travail significative."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Implémenter la sanitization du contenu Markdown",
+			"complexityScore": 5,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Diviser cette tâche en deux parties : 1. Intégration et configuration de DOMPurify dans le composant MarkdownRenderer, y compris la création d'un wrapper réutilisable. 2. Développement d'une suite de tests de sécurité exhaustive pour valider la sanitization contre les vecteurs d'attaque XSS courants.",
+			"reasoning": "La complexité est modérée. L'intégration d'une bibliothèque de sanitization est simple en surface, mais la responsabilité de configurer correctement les listes blanches de balises et d'attributs pour bloquer les attaques XSS sans casser le formatage légitime est élevée. Les tests de sécurité sont cruciaux."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Renforcer la validation RLS Supabase",
+			"complexityScore": 7,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Décomposer cette tâche en trois sous-tâches distinctes : 1. Ajouter des contraintes `CHECK` au niveau des tables pour la validation des formats de données. 2. Créer et appliquer des politiques de sécurité au niveau des lignes (RLS) pour contrôler les opérations `INSERT` et `UPDATE`. 3. Mettre en place les tests SQL (avec pgTAP) et documenter les migrations.",
+			"reasoning": "Complexité élevée en raison de l'interaction directe avec la base de données et de l'implémentation de règles de sécurité critiques (RLS). Une erreur peut compromettre la sécurité des données. La tâche requiert des compétences en SQL et une compréhension approfondie du modèle de sécurité de Supabase."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Développer le composant OptimizedImage avec lazy loading",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Structurer le développement de ce composant en plusieurs sous-tâches : 1. Mise en place de la structure de base du composant. 2. Implémentation du lazy loading avec l'API Intersection Observer. 3. Développement de la génération de placeholder flou (LQIP). 4. Intégration de la gestion des images responsives (`srcset` et `sizes`). 5. Finalisation avec les états de chargement, les fallbacks et l'accessibilité.",
+			"reasoning": "La complexité est très élevée car la tâche consiste à créer un composant d'infrastructure frontend complexe qui a un impact direct sur les performances web vitales. Elle combine plusieurs technologies avancées (Intersection Observer, Canvas API, `srcset`) et requiert des tests approfondis."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Ajouter la compression d'images côté client",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Diviser l'implémentation en trois étapes : 1. Intégrer `browser-image-compression` dans le service d'upload. 2. Développer les composants UI pour afficher la progression et gérer les erreurs. 3. Ajouter la prise en charge des métadonnées EXIF et implémenter une logique de fallback robuste.",
+			"reasoning": "Complexité modérée. L'utilisation d'une bibliothèque simplifie l'algorithme, mais la gestion de l'expérience utilisateur (feedback asynchrone via Web Worker, barre de progression, gestion des erreurs) et des cas particuliers comme les métadonnées EXIF ajoute des défis d'implémentation."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Remplacer toutes les images par OptimizedImage",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Planifier cette migration en plusieurs phases : 1. Audit complet du code pour identifier toutes les instances `<img>`. 2. Remplacement dans les composants réutilisables (ex: PhotoCard). 3. Remplacement dans les mises en page principales. 4. Mettre en place des tests de régression visuelle pour valider les changements.",
+			"reasoning": "La complexité n'est pas technique mais logistique. Le travail est répétitif mais à haut risque de régression visuelle. La nécessité d'un audit complet et de tests de régression visuelle sur l'ensemble du site augmente l'effort requis au-delà d'un simple 'chercher-remplacer'."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Créer le système de cache côté client",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Décomposer la création du cache : 1. Définir la structure de données et l'API de base (`get`, `set`). 2. Implémenter la logique d'expiration basée sur le TTL. 3. Mettre en place un mécanisme de nettoyage automatique pour gérer la mémoire. 4. Rédiger une suite de tests unitaires complète.",
+			"reasoning": "Complexité moyenne à élevée. L'implémentation d'un système de cache fiable et sans fuite de mémoire est un défi classique. La gestion du cycle de vie des données (TTL, nettoyage) est la principale source de complexité."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Intégrer le cache dans les services de données",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Générer des sous-tâches pour l'intégration du cache : 1. Wrapper les fonctions `get` dans le `textService`. 2. Wrapper les fonctions `get` dans les `categoryService` et `tagService`. 3. Implémenter la logique d'invalidation du cache pour toutes les fonctions de mutation. 4. Ajouter des tests d'intégration pour vérifier le cycle de vie complet du cache.",
+			"reasoning": "La complexité est modérée. L'application du cache est simple, mais la stratégie d'invalidation est le cœur du problème. Assurer que le cache est invalidé de manière cohérente et granulaire à travers toutes les opérations de mutation est complexe et sujet aux erreurs."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Ajouter l'invalidation de cache et boutons de rafraîchissement",
+			"complexityScore": 3,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Décomposer cette tâche en trois parties : 1. Créer le composant bouton de rafraîchissement avec gestion des états de chargement et notifications. 2. Implémenter le hook `useCache` pour encapsuler la logique. 3. Développer des tests E2E pour valider le flux utilisateur.",
+			"reasoning": "Complexité faible. Cette tâche s'appuie fortement sur le système de cache déjà construit. L'effort principal est dans le développement de l'interface utilisateur et la connexion des événements aux fonctions de cache existantes, ce qui est un travail de plomberie standard."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Installer et configurer l'analyse de bundle",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Cette tâche est suffisamment simple pour ne pas nécessiter de décomposition. Elle consiste à installer un paquet, modifier un fichier de configuration, et exécuter un script.",
+			"reasoning": "La complexité est très faible car il s'agit d'une tâche de configuration standard pour un projet Next.js. L'effort principal est l'analyse du rapport généré, pas l'implémentation technique. La tâche est atomique et ne bénéficie pas d'une décomposition."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Implémenter le code splitting sur les composants lourds",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Diviser cette tâche en fonction des cibles d'optimisation : 1. Identifier les composants candidats au code splitting. 2. Appliquer l'importation dynamique aux modales et aux composants d'UI lourds. 3. Isoler les bibliothèques volumineuses via des importations dynamiques. Mesurer l'impact sur les performances après chaque étape.",
+			"reasoning": "Complexité modérée. L'API `next/dynamic` est simple, mais l'application stratégique du code splitting pour un impact maximal sur les performances sans dégrader l'expérience utilisateur demande de l'analyse et des tests. C'est une tâche d'optimisation."
+		},
+		{
+			"taskId": 13,
+			"taskTitle": "Créer le système de recherche fuzzy avancée",
+			"complexityScore": 8,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Décomposer le développement du moteur de recherche : 1. Implémenter et tester l'algorithme de distance de Levenshtein. 2. Concevoir le système de scoring pour classer les résultats par pertinence. 3. Créer la fonction de mise en surbrillance des correspondances. 4. Intégrer la logique avec un debounce et optimiser les performances.",
+			"reasoning": "Complexité très élevée. Cette tâche implique le développement d'un algorithme de recherche personnalisé et d'une logique de pertinence. C'est un problème algorithmique complexe qui exige une attention particulière aux performances et à la qualité des résultats."
+		},
+		{
+			"taskId": 14,
+			"taskTitle": "Développer le composant de suggestions de recherche",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Structurer la création du composant de suggestions : 1. Construire l'interface utilisateur de base. 2. Implémenter la logique de navigation au clavier et la gestion de l'état. 3. Intégrer la persistance de l'historique avec localStorage. 4. Assurer une accessibilité complète avec les rôles et attributs ARIA.",
+			"reasoning": "Complexité élevée. La création d'un composant d'autocomplétion accessible est un défi classique. La gestion fine de l'état (focus, sélection), la navigation au clavier et surtout l'accessibilité (ARIA) rendent cette tâche beaucoup plus complexe qu'un simple affichage de données."
+		},
+		{
+			"taskId": 15,
+			"taskTitle": "Implémenter la recherche combinée avec filtres",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Diviser l'intégration de la recherche combinée : 1. Mettre à jour l'UI pour inclure les contrôles de filtre. 2. Développer la logique qui combine le terme de recherche avec les filtres sélectionnés. 3. Implémenter la synchronisation de l'état de recherche avec les paramètres de l'URL.",
+			"reasoning": "La complexité est moyenne à élevée car elle se situe à l'intersection de plusieurs fonctionnalités : recherche, filtrage, gestion d'état et routage. Assurer que tous ces éléments interagissent de manière performante et prévisible, notamment avec la synchronisation de l'URL, constitue le principal défi."
+		}
+	]
+}

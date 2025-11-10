@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { TextWithMetadata } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,13 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CategoryBadge } from './CategoryBadge';
 import { TagBadge } from './TagBadge';
-import { TextEditModal } from './TextEditModal';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load TextEditModal
+const TextEditModal = dynamic(() => import('./TextEditModal').then(mod => ({ default: mod.TextEditModal })), {
+  loading: () => <Skeleton className="h-[90vh] w-full" />,
+  ssr: false,
+});
 
 interface TextListAdminProps {
   texts: TextWithMetadata[];

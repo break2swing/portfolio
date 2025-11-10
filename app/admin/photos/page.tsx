@@ -1,16 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Photo } from '@/lib/supabaseClient';
 import { photoService } from '@/services/photoService';
-import { PhotoUploadForm } from '@/components/photos/PhotoUploadForm';
 import { PhotoList } from '@/components/photos/PhotoList';
 import { TagManager } from '@/components/texts/TagManager';
+import { RefreshButton } from '@/components/RefreshButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Upload, Settings, Tags } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load PhotoUploadForm
+const PhotoUploadForm = dynamic(() => import('@/components/photos/PhotoUploadForm').then(mod => ({ default: mod.PhotoUploadForm })), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
 
 function AdminPhotosContent() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -37,9 +45,16 @@ function AdminPhotosContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Administration des Photos</h1>
-        <p className="text-muted-foreground">Gérez votre galerie de photos et les tags</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Administration des Photos</h1>
+          <p className="text-muted-foreground">Gérez votre galerie de photos et les tags</p>
+        </div>
+        <RefreshButton
+          onRefresh={fetchPhotos}
+          cachePattern="photos:"
+          label="Rafraîchir"
+        />
       </div>
 
       <Tabs defaultValue="photos" className="space-y-6">

@@ -1,0 +1,687 @@
+# PRD: Améliorations Portfolio Next.js - Performance, Sécurité & Fonctionnalités Avancées
+
+## Overview
+
+Ce PRD décrit un plan d'amélioration complet pour le portfolio personnel Next.js 13, se concentrant sur trois domaines critiques : **Performance & Optimisation**, **Sécurité & Validation**, et **Fonctionnalités Avancées**. L'objectif est d'améliorer significativement les Core Web Vitals, la sécurité des données utilisateur, et l'expérience utilisateur globale tout en maintenant la compatibilité avec l'export statique Next.js.
+
+**Problème à résoudre** : Le portfolio actuel présente des opportunités d'optimisation (images non optimisées, pas de cache, bundle volumineux), des risques de sécurité (données utilisateur non validées/sanitizées), et manque de fonctionnalités modernes (PWA, recherche avancée, mode offline).
+
+**Bénéficiaires** : 
+- Utilisateurs finaux : meilleure performance, expérience plus fluide, fonctionnalités offline
+- Administrateur : sécurité renforcée, meilleure gestion des données
+- Développeur : code plus maintenable, tests automatisés, documentation
+
+**Valeur** : Amélioration mesurable des Core Web Vitals (LCP, CLS, FID), réduction des risques de sécurité (XSS), et fonctionnalités modernes qui augmentent l'engagement utilisateur.
+
+---
+
+## Core Features
+
+### 1. Optimisation des Images et Médias
+
+**Description** : Implémentation d'un système d'optimisation d'images avec lazy loading, placeholders blur, compression client-side, et responsive images.
+
+**Pourquoi c'est important** : Les images représentent souvent 60-80% du poids d'une page. L'optimisation réduit le temps de chargement de 30-50% et améliore significativement le LCP (Largest Contentful Paint).
+
+**Fonctionnement** :
+- Composant `OptimizedImage` avec lazy loading natif et Intersection Observer
+- Génération de placeholders LQIP (Low Quality Image Placeholder) avec blur
+- Compression client-side avant upload via `browser-image-compression`
+- Support `srcset` et `sizes` pour le responsive
+- Remplacement progressif de tous les `<img>` par `OptimizedImage`
+
+**Fichiers concernés** :
+- `components/OptimizedImage.tsx` (nouveau)
+- `services/storageService.ts` (ajout compression)
+- `app/photos/page.tsx`, `app/videos/page.tsx`
+- `components/photos/PhotoCard.tsx`, `components/videos/VideoCard.tsx`
+
+---
+
+### 2. Système de Cache Côté Client
+
+**Description** : Mise en place d'un système de cache intelligent avec TTL (Time To Live) pour réduire les appels API redondants et améliorer la réactivité.
+
+**Pourquoi c'est important** : Réduction de 70% des appels API redondants, amélioration de la vitesse perçue, meilleure expérience hors-ligne partielle.
+
+**Fonctionnement** :
+- Classe `SimpleCache` avec Map + TTL
+- Cache des données fréquemment accédées (textes, catégories, tags)
+- Invalidation automatique lors des mutations (create, update, delete)
+- Bouton "Rafraîchir" dans les pages admin pour invalidation manuelle
+- Cache `sessionStorage` pour les données de session
+
+**Fichiers concernés** :
+- `lib/cache.ts` (nouveau)
+- `services/textService.ts`, `services/categoryService.ts`, `services/tagService.ts`
+- `app/admin/texts/page.tsx`
+
+---
+
+### 3. Compression et Optimisation du Bundle JavaScript
+
+**Description** : Analyse et optimisation du bundle JavaScript pour réduire le poids total et améliorer le TTI (Time To Interactive).
+
+**Pourquoi c'est important** : Bundle actuel de 251 kB pour `/admin/texts`. Réduction nécessaire pour améliorer les performances, surtout sur mobile.
+
+**Fonctionnement** :
+- Installation et configuration de `@next/bundle-analyzer`
+- Code splitting avec `dynamic import` sur composants lourds (React Markdown, modals)
+- Remplacement de libs lourdes par alternatives légères si possible
+- Tree-shaking et minification optimisés
+- Budgets de performance définis dans `next.config.js`
+
+**Fichiers concernés** :
+- `next.config.js` (analyse, budgets)
+- `package.json` (scripts d'analyse)
+- Composants volumineux (modals, markdown renderer)
+
+---
+
+### 4. Validation et Sanitization des Données Utilisateur
+
+**Description** : Implémentation d'une validation robuste avec Zod et sanitization du contenu Markdown pour prévenir les attaques XSS.
+
+**Pourquoi c'est important** : Protection contre les injections XSS, validation cohérente des données, conformité aux bonnes pratiques de sécurité.
+
+**Fonctionnement** :
+- Schémas Zod pour Text, Category, Tag dans `lib/validators.ts`
+- Validation intégrée dans les formulaires avec `react-hook-form`
+- Sanitization du Markdown dans `MarkdownRenderer.tsx` avec `dompurify`
+- Validation côté serveur dans les RLS Supabase (longueur max)
+- Messages d'erreur accessibles (aria-invalid, aria-describedby)
+
+**Fichiers concernés** :
+- `lib/validators.ts` (nouveau)
+- `components/texts/TextUploadForm.tsx`, `components/texts/TextEditModal.tsx`
+- `components/texts/MarkdownRenderer.tsx`
+- `components/texts/CategoryManager.tsx`, `components/texts/TagManager.tsx`
+
+---
+
+### 5. Système de Recherche Avancée
+
+**Description** : Amélioration de la recherche avec fuzzy search, highlighting, suggestions, et filtres combinés.
+
+**Pourquoi c'est important** : Recherche actuelle basique (simple `includes`). Amélioration nécessaire pour une meilleure découvrabilité du contenu.
+
+**Fonctionnement** :
+- Fonction `fuzzySearch()` avec algorithme Levenshtein dans `lib/search.ts`
+- Highlighting des résultats avec `<mark>` dans TextCard
+- Debounce de 300ms sur l'input de recherche
+- Composant `SearchSuggestions.tsx` avec navigation clavier (↑↓, Enter)
+- Filtres combinés (catégorie ET tags simultanément)
+- Historique de recherche dans `localStorage` (5 dernières)
+
+**Fichiers concernés** :
+- `lib/search.ts` (nouveau)
+- `components/texts/SearchSuggestions.tsx` (nouveau)
+- `app/textes/page.tsx`
+- `components/texts/TextCard.tsx`
+
+---
+
+### 6. PWA (Progressive Web App)
+
+**Description** : Transformation du site en PWA installable avec support offline partiel via Service Worker.
+
+**Pourquoi c'est important** : Installation native sur mobile/desktop, accès hors-ligne aux pages visitées, amélioration de l'engagement utilisateur.
+
+**Fonctionnement** :
+- Manifest PWA (`public/manifest.json`) avec métadonnées et icônes
+- Service Worker (`public/sw.js`) avec stratégie cache-first pour assets
+- Composant `RegisterSW.tsx` pour enregistrement du service worker
+- Cache des pages statiques visitées
+- Bouton "Installer l'app" si non installée (BeforeInstallPrompt API)
+- Page offline fallback (`public/offline.html`)
+
+**Fichiers concernés** :
+- `public/manifest.json` (nouveau)
+- `public/sw.js` (nouveau)
+- `public/offline.html` (nouveau)
+- `public/icons/` (nouveaux fichiers)
+- `components/RegisterSW.tsx` (nouveau)
+- `app/layout.tsx`
+
+---
+
+### 7. Gestion des Erreurs Réseau et Mode Offline
+
+**Description** : Wrapper HTTP typé avec gestion d'erreurs normalisée, retry avec backoff exponentiel, et indicateur d'état réseau.
+
+**Pourquoi c'est important** : Expérience robuste en conditions réseau fluctuantes, moins d'abandons, support offline de base.
+
+**Fonctionnement** :
+- Wrapper HTTP (`lib/http.ts`) basé sur fetch avec gestion d'erreurs (`NetworkError`, `ApiError`)
+- Type `Result<T, E>` pour remonter les erreurs sans throw non contrôlé
+- Indicateur d'état réseau (online/offline) et bannière d'avertissement
+- Retry avec backoff exponentiel pour erreurs réseau idempotentes
+- Cache local (IndexedDB/localForage) pour données "portfolio" clés (fallback lecture seule)
+- Intégration avec Service Worker pour cache d'app shell
+
+**Fichiers concernés** :
+- `lib/http.ts` (nouveau)
+- `public/service-worker.js` (nouveau)
+- `public/offline.html` (nouveau)
+- Composants UI (bannière réseau)
+- `next.config.js`
+
+---
+
+### 8. Analytics et Monitoring des Performances (RUM)
+
+**Description** : Implémentation d'un système d'analytics privacy-friendly et monitoring des Core Web Vitals en temps réel.
+
+**Pourquoi c'est important** : Compréhension du comportement utilisateur, détection proactive des bugs, métriques de performance réelles.
+
+**Fonctionnement** :
+- Solution analytics privacy-friendly (Plausible ou Umami)
+- Instrumentation Web Vitals (`web-vitals` npm) avec envoi vers plateforme
+- Monitoring d'erreurs avec Sentry (optionnel)
+- Page `/admin/analytics` avec résumé des métriques
+- Conformité RGPD avec bannière de consentement
+
+**Fichiers concernés** :
+- `lib/analytics.ts` (nouveau)
+- `sentry.client.config.ts`, `sentry.server.config.ts` (nouveaux, optionnels)
+- `app/layout.tsx`
+- `app/admin/analytics/page.tsx` (nouveau)
+- `next.config.js`
+
+---
+
+## User Experience
+
+### Personas
+
+1. **Visiteur occasionnel** : Navigue rapidement, veut voir le contenu rapidement, peut être sur mobile avec connexion lente
+2. **Administrateur** : Gère le contenu régulièrement, veut une interface réactive et sécurisée
+3. **Utilisateur mobile** : Souhaite installer l'app, utiliser hors-ligne, navigation tactile fluide
+
+### Key User Flows
+
+**Flow 1 : Consultation de la galerie photos**
+1. Utilisateur arrive sur `/photos`
+2. Images chargent progressivement avec lazy loading
+3. Placeholders blur affichés immédiatement
+4. Images haute résolution chargent en arrière-plan
+5. Expérience fluide même sur connexion lente
+
+**Flow 2 : Recherche de texte**
+1. Utilisateur tape dans la barre de recherche
+2. Suggestions apparaissent après 300ms (debounce)
+3. Navigation clavier possible (↑↓ pour sélectionner, Enter pour valider)
+4. Résultats highlightés avec termes recherchés
+5. Filtres combinables (catégorie + tags)
+
+**Flow 3 : Administration avec validation**
+1. Admin crée un nouveau texte
+2. Formulaire valide en temps réel avec Zod
+3. Erreurs affichées de manière accessible
+4. Contenu Markdown sanitizé avant sauvegarde
+5. Confirmation visuelle de succès
+
+**Flow 4 : Utilisation offline**
+1. Utilisateur visite le site plusieurs fois
+2. Service Worker cache les pages visitées
+3. Connexion perdue → site fonctionne toujours (pages en cache)
+4. Bannière indique le mode offline
+5. Synchronisation automatique au retour de connexion
+
+### UI/UX Considerations
+
+- **Performance** : Skeleton loaders pendant chargement, transitions fluides
+- **Accessibilité** : Messages d'erreur clairs, navigation clavier complète
+- **Mobile-first** : Touch targets ≥44px, swipe gestures pour galeries
+- **Feedback visuel** : Indicateurs de chargement, confirmations d'actions
+- **Progressive enhancement** : Fonctionnalités avancées s'activent si supportées
+
+---
+
+## Technical Architecture
+
+### System Components
+
+**Couche Présentation** :
+- Composants React optimisés avec lazy loading
+- Composants UI shadcn/ui existants
+- Composants custom : `OptimizedImage`, `SearchSuggestions`, `RegisterSW`
+
+**Couche Logique Métier** :
+- Services existants (`textService`, `photoService`, etc.) avec cache wrapper
+- Nouveau service : `lib/http.ts` pour requêtes HTTP typées
+- Nouveau service : `lib/cache.ts` pour gestion du cache
+- Nouveau service : `lib/search.ts` pour recherche fuzzy
+
+**Couche Données** :
+- Supabase (existant) avec validation RLS renforcée
+- localStorage pour préférences et cache simple
+- IndexedDB/localForage pour cache offline avancé
+- Service Worker pour cache HTTP
+
+**Couche Infrastructure** :
+- Next.js 13 avec export statique (maintenu)
+- Service Worker pour PWA
+- Analytics privacy-friendly (Plausible/Umami)
+- Monitoring d'erreurs (Sentry optionnel)
+
+### Data Models
+
+**Cache Model** :
+```typescript
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number; // milliseconds
+}
+```
+
+**Search Result Model** :
+```typescript
+interface SearchResult<T> {
+  item: T;
+  score: number;
+  highlights: string[];
+}
+```
+
+**HTTP Error Model** :
+```typescript
+type Result<T, E> = 
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+type NetworkError = { type: 'network'; message: string };
+type ApiError = { type: 'api'; status: number; message: string };
+```
+
+### APIs and Integrations
+
+**Supabase** : 
+- Validation RLS renforcée (longueur max, format)
+- Pas de changement d'API, utilisation existante
+
+**Analytics** :
+- Plausible ou Umami (script externe)
+- Web Vitals API (natif navigateur)
+
+**Service Worker** :
+- Cache API (natif navigateur)
+- Fetch API pour interception requêtes
+
+### Infrastructure Requirements
+
+- **Build** : Next.js avec export statique (pas de changement)
+- **Hosting** : Compatible avec hébergement statique (Vercel, Netlify, etc.)
+- **Storage** : Supabase Storage (existant)
+- **CDN** : Recommandé pour assets statiques (optionnel)
+
+---
+
+## Development Roadmap
+
+### Phase 1 : Fondations Sécurité (Priorité Critique)
+
+**Objectif** : Sécuriser le site avant toute autre amélioration.
+
+**Scope** :
+1. Créer `lib/validators.ts` avec schémas Zod pour Text, Category, Tag
+2. Intégrer validation dans tous les formulaires (TextUploadForm, TextEditModal, CategoryManager, TagManager)
+3. Sanitizer le Markdown dans `MarkdownRenderer.tsx` avec `dompurify`
+4. Ajouter validation RLS Supabase (longueur max, contraintes)
+5. Tester tous les cas d'injection XSS
+
+**Livrables** :
+- Validation complète des données utilisateur
+- Sanitization du contenu Markdown
+- Protection contre XSS
+
+**Critères de succès** :
+- Tous les formulaires valident avec Zod
+- Aucune injection XSS possible dans le Markdown
+- Messages d'erreur accessibles et clairs
+
+---
+
+### Phase 2 : Optimisation Images (Impact Performance Immédiat)
+
+**Objectif** : Réduire le temps de chargement des pages avec images.
+
+**Scope** :
+1. Créer `components/OptimizedImage.tsx` avec lazy loading et Intersection Observer
+2. Générer placeholders blur (LQIP) pour images de galerie
+3. Implémenter `srcset` et `sizes` pour responsive
+4. Ajouter compression client-side dans `storageService.ts` avant upload
+5. Remplacer tous les `<img>` par `OptimizedImage` dans photos et vidéos
+6. Mesurer amélioration LCP avec Lighthouse
+
+**Livrables** :
+- Composant OptimizedImage fonctionnel
+- Compression automatique avant upload
+- Toutes les images optimisées
+
+**Critères de succès** :
+- Réduction LCP de 30% minimum
+- Score Lighthouse Performance ≥90
+- Images responsive sur tous les devices
+
+---
+
+### Phase 3 : Système de Cache (Optimisation Réseau)
+
+**Objectif** : Réduire les appels API redondants et améliorer la réactivité.
+
+**Scope** :
+1. Créer `lib/cache.ts` avec classe `SimpleCache` (Map + TTL)
+2. Wrapper `getTextsWithMetadata()` avec cache (TTL 5 min)
+3. Wrapper `getAllCategories()` avec cache (TTL 10 min)
+4. Wrapper `getAllTags()` avec cache (TTL 10 min)
+5. Invalider cache lors des mutations (create, update, delete)
+6. Ajouter bouton "Rafraîchir" dans pages admin
+7. Implémenter cache `sessionStorage` pour données de session
+
+**Livrables** :
+- Système de cache fonctionnel
+- Intégration dans tous les services
+- Invalidation automatique
+
+**Critères de succès** :
+- Réduction de 70% des appels API redondants
+- Temps de réponse perçu <100ms pour données en cache
+- Pas de données obsolètes affichées
+
+---
+
+### Phase 4 : Optimisation Bundle JavaScript
+
+**Objectif** : Réduire le poids du bundle et améliorer le TTI.
+
+**Scope** :
+1. Installer et configurer `@next/bundle-analyzer`
+2. Analyser bundle actuel et identifier postes lourds
+3. Appliquer code splitting avec `dynamic import` sur composants lourds (React Markdown, modals)
+4. Évaluer alternatives légères pour libs lourdes
+5. Activer tree-shaking et minification optimisés
+6. Définir budgets de performance dans `next.config.js`
+7. Re-mesurer avec Lighthouse et WebPageTest
+
+**Livrables** :
+- Bundle optimisé avec code splitting
+- Budgets de performance définis
+- Documentation de l'analyse
+
+**Critères de succès** :
+- Réduction bundle de 30% minimum
+- TTI <3s sur connexion 3G
+- Score Lighthouse Performance ≥95
+
+---
+
+### Phase 5 : Recherche Avancée (Amélioration UX)
+
+**Objectif** : Améliorer la découvrabilité du contenu avec recherche intelligente.
+
+**Scope** :
+1. Créer `lib/search.ts` avec fonction `fuzzySearch()` (algorithme Levenshtein)
+2. Implémenter highlighting des résultats avec `<mark>` dans TextCard
+3. Ajouter debounce de 300ms sur input de recherche
+4. Créer composant `SearchSuggestions.tsx` avec navigation clavier (↑↓, Enter)
+5. Implémenter logique de classement par pertinence (titre > excerpt > content)
+6. Ajouter filtres combinés (catégorie ET tags simultanément)
+7. Sauvegarder historique de recherche dans `localStorage` (5 dernières)
+8. Ajouter bouton "Effacer l'historique" dans paramètres
+
+**Livrables** :
+- Recherche fuzzy fonctionnelle
+- Suggestions avec navigation clavier
+- Filtres combinés opérationnels
+
+**Critères de succès** :
+- Recherche 3x plus rapide que recherche basique
+- Suggestions pertinentes affichées
+- Navigation clavier complète
+
+---
+
+### Phase 6 : PWA et Mode Offline (Fonctionnalités Avancées)
+
+**Objectif** : Transformer le site en PWA installable avec support offline.
+
+**Scope** :
+1. Créer `public/manifest.json` avec métadonnées et icônes PWA
+2. Générer icônes PWA (512x512, 192x192, etc.) et placer dans `public/icons/`
+3. Créer `public/sw.js` (Service Worker) avec stratégie cache-first pour assets
+4. Créer composant `RegisterSW.tsx` pour enregistrement du service worker
+5. Configurer cache des pages statiques visitées
+6. Créer page offline fallback (`public/offline.html`)
+7. Ajouter bouton "Installer l'app" si non installée (BeforeInstallPrompt API)
+8. Tester installation sur Chrome, Firefox et Safari
+
+**Livrables** :
+- PWA installable
+- Service Worker fonctionnel
+- Support offline de base
+
+**Critères de succès** :
+- Installation possible sur mobile et desktop
+- Pages visitées accessibles offline
+- Service Worker cache efficace
+
+---
+
+### Phase 7 : Gestion Erreurs Réseau (Résilience)
+
+**Objectif** : Améliorer la résilience en conditions réseau fluctuantes.
+
+**Scope** :
+1. Créer `lib/http.ts` avec wrapper HTTP typé basé sur fetch
+2. Définir type `Result<T, E>` pour gestion d'erreurs sans throw
+3. Implémenter indicateur d'état réseau (online/offline) et bannière d'avertissement
+4. Ajouter retry avec backoff exponentiel pour erreurs réseau idempotentes
+5. Intégrer cache local (IndexedDB/localForage) pour données clés (fallback lecture seule)
+6. Intégrer avec Service Worker pour cache d'app shell
+7. Écrire tests E2E simulant offline/timeout
+
+**Livrables** :
+- Wrapper HTTP robuste
+- Gestion d'erreurs normalisée
+- Support offline amélioré
+
+**Critères de succès** :
+- Retry automatique sur erreurs réseau
+- Bannière réseau visible en offline
+- Pas de crash sur erreurs réseau
+
+---
+
+### Phase 8 : Analytics et Monitoring (Observabilité)
+
+**Objectif** : Comprendre l'usage réel et détecter les bugs en production.
+
+**Scope** :
+1. Choisir solution analytics privacy-friendly (Plausible ou Umami)
+2. Créer compte et obtenir script d'intégration
+3. Ajouter script analytics dans `app/layout.tsx` (next/script avec strategy="afterInteractive")
+4. Créer `lib/analytics.ts` avec fonctions `trackPageView()` et `trackEvent()`
+5. Installer `@sentry/nextjs` pour monitoring d'erreurs (optionnel)
+6. Configurer Sentry dans `sentry.client.config.ts` et `sentry.server.config.ts` (optionnel)
+7. Wrapper `app/layout.tsx` avec ErrorBoundary de Sentry (optionnel)
+8. Ajouter tracking des événements critiques (création texte, upload photo, etc.)
+9. Configurer Source Maps pour Sentry dans `next.config.js` (optionnel)
+10. Créer page `/admin/analytics` avec résumé des métriques
+11. Ajouter bannière de consentement RGPD
+
+**Livrables** :
+- Analytics fonctionnel
+- Monitoring d'erreurs (optionnel)
+- Dashboard admin avec métriques
+
+**Critères de succès** :
+- Événements trackés correctement
+- Métriques Core Web Vitals visibles
+- Conformité RGPD respectée
+
+---
+
+## Logical Dependency Chain
+
+### Fondations (Do First)
+
+1. **Phase 1 : Sécurité** → Doit être fait en premier car protège contre les risques
+   - Dépendances : Aucune
+   - Bloque : Rien (mais doit être fait avant production)
+
+2. **Phase 2 : Optimisation Images** → Impact immédiat et visible
+   - Dépendances : Aucune
+   - Bloque : Rien
+
+### Optimisations Réseau (Do Second)
+
+3. **Phase 3 : Cache** → Améliore toutes les pages utilisant des données
+   - Dépendances : Phase 1 (validation) recommandée
+   - Bloque : Rien
+
+4. **Phase 4 : Optimisation Bundle** → Améliore toutes les pages
+   - Dépendances : Aucune
+   - Bloque : Rien
+
+### Fonctionnalités Avancées (Do Third)
+
+5. **Phase 5 : Recherche Avancée** → Améliore UX mais pas critique
+   - Dépendances : Phase 3 (cache) recommandée pour performance
+   - Bloque : Rien
+
+6. **Phase 6 : PWA** → Fonctionnalité bonus
+   - Dépendances : Phase 2 (images optimisées) recommandée
+   - Bloque : Rien
+
+7. **Phase 7 : Gestion Erreurs Réseau** → Complète PWA
+   - Dépendances : Phase 6 (PWA) recommandée pour intégration Service Worker
+   - Bloque : Rien
+
+### Observabilité (Do Last)
+
+8. **Phase 8 : Analytics** → Mesure l'impact de toutes les améliorations
+   - Dépendances : Toutes les phases précédentes (pour mesurer l'impact)
+   - Bloque : Rien
+
+### Ordre Recommandé d'Implémentation
+
+1. **Phase 1** : Sécurité (critique, bloque rien)
+2. **Phase 2** : Images (impact immédiat)
+3. **Phase 3** : Cache (optimisation réseau)
+4. **Phase 4** : Bundle (optimisation globale)
+5. **Phase 5** : Recherche (amélioration UX)
+6. **Phase 6** : PWA (fonctionnalité avancée)
+7. **Phase 7** : Erreurs réseau (complète PWA)
+8. **Phase 8** : Analytics (mesure tout)
+
+---
+
+## Risks and Mitigations
+
+### Technical Challenges
+
+**Risque 1 : Service Worker incompatible avec export statique**
+- **Probabilité** : Faible
+- **Impact** : Élevé (bloque PWA)
+- **Mitigation** : Vérifier compatibilité avant implémentation complète. Next.js 13 supporte Service Worker avec export statique via `public/sw.js`. Alternative : utiliser `next-pwa` si nécessaire.
+
+**Risque 2 : Cache invalidation complexe**
+- **Probabilité** : Moyenne
+- **Impact** : Moyen (données obsolètes)
+- **Mitigation** : Implémenter stratégie d'invalidation claire dès le début. Tester tous les cas de mutation. Ajouter bouton "Rafraîchir" manuel en fallback.
+
+**Risque 3 : Bundle analyzer révèle problèmes majeurs**
+- **Probabilité** : Moyenne
+- **Impact** : Moyen (refactoring nécessaire)
+- **Mitigation** : Analyser bundle tôt (Phase 4). Prioriser code splitting sur refactoring complet. Accepter compromis si refactoring trop coûteux.
+
+**Risque 4 : Validation Zod trop stricte bloque workflows existants**
+- **Probabilité** : Faible
+- **Impact** : Moyen (données existantes invalides)
+- **Mitigation** : Valider schémas Zod contre données existantes avant déploiement. Migration progressive si nécessaire. Mode "warn" avant "error".
+
+### MVP Considerations
+
+**MVP Minimal** : Phases 1, 2, 3
+- Sécurité de base (validation + sanitization)
+- Images optimisées
+- Cache simple
+
+**MVP Complet** : Phases 1-5
+- Toutes les optimisations critiques
+- Recherche améliorée
+- Performance optimale
+
+**Version Complète** : Toutes les phases
+- Toutes les fonctionnalités avancées
+- PWA installable
+- Analytics complet
+
+### Resource Constraints
+
+**Temps estimé par phase** :
+- Phase 1 : 2-3 jours
+- Phase 2 : 3-4 jours
+- Phase 3 : 2-3 jours
+- Phase 4 : 3-5 jours
+- Phase 5 : 4-5 jours
+- Phase 6 : 3-4 jours
+- Phase 7 : 2-3 jours
+- Phase 8 : 2-3 jours
+
+**Total estimé** : 21-30 jours de développement
+
+**Dépendances externes** :
+- Plausible/Umami (gratuit pour petits sites)
+- Sentry (gratuit jusqu'à 5k événements/mois)
+- Aucune dépendance payante requise
+
+---
+
+## Appendix
+
+### Research Findings
+
+**Performance** :
+- Images représentent 60-80% du poids d'une page web moyenne
+- Lazy loading réduit le temps de chargement initial de 30-50%
+- Code splitting réduit le TTI de 20-40%
+
+**Sécurité** :
+- XSS représente 40% des vulnérabilités web (OWASP Top 10)
+- Validation côté client + serveur nécessaire (défense en profondeur)
+- `dompurify` est la référence pour sanitization HTML/Markdown
+
+**PWA** :
+- 50% des utilisateurs installent une PWA après 3 visites
+- Service Worker cache réduit la consommation de données de 60%
+- Mode offline augmente l'engagement de 30%
+
+### Technical Specifications
+
+**Compatibilité Navigateurs** :
+- Chrome/Edge : Support complet (Service Worker, Web Vitals)
+- Firefox : Support complet
+- Safari : Support Service Worker (iOS 11.3+)
+- Safari : Pas de BeforeInstallPrompt (utiliser bannière custom)
+
+**Standards** :
+- WCAG 2.1 AA pour accessibilité
+- RGPD pour analytics et données utilisateur
+- Core Web Vitals pour performance
+
+**Outils Recommandés** :
+- Lighthouse pour audit performance
+- WebPageTest pour métriques détaillées
+- Sentry pour monitoring erreurs (optionnel)
+- Plausible/Umami pour analytics privacy-friendly
+
+---
+
+**Version** : 1.0  
+**Date** : 2025-01-09  
+**Auteur** : PRD généré pour améliorations Portfolio Next.js
+
+

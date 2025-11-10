@@ -13,6 +13,7 @@ import { Upload, X, Loader2, Music } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { TagBadge } from '@/components/texts/TagBadge';
+import { validateFileByCategory, validateFileSize } from '@/lib/fileValidation';
 
 interface MusicUploadFormProps {
   onSuccess: () => void;
@@ -62,28 +63,40 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
     );
   };
 
-  const validateAudioFile = (file: File): string | null => {
-    if (!ACCEPTED_AUDIO_TYPES.includes(file.type)) {
-      return 'Type de fichier non accepté. Utilisez MP3, WAV ou OGG.';
+  const validateAudioFile = async (file: File): Promise<string | null> => {
+    // Validation de la taille
+    const sizeValidation = validateFileSize(file, MAX_AUDIO_SIZE);
+    if (!sizeValidation.valid) {
+      return sizeValidation.error || null;
     }
-    if (file.size > MAX_AUDIO_SIZE) {
-      return 'Le fichier est trop volumineux. Maximum 10MB.';
+
+    // Validation du type MIME et de la signature
+    const categoryValidation = await validateFileByCategory(file, 'audio');
+    if (!categoryValidation.valid) {
+      return categoryValidation.error || null;
     }
+
     return null;
   };
 
-  const validateImageFile = (file: File): string | null => {
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      return 'Type d\'image non accepté. Utilisez JPEG, PNG ou WebP.';
+  const validateImageFile = async (file: File): Promise<string | null> => {
+    // Validation de la taille
+    const sizeValidation = validateFileSize(file, MAX_IMAGE_SIZE);
+    if (!sizeValidation.valid) {
+      return sizeValidation.error || null;
     }
-    if (file.size > MAX_IMAGE_SIZE) {
-      return 'L\'image est trop volumineuse. Maximum 2MB.';
+
+    // Validation du type MIME et de la signature
+    const categoryValidation = await validateFileByCategory(file, 'images');
+    if (!categoryValidation.valid) {
+      return categoryValidation.error || null;
     }
+
     return null;
   };
 
-  const handleAudioSelect = (selectedFile: File) => {
-    const error = validateAudioFile(selectedFile);
+  const handleAudioSelect = async (selectedFile: File) => {
+    const error = await validateAudioFile(selectedFile);
     if (error) {
       toast.error('Fichier audio invalide', { description: error });
       return;
@@ -95,8 +108,8 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
     }
   };
 
-  const handleCoverSelect = (selectedFile: File) => {
-    const error = validateImageFile(selectedFile);
+  const handleCoverSelect = async (selectedFile: File) => {
+    const error = await validateImageFile(selectedFile);
     if (error) {
       toast.error('Image invalide', { description: error });
       return;
@@ -128,9 +141,9 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
     const droppedFile = e.dataTransfer.files?.[0];
     if (droppedFile) {
       if (droppedFile.type.startsWith('audio/')) {
-        handleAudioSelect(droppedFile);
+        await handleAudioSelect(droppedFile);
       } else if (droppedFile.type.startsWith('image/')) {
-        handleCoverSelect(droppedFile);
+        await handleCoverSelect(droppedFile);
       }
     }
   };

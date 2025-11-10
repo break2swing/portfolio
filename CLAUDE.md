@@ -212,3 +212,7 @@ Ce projet supporte plusieurs outils d'IA en CLI :
 - **Codex CLI** : `codex agents-update`
 
 Voir [AI_TOOLS.md](./AI_TOOLS.md) pour plus de détails sur l'utilisation des différents outils.
+
+## Task Master AI Instructions
+**Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
+@./.taskmaster/CLAUDE.md

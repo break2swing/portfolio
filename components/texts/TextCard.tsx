@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Text } from '@/lib/supabaseClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, User } from 'lucide-react';
@@ -11,7 +12,7 @@ interface TextCardProps {
   onClick?: () => void;
 }
 
-export function TextCard({ text, onClick }: TextCardProps) {
+export const TextCard = memo(function TextCard({ text, onClick }: TextCardProps) {
   const publishedDate = text.published_date
     ? format(new Date(text.published_date), 'dd MMMM yyyy', { locale: fr })
     : null;
@@ -52,4 +53,4 @@ export function TextCard({ text, onClick }: TextCardProps) {
       </CardContent>
     </Card>
   );
-}
+});

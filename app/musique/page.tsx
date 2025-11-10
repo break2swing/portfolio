@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MusicTrackWithTags, Tag } from '@/lib/supabaseClient';
 import { musicService } from '@/services/musicService';
 import { musicTagService } from '@/services/musicTagService';
@@ -24,10 +24,31 @@ export default function MusiquePage() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const applyFilters = useMemo(() => {
+    let result = [...allTracks];
+
+    // Filter by tags (AND logic: track must have ALL selected tags)
+    if (selectedTagIds.length > 0) {
+      result = result.filter((track) =>
+        selectedTagIds.every((tagId) =>
+          track.tags?.some((tag) => tag.id === tagId)
+        )
+      );
+    }
+
+    return result;
   }, [allTracks, selectedTagIds]);
+
+  useEffect(() => {
+    setFilteredTracks(applyFilters);
+    
+    // Réinitialiser l'index si le morceau actuel n'est plus dans les résultats filtrés
+    if (currentTrackIndex >= applyFilters.length && applyFilters.length > 0) {
+      setCurrentTrackIndex(0);
+    } else if (applyFilters.length === 0) {
+      setCurrentTrackIndex(0);
+    }
+  }, [applyFilters, currentTrackIndex]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -60,28 +81,6 @@ export default function MusiquePage() {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const applyFilters = () => {
-    let result = [...allTracks];
-
-    // Filter by tags (AND logic: track must have ALL selected tags)
-    if (selectedTagIds.length > 0) {
-      result = result.filter((track) =>
-        selectedTagIds.every((tagId) =>
-          track.tags?.some((tag) => tag.id === tagId)
-        )
-      );
-    }
-
-    setFilteredTracks(result);
-    
-    // Réinitialiser l'index si le morceau actuel n'est plus dans les résultats filtrés
-    if (currentTrackIndex >= result.length && result.length > 0) {
-      setCurrentTrackIndex(0);
-    } else if (result.length === 0) {
-      setCurrentTrackIndex(0);
     }
   };
 
