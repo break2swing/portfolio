@@ -63,16 +63,6 @@ export const textSchema = z.object({
     .nullable()
     .transform((val) => (val === '' ? null : val)),
 
-  slug: z
-    .string()
-    .min(1, 'Le slug est requis')
-    .max(200, 'Le slug ne peut pas dépasser 200 caractères')
-    .trim()
-    .regex(
-      /^[a-z0-9-]+$/,
-      'Le slug doit être au format kebab-case (lettres minuscules, chiffres et tirets uniquement)'
-    ),
-
   author: z
     .string()
     .max(100, 'Le nom de l\'auteur ne peut pas dépasser 100 caractères')

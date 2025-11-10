@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { PhotoWithTags, Tag } from '@/lib/supabaseClient';
 import { photoService } from '@/services/photoService';
@@ -8,9 +8,14 @@ import { photoTagService } from '@/services/photoTagService';
 import { PhotoGrid } from '@/components/photos/PhotoGrid';
 import { VirtualizedPhotoGrid } from '@/components/photos/VirtualizedPhotoGrid';
 import { TagBadge } from '@/components/texts/TagBadge';
+import { SearchSuggestions } from '@/components/texts/SearchSuggestions';
 import { Button } from '@/components/ui/button';
-import { Loader2, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, X, Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '@/hooks/useDebounce';
+import { searchInCollection, SearchResult } from '@/lib/search';
+import { saveSearchQuery } from '@/lib/searchHistory';
 
 // Lazy load PhotoViewerModal
 const PhotoViewerModal = dynamic(() => import('@/components/photos/PhotoViewerModal').then(mod => ({ default: mod.PhotoViewerModal })), {
@@ -26,10 +31,54 @@ export default function PhotosPage() {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagsAvailable, setTagsAvailable] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Recherche fuzzy avec highlighting
+  const searchResultsMemo = useMemo(() => {
+    if (!debouncedSearchQuery.trim()) {
+      return [];
+    }
+
+    const photosToSearch = allPhotos.filter((photo) => {
+      // Appliquer les filtres de tags avant la recherche
+      if (selectedTagIds.length > 0) {
+        if (!selectedTagIds.every((tagId) => photo.tags?.some((tag) => tag.id === tagId))) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    return searchInCollection(
+      photosToSearch,
+      debouncedSearchQuery,
+      [
+        { field: 'title', weight: 3 },
+        { field: 'description', weight: 2 },
+      ],
+      {
+        fuzzy: true,
+        threshold: 0.7,
+        highlight: true,
+        sortByRelevance: true,
+        maxResults: 8,
+      }
+    );
+  }, [allPhotos, debouncedSearchQuery, selectedTagIds]);
+
+  // Mettre à jour les résultats de recherche pour les suggestions
+  useEffect(() => {
+    setSearchResults(searchResultsMemo);
+    setShowSuggestions(searchQuery.trim().length > 0 && searchResultsMemo.length > 0);
+  }, [searchResultsMemo, searchQuery]);
 
   const applyFilters = useMemo(() => {
     let result = [...allPhotos];
@@ -43,8 +92,26 @@ export default function PhotosPage() {
       );
     }
 
+    // Filter by search query using fuzzy search
+    if (debouncedSearchQuery.trim()) {
+      const searchResults = searchInCollection(
+        result,
+        debouncedSearchQuery,
+        [
+          { field: 'title', weight: 3 },
+          { field: 'description', weight: 2 },
+        ],
+        {
+          fuzzy: true,
+          threshold: 0.7,
+          sortByRelevance: true,
+        }
+      );
+      result = searchResults.map((r) => r.item);
+    }
+
     return result;
-  }, [allPhotos, selectedTagIds]);
+  }, [allPhotos, selectedTagIds, debouncedSearchQuery]);
 
   useEffect(() => {
     setFilteredPhotos(applyFilters);
@@ -92,9 +159,34 @@ export default function PhotosPage() {
 
   const clearFilters = () => {
     setSelectedTagIds([]);
+    setSearchQuery('');
+    setShowSuggestions(false);
   };
 
-  const hasActiveFilters = selectedTagIds.length > 0;
+  const handleSearchSelect = (result: SearchResult) => {
+    const photo = result.item as PhotoWithTags;
+    const index = filteredPhotos.findIndex((p) => p.id === photo.id);
+    if (index >= 0) {
+      setSelectedPhotoIndex(index);
+    }
+    setShowSuggestions(false);
+    if (searchQuery.trim()) {
+      saveSearchQuery(searchQuery);
+    }
+  };
+
+  const handleHistorySelect = (query: string) => {
+    setSearchQuery(query);
+    setShowSuggestions(false);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      handleSearchSelect(searchResults[0]);
+    }
+  };
+
+  const hasActiveFilters = selectedTagIds.length > 0 || searchQuery.trim();
 
   if (loading) {
     return (
@@ -114,6 +206,37 @@ export default function PhotosPage() {
         <p className="text-muted-foreground mt-2">
           Découvrez ma collection de photographies
         </p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+        <Input
+          ref={searchInputRef}
+          placeholder="Rechercher une photo..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setShowSuggestions(e.target.value.trim().length > 0);
+          }}
+          onFocus={() => {
+            if (searchQuery.trim() || searchResults.length > 0) {
+              setShowSuggestions(true);
+            }
+          }}
+          onKeyDown={handleSearchKeyDown}
+          className="pl-10"
+        />
+        {showSuggestions && (
+          <SearchSuggestions
+            query={searchQuery}
+            results={searchResults}
+            onSelect={handleSearchSelect}
+            onClose={() => setShowSuggestions(false)}
+            contentType="photos"
+            onHistorySelect={handleHistorySelect}
+          />
+        )}
       </div>
 
       {/* Tag Filters */}
@@ -142,12 +265,10 @@ export default function PhotosPage() {
       )}
 
       {/* Results Count */}
-      {hasActiveFilters && (
-        <p className="text-sm text-muted-foreground">
-          {filteredPhotos.length} {filteredPhotos.length > 1 ? 'photos' : 'photo'}
-          {` sur ${allPhotos.length}`}
-        </p>
-      )}
+      <p className="text-sm text-muted-foreground">
+        {filteredPhotos.length} {filteredPhotos.length > 1 ? 'photos' : 'photo'}
+        {hasActiveFilters && ` sur ${allPhotos.length}`}
+      </p>
 
       {/* Photos Grid */}
       {filteredPhotos.length === 0 && hasActiveFilters ? (

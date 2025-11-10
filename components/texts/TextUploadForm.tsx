@@ -47,7 +47,6 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
       subtitle: null,
       content: '',
       excerpt: null,
-      slug: '',
       author: null,
       published_date: null,
       category_id: null,
@@ -191,28 +190,6 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
                 </p>
               )}
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="slug">Slug (URL) *</Label>
-            <Input
-              id="slug"
-              {...register('slug')}
-              disabled={isSubmitting}
-              placeholder="mon-article-exemple"
-              aria-invalid={!!errors.slug}
-              aria-describedby={errors.slug ? 'slug-error' : undefined}
-              className={errors.slug ? 'border-red-500' : ''}
-            />
-            {errors.slug && (
-              <p id="slug-error" className="text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.slug.message}
-              </p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              Format kebab-case : lettres minuscules, chiffres et tirets uniquement
-            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">

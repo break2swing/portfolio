@@ -60,7 +60,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
         *   Project-specific points of attention.
         *   Language conventions.
     *   **Template Format:** Always provide concrete code examples showing the expected file structure.
-6.  **Validation:** Ensure consistency between the two files, up-to-date information, correct code examples, accurate file paths, and a provider hierarchy in `CLAUDE.md` that matches the actual code. Also ensure new services/contexts are documented.
+6.  **Validation:** Ensure consistency between the two files, up-to-date information, correct code examples, accurate file paths, and a provider hierarchy in `app/layout.tsx` that matches the actual code. Also ensure new services/contexts are documented.
 7. **Process:**
     * List the identified changes as bullet points.
     * Update `CLAUDE.md` with the necessary modifications.

@@ -27,7 +27,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
   useEffect(() => {
     if (typeof window !== 'undefined') {
       Promise.all([
-        import('dompurify'),
+        import('isomorphic-dompurify'),
         import('remark-gfm'),
       ]).then(([dompurifyModule, remarkGfmModule]) => {
         setDOMPurify(dompurifyModule.default);

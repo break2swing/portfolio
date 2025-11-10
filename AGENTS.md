@@ -1,417 +1,680 @@
-# Task Master AI - Agent Integration Guide
+# AGENTS.md - Conventions de développement
 
-## Essential Commands
+Ce fichier contient les conventions, patterns et templates spécifiques au projet pour guider le développement.
 
-### Core Workflow Commands
+## Conventions générales
 
-```bash
-# Project Setup
-task-master init                                    # Initialize Task Master in current project
-task-master parse-prd .taskmaster/docs/prd.txt      # Generate tasks from PRD document
-task-master models --setup                        # Configure AI models interactively
+### Langue
 
-# Daily Development Workflow
-task-master list                                   # Show all tasks with status
-task-master next                                   # Get next available task to work on
-task-master show <id>                             # View detailed task information (e.g., task-master show 1.2)
-task-master set-status --id=<id> --status=done    # Mark task complete
+- **Code** : Anglais pour les noms de variables, fonctions, types
+- **Commentaires et documentation** : Français
+- **Messages utilisateur** : Français
+- **Logs** : Français pour les messages, anglais pour les clés
 
-# Task Management
-task-master add-task --prompt="description" --research        # Add new task with AI assistance
-task-master expand --id=<id> --research --force              # Break task into subtasks
-task-master update-task --id=<id> --prompt="changes"         # Update specific task
-task-master update --from=<id> --prompt="changes"            # Update multiple tasks from ID onwards
-task-master update-subtask --id=<id> --prompt="notes"        # Add implementation notes to subtask
+### Nommage
 
-# Analysis & Planning
-task-master analyze-complexity --research          # Analyze task complexity
-task-master complexity-report                      # View complexity analysis
-task-master expand --all --research               # Expand all eligible tasks
+**Fichiers** :
+- Composants React : `PascalCase.tsx` (ex: `TagManager.tsx`)
+- Services : `camelCase.ts` (ex: `photoService.ts`)
+- Utilitaires : `camelCase.ts` (ex: `validators.ts`)
+- Contextes : `PascalCaseContext.tsx` (ex: `ThemeContext.tsx`)
 
-# Dependencies & Organization
-task-master add-dependency --id=<id> --depends-on=<id>       # Add task dependency
-task-master move --from=<id> --to=<id>                       # Reorganize task hierarchy
-task-master validate-dependencies                            # Check for dependency issues
-task-master generate                                         # Update task markdown files (usually auto-called)
-```
+**Variables et fonctions** :
+- Variables : `camelCase` (ex: `isLoading`, `photoList`)
+- Fonctions : `camelCase` (ex: `handleSubmit`, `loadPhotos`)
+- Constantes : `UPPER_SNAKE_CASE` (ex: `DEFAULT_TTL`, `PRESET_COLORS`)
+- Types/Interfaces : `PascalCase` (ex: `PhotoService`, `CacheOptions`)
 
-## Key Files & Project Structure
+**Composants React** :
+- Composants : `PascalCase` (ex: `OptimizedImage`, `TagBadge`)
+- Props interfaces : `ComponentNameProps` (ex: `OptimizedImageProps`)
+- Hooks personnalisés : `useCamelCase` (ex: `useTheme`, `useAuth`)
 
-### Core Files
+## Structure des fichiers
 
-- `.taskmaster/tasks/tasks.json` - Main task data file (auto-managed)
-- `.taskmaster/config.json` - AI model configuration (use `task-master models` to modify)
-- `.taskmaster/docs/prd.txt` - Product Requirements Document for parsing
-- `.taskmaster/tasks/*.txt` - Individual task files (auto-generated from tasks.json)
-- `.env` - API keys for CLI usage
+### Template de composant React (client)
 
-### Claude Code Integration Files
+```tsx
+'use client';
 
-- `CLAUDE.md` - Auto-loaded context for Claude Code (this file)
-- `.claude/settings.json` - Claude Code tool allowlist and preferences
-- `.claude/commands/` - Custom slash commands for repeated workflows
-- `.mcp.json` - MCP server configuration (project-specific)
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { useTheme } from '@/contexts/ThemeContext';
+import { serviceLogger } from '@/lib/logger';
 
-### Directory Structure
+const logger = serviceLogger.child('component-name');
 
-```
-project/
-├── .taskmaster/
-│   ├── tasks/              # Task files directory
-│   │   ├── tasks.json      # Main task database
-│   │   ├── task-1.md      # Individual task files
-│   │   └── task-2.md
-│   ├── docs/              # Documentation directory
-│   │   ├── prd.txt        # Product requirements
-│   ├── reports/           # Analysis reports directory
-│   │   └── task-complexity-report.json
-│   ├── templates/         # Template files
-│   │   └── example_prd.txt  # Example PRD template
-│   └── config.json        # AI models & settings
-├── .claude/
-│   ├── settings.json      # Claude Code configuration
-│   └── commands/         # Custom slash commands
-├── .env                  # API keys
-├── .mcp.json            # MCP configuration
-└── CLAUDE.md            # This file - auto-loaded by Claude Code
-```
+interface ComponentNameProps {
+  title: string;
+  onAction?: () => void;
+  className?: string;
+}
 
-## MCP Integration
+/**
+ * Description du composant en français
+ *
+ * @param title - Description du paramètre
+ * @param onAction - Callback optionnel
+ * @param className - Classes CSS additionnelles
+ */
+export function ComponentName({
+  title,
+  onAction,
+  className
+}: ComponentNameProps) {
+  const [loading, setLoading] = useState(false);
 
-Task Master provides an MCP server that Claude Code can connect to. Configure in `.mcp.json`:
+  useEffect(() => {
+    // Effet avec cleanup si nécessaire
+    logger.debug('Component mounted');
 
-```json
-{
-  "mcpServers": {
-    "task-master-ai": {
-      "command": "npx",
-      "args": ["-y", "task-master-ai"],
-      "env": {
-        "ANTHROPIC_API_KEY": "your_key_here",
-        "PERPLEXITY_API_KEY": "your_key_here",
-        "OPENAI_API_KEY": "OPENAI_API_KEY_HERE",
-        "GOOGLE_API_KEY": "GOOGLE_API_KEY_HERE",
-        "XAI_API_KEY": "XAI_API_KEY_HERE",
-        "OPENROUTER_API_KEY": "OPENROUTER_API_KEY_HERE",
-        "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
-        "AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
-        "OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE"
-      }
+    return () => {
+      logger.debug('Component unmounted');
+    };
+  }, []);
+
+  const handleClick = async () => {
+    setLoading(true);
+
+    try {
+      logger.info('Action triggered');
+      await onAction?.();
+    } catch (error) {
+      logger.error('Action failed', error as Error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  return (
+    <div className={className}>
+      <h2>{title}</h2>
+      <Button onClick={handleClick} disabled={loading}>
+        {loading ? 'Chargement...' : 'Action'}
+      </Button>
+    </div>
+  );
+}
+```
+
+### Template de service
+
+```typescript
+import { supabaseClient } from '@/lib/supabaseClient';
+import { cache } from '@/lib/cache';
+import { serviceLogger } from '@/lib/logger';
+import type { Photo } from '@/lib/supabaseClient';
+
+const logger = serviceLogger.child('photo-service');
+
+export const photoService = {
+  /**
+   * Récupère toutes les photos
+   * @returns Liste des photos avec gestion d'erreur
+   */
+  async getAllPhotos() {
+    const cacheKey = 'photos:all';
+
+    // Vérifier le cache
+    const cached = cache.get<Photo[]>(cacheKey);
+    if (cached) {
+      logger.debug('Photos loaded from cache');
+      return { photos: cached, error: null };
+    }
+
+    try {
+      logger.info('Fetching photos from database');
+
+      const { data, error } = await supabaseClient
+        .from('photos')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        logger.error('Failed to fetch photos', error);
+        return { photos: null, error };
+      }
+
+      // Mettre en cache
+      cache.set(cacheKey, data, { ttl: 5 * 60 * 1000 });
+      logger.debug('Photos cached', { count: data.length });
+
+      return { photos: data, error: null };
+    } catch (error) {
+      logger.error('Unexpected error fetching photos', error as Error);
+      return { photos: null, error: error as Error };
+    }
+  },
+
+  /**
+   * Crée une nouvelle photo
+   * @param photoData - Données de la photo
+   */
+  async createPhoto(photoData: Omit<Photo, 'id' | 'created_at'>) {
+    try {
+      logger.info('Creating photo', { title: photoData.title });
+
+      const { data, error } = await supabaseClient
+        .from('photos')
+        .insert(photoData)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('Failed to create photo', error);
+        return { photo: null, error };
+      }
+
+      // Invalider le cache
+      cache.invalidatePattern('photos:');
+      logger.debug('Cache invalidated');
+
+      return { photo: data, error: null };
+    } catch (error) {
+      logger.error('Unexpected error creating photo', error as Error);
+      return { photo: null, error: error as Error };
+    }
+  },
+
+  /**
+   * Met à jour une photo
+   * @param id - ID de la photo
+   * @param updates - Champs à mettre à jour
+   */
+  async updatePhoto(id: string, updates: Partial<Photo>) {
+    try {
+      logger.info('Updating photo', { id });
+
+      const { data, error } = await supabaseClient
+        .from('photos')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('Failed to update photo', error, { id });
+        return { photo: null, error };
+      }
+
+      // Invalider le cache
+      cache.invalidatePattern('photos:');
+
+      return { photo: data, error: null };
+    } catch (error) {
+      logger.error('Unexpected error updating photo', error as Error, { id });
+      return { photo: null, error: error as Error };
+    }
+  },
+
+  /**
+   * Supprime une photo
+   * @param id - ID de la photo
+   */
+  async deletePhoto(id: string) {
+    try {
+      logger.info('Deleting photo', { id });
+
+      const { error } = await supabaseClient
+        .from('photos')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        logger.error('Failed to delete photo', error, { id });
+        return { error };
+      }
+
+      // Invalider le cache
+      cache.invalidatePattern('photos:');
+
+      return { error: null };
+    } catch (error) {
+      logger.error('Unexpected error deleting photo', error as Error, { id });
+      return { error: error as Error };
+    }
+  },
+};
+```
+
+### Template de contexte React
+
+```typescript
+'use client';
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { serviceLogger } from '@/lib/logger';
+
+const logger = serviceLogger.child('my-context');
+
+interface MyContextValue {
+  data: string | null;
+  loading: boolean;
+  loadData: () => Promise<void>;
+}
+
+const MyContext = createContext<MyContextValue | undefined>(undefined);
+
+interface MyProviderProps {
+  children: ReactNode;
+}
+
+export function MyProvider({ children }: MyProviderProps) {
+  const [data, setData] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    logger.debug('Provider mounted');
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+
+    try {
+      logger.info('Loading data');
+      // Logique de chargement...
+      setData('loaded data');
+    } catch (error) {
+      logger.error('Failed to load data', error as Error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const value: MyContextValue = {
+    data,
+    loading,
+    loadData,
+  };
+
+  return <MyContext.Provider value={value}>{children}</MyContext.Provider>;
+}
+
+export function useMyContext() {
+  const context = useContext(MyContext);
+
+  if (context === undefined) {
+    throw new Error('useMyContext doit être utilisé à l\'intérieur d\'un MyProvider');
   }
+
+  return context;
 }
 ```
 
-### Essential MCP Tools
+### Template de schéma Zod
 
-```javascript
-help; // = shows available taskmaster commands
-// Project setup
-initialize_project; // = task-master init
-parse_prd; // = task-master parse-prd
+```typescript
+import { z } from 'zod';
 
-// Daily workflow
-get_tasks; // = task-master list
-next_task; // = task-master next
-get_task; // = task-master show <id>
-set_task_status; // = task-master set-status
+/**
+ * Schéma de validation pour les photos
+ */
+export const photoSchema = z.object({
+  title: z
+    .string()
+    .min(1, 'Le titre est requis')
+    .max(200, 'Le titre ne peut pas dépasser 200 caractères')
+    .trim(),
 
-// Task management
-add_task; // = task-master add-task
-expand_task; // = task-master expand
-update_task; // = task-master update-task
-update_subtask; // = task-master update-subtask
-update; // = task-master update
+  description: z
+    .string()
+    .max(1000, 'La description ne peut pas dépasser 1000 caractères')
+    .trim()
+    .optional()
+    .nullable()
+    .transform((val) => (val === '' ? null : val)),
 
-// Analysis
-analyze_project_complexity; // = task-master analyze-complexity
-complexity_report; // = task-master complexity-report
+  image_url: z
+    .string()
+    .url('URL invalide')
+    .min(1, 'L\'URL de l\'image est requise'),
+
+  display_order: z
+    .number()
+    .int('L\'ordre doit être un entier')
+    .nonnegative('L\'ordre doit être positif')
+    .default(0),
+});
+
+/**
+ * Schéma pour la création (sans champs auto-générés)
+ */
+export const createPhotoSchema = photoSchema.omit({
+  display_order: true
+});
+
+/**
+ * Schéma pour la mise à jour (tous les champs optionnels)
+ */
+export const updatePhotoSchema = photoSchema.partial();
+
+/**
+ * Types TypeScript inférés des schémas
+ */
+export type PhotoFormData = z.infer<typeof photoSchema>;
+export type CreatePhotoFormData = z.infer<typeof createPhotoSchema>;
+export type UpdatePhotoFormData = z.infer<typeof updatePhotoSchema>;
 ```
 
-## Claude Code Workflow Integration
+## Patterns de développement
 
-### Standard Development Workflow
+### Gestion d'état et effets
 
-#### 1. Project Initialization
-
-```bash
-# Initialize Task Master
-task-master init
-
-# Create or obtain PRD, then parse it
-task-master parse-prd .taskmaster/docs/prd.txt
-
-# Analyze complexity and expand tasks
-task-master analyze-complexity --research
-task-master expand --all --research
+**useState** :
+```typescript
+// Toujours initialiser avec le bon type
+const [items, setItems] = useState<Item[]>([]);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<Error | null>(null);
 ```
 
-If tasks already exist, another PRD can be parsed (with new information only!) using parse-prd with --append flag. This will add the generated tasks to the existing list of tasks..
+**useEffect** :
+```typescript
+// Toujours avec cleanup si nécessaire
+useEffect(() => {
+  let isMounted = true;
 
-#### 2. Daily Development Loop
+  const fetchData = async () => {
+    const data = await api.getData();
+    if (isMounted) {
+      setData(data);
+    }
+  };
 
-```bash
-# Start each session
-task-master next                           # Find next available task
-task-master show <id>                     # Review task details
+  fetchData();
 
-# During implementation, check in code context into the tasks and subtasks
-task-master update-subtask --id=<id> --prompt="implementation notes..."
-
-# Complete tasks
-task-master set-status --id=<id> --status=done
+  return () => {
+    isMounted = false;
+  };
+}, [dependencies]);
 ```
 
-#### 3. Multi-Claude Workflows
+### Gestion des erreurs
 
-For complex projects, use multiple Claude Code sessions:
-
-```bash
-# Terminal 1: Main implementation
-cd project && claude
-
-# Terminal 2: Testing and validation
-cd project-test-worktree && claude
-
-# Terminal 3: Documentation updates
-cd project-docs-worktree && claude
-```
-
-### Custom Slash Commands
-
-Create `.claude/commands/taskmaster-next.md`:
-
-```markdown
-Find the next available Task Master task and show its details.
-
-Steps:
-
-1. Run `task-master next` to get the next task
-2. If a task is available, run `task-master show <id>` for full details
-3. Provide a summary of what needs to be implemented
-4. Suggest the first implementation step
-```
-
-Create `.claude/commands/taskmaster-complete.md`:
-
-```markdown
-Complete a Task Master task: $ARGUMENTS
-
-Steps:
-
-1. Review the current task with `task-master show $ARGUMENTS`
-2. Verify all implementation is complete
-3. Run any tests related to this task
-4. Mark as complete: `task-master set-status --id=$ARGUMENTS --status=done`
-5. Show the next available task with `task-master next`
-```
-
-## Tool Allowlist Recommendations
-
-Add to `.claude/settings.json`:
-
-```json
-{
-  "allowedTools": [
-    "Edit",
-    "Bash(task-master *)",
-    "Bash(git commit:*)",
-    "Bash(git add:*)",
-    "Bash(npm run *)",
-    "mcp__task_master_ai__*"
-  ]
+**Dans les services** :
+```typescript
+try {
+  const result = await operation();
+  return { data: result, error: null };
+} catch (error) {
+  logger.error('Operation failed', error as Error, { context });
+  return { data: null, error: error as Error };
 }
 ```
 
-## Configuration & Setup
+**Dans les composants** :
+```typescript
+const handleAction = async () => {
+  setLoading(true);
+  setError(null);
 
-### API Keys Required
+  try {
+    const { data, error } = await service.operation();
 
-At least **one** of these API keys must be configured:
+    if (error) {
+      setError(error);
+      toast.error('Erreur', { description: error.message });
+      return;
+    }
 
-- `ANTHROPIC_API_KEY` (Claude models) - **Recommended**
-- `PERPLEXITY_API_KEY` (Research features) - **Highly recommended**
-- `OPENAI_API_KEY` (GPT models)
-- `GOOGLE_API_KEY` (Gemini models)
-- `MISTRAL_API_KEY` (Mistral models)
-- `OPENROUTER_API_KEY` (Multiple models)
-- `XAI_API_KEY` (Grok models)
-
-An API key is required for any provider used across any of the 3 roles defined in the `models` command.
-
-### Model Configuration
-
-```bash
-# Interactive setup (recommended)
-task-master models --setup
-
-# Set specific models
-task-master models --set-main claude-3-5-sonnet-20241022
-task-master models --set-research perplexity-llama-3.1-sonar-large-128k-online
-task-master models --set-fallback gpt-4o-mini
+    toast.success('Succès', { description: 'Opération réussie' });
+    setData(data);
+  } catch (error) {
+    logger.error('Unexpected error', error as Error);
+    toast.error('Erreur', { description: 'Une erreur inattendue s\'est produite' });
+  } finally {
+    setLoading(false);
+  }
+};
 ```
 
-## Task Structure & IDs
+### Cache et invalidation
 
-### Task ID Format
+```typescript
+// Clés de cache structurées avec namespaces
+const cacheKey = `${resource}:${operation}:${id}`;
 
-- Main tasks: `1`, `2`, `3`, etc.
-- Subtasks: `1.1`, `1.2`, `2.1`, etc.
-- Sub-subtasks: `1.1.1`, `1.1.2`, etc.
+// Exemple : 'photos:all', 'photos:single:123', 'texts:search:term'
 
-### Task Status Values
+// Invalidation par pattern
+cache.invalidatePattern('photos:'); // Invalide toutes les photos
+cache.invalidatePattern('texts:search:'); // Invalide toutes les recherches
+```
 
-- `pending` - Ready to work on
-- `in-progress` - Currently being worked on
-- `done` - Completed and verified
-- `deferred` - Postponed
-- `cancelled` - No longer needed
-- `blocked` - Waiting on external factors
+### Logging structuré
 
-### Task Fields
+```typescript
+// Créer un logger enfant pour chaque module
+const logger = serviceLogger.child('module-name');
 
-```json
-{
-  "id": "1.2",
-  "title": "Implement user authentication",
-  "description": "Set up JWT-based auth system",
-  "status": "pending",
-  "priority": "high",
-  "dependencies": ["1.1"],
-  "details": "Use bcrypt for hashing, JWT for tokens...",
-  "testStrategy": "Unit tests for auth functions, integration tests for login flow",
-  "subtasks": []
+// Niveaux de log appropriés
+logger.debug('Detailed info for debugging', { context });
+logger.info('Important operation', { result });
+logger.warn('Something unusual', { warning });
+logger.error('Operation failed', error, { context });
+
+// Sanitization automatique des données sensibles
+logger.info('User login', { email: 'user@example.com', password: 'secret' });
+// Affichera : { email: 'user@example.com', password: '[REDACTED]' }
+```
+
+### Analytics et Web Vitals
+
+```typescript
+// Événements personnalisés
+import { trackEvent } from '@/lib/analytics';
+
+trackEvent('photo_uploaded', {
+  size: file.size,
+  type: file.type,
+});
+
+// Les Core Web Vitals sont automatiquement collectés via WebVitals component
+```
+
+### Optimisation des images
+
+```typescript
+// Utiliser OptimizedImage pour toutes les images
+import { OptimizedImage } from '@/components/OptimizedImage';
+import { generateBlurPlaceholder, generateSrcSet, generateSizes } from '@/lib/image';
+
+// Avec LQIP
+const blurDataURL = await generateBlurPlaceholder(imageUrl);
+
+<OptimizedImage
+  src={imageUrl}
+  alt="Description"
+  width={800}
+  height={600}
+  sizes={generateSizes('half')}
+  blurDataURL={blurDataURL}
+  priority={false}
+/>
+
+// Les srcset peuvent être générés côté serveur ou fournis manuellement
+```
+
+## Workflows spécifiques
+
+### Ajouter une nouvelle page
+
+1. Créer le fichier `app/nouvelle-route/page.tsx`
+2. Utiliser `'use client'` si interactivité nécessaire
+3. Ajouter la route dans CLAUDE.md section "Structure des Routes"
+4. Utiliser `ProtectedRoute` si authentification requise
+5. Tester la navigation depuis Sidebar
+
+```typescript
+// app/nouvelle-route/page.tsx
+'use client';
+
+export default function NouvellePage() {
+  return (
+    <div>
+      <h1>Nouvelle page</h1>
+    </div>
+  );
 }
 ```
 
-## Claude Code Best Practices with Task Master
+### Ajouter un nouveau service
 
-### Context Management
+1. Créer `services/newService.ts`
+2. Suivre le template de service ci-dessus
+3. Créer un logger enfant : `serviceLogger.child('new-service')`
+4. Implémenter pattern `{ data, error }`
+5. Utiliser le cache pour les opérations de lecture
+6. Invalider le cache sur mutations
+7. Ajouter le service dans CLAUDE.md section "Service Layer"
 
-- Use `/clear` between different tasks to maintain focus
-- This CLAUDE.md file is automatically loaded for context
-- Use `task-master show <id>` to pull specific task context when needed
+### Ajouter une nouvelle table Supabase
 
-### Iterative Implementation
+1. Créer la table dans Supabase
+2. Ajouter le type dans `lib/supabaseClient.ts`
+3. Ajouter le type au `Database` type
+4. Créer le service associé
+5. Créer les schémas Zod de validation dans `lib/validators.ts`
+6. Mettre à jour CLAUDE.md section "Supabase Integration"
 
-1. `task-master show <subtask-id>` - Understand requirements
-2. Explore codebase and plan implementation
-3. `task-master update-subtask --id=<id> --prompt="detailed plan"` - Log plan
-4. `task-master set-status --id=<id> --status=in-progress` - Start work
-5. Implement code following logged plan
-6. `task-master update-subtask --id=<id> --prompt="what worked/didn't work"` - Log progress
-7. `task-master set-status --id=<id> --status=done` - Complete task
+### Ajouter un système de tags à un type de contenu
 
-### Complex Workflows with Checklists
+1. Créer la table de liaison `{content}_tags` dans Supabase
+2. Ajouter le type dans `lib/supabaseClient.ts`
+3. Créer le service de tags : `services/{content}TagService.ts`
+4. Implémenter les méthodes :
+   - `getTagsForContent(contentId)` - Récupère les tags d'un contenu
+   - `addTagToContent(contentId, tagId)` - Ajoute un tag
+   - `removeTagFromContent(contentId, tagId)` - Retire un tag
+   - `updateContentTags(contentId, tagIds)` - Met à jour tous les tags
+5. Utiliser le cache avec pattern `{content}-tags:{id}`
 
-For large migrations or multi-step processes:
+## Accessibilité (a11y)
 
-1. Create a markdown PRD file describing the new changes: `touch task-migration-checklist.md` (prds can be .txt or .md)
-2. Use Taskmaster to parse the new prd with `task-master parse-prd --append` (also available in MCP)
-3. Use Taskmaster to expand the newly generated tasks into subtasks. Consdier using `analyze-complexity` with the correct --to and --from IDs (the new ids) to identify the ideal subtask amounts for each task. Then expand them.
-4. Work through items systematically, checking them off as completed
-5. Use `task-master update-subtask` to log progress on each task/subtask and/or updating/researching them before/during implementation if getting stuck
+### Principes
 
-### Git Integration
+- Toujours fournir `alt` pour les images
+- Utiliser des balises sémantiques (`<main>`, `<nav>`, `<article>`, etc.)
+- Assurer un contraste suffisant (WCAG AA minimum)
+- Support complet du clavier
+- Attributs ARIA appropriés
 
-Task Master works well with `gh` CLI:
+### Exemple de composant accessible
 
-```bash
-# Create PR for completed task
-gh pr create --title "Complete task 1.2: User authentication" --body "Implements JWT auth system as specified in task 1.2"
+```typescript
+<button
+  onClick={handleClick}
+  disabled={loading}
+  aria-label="Supprimer la photo"
+  aria-busy={loading}
+  aria-disabled={loading}
+>
+  <Trash2 className="h-4 w-4" />
+  <span className="sr-only">Supprimer</span>
+</button>
 
-# Reference task in commits
-git commit -m "feat: implement JWT auth (task 1.2)"
+<img
+  src={imageUrl}
+  alt="Description de l'image"
+  aria-describedby="image-caption"
+/>
+<p id="image-caption">Légende de l'image</p>
 ```
 
-### Parallel Development with Git Worktrees
+## Sécurité
 
-```bash
-# Create worktrees for parallel task development
-git worktree add ../project-auth feature/auth-system
-git worktree add ../project-api feature/api-refactor
+### Principes
 
-# Run Claude Code in each worktree
-cd ../project-auth && claude    # Terminal 1: Auth work
-cd ../project-api && claude     # Terminal 2: API work
+- **Validation** : Toujours valider avec Zod côté client ET serveur
+- **Sanitization** : Utiliser `isomorphic-dompurify` pour le contenu HTML
+- **CORS** : Configuré au niveau de Supabase
+- **XSS** : Éviter `dangerouslySetInnerHTML` sauf avec sanitization
+- **CSRF** : Géré par Supabase Auth
+- **Rate limiting** : Utiliser `lib/rateLimiter.ts` pour les actions sensibles
+
+### Exemple de sanitization
+
+```typescript
+import DOMPurify from 'isomorphic-dompurify';
+
+// Pour du contenu HTML
+const cleanHTML = DOMPurify.sanitize(userInput);
+
+// Pour du Markdown (déjà sanitizé par react-markdown)
+<ReactMarkdown remarkPlugins={[remarkGfm]}>
+  {content}
+</ReactMarkdown>
 ```
 
-## Troubleshooting
+## Performance
 
-### AI Commands Failing
+### Principes
 
-```bash
-# Check API keys are configured
-cat .env                           # For CLI usage
+- **Code splitting** : Utiliser dynamic imports pour les gros composants
+- **Lazy loading** : Images avec `OptimizedImage`, composants avec `React.lazy`
+- **Caching** : Utiliser `lib/cache.ts` pour les données
+- **Préchargement** : `PrefetchData` pour les données critiques
+- **Virtualisation** : `@tanstack/react-virtual` pour les longues listes
+- **Bundle size** : Surveiller avec `npm run analyze`
 
-# Verify model configuration
-task-master models
+### Exemple de dynamic import
 
-# Test with different model
-task-master models --set-fallback gpt-4o-mini
+```typescript
+import dynamic from 'next/dynamic';
+
+const HeavyComponent = dynamic(() => import('@/components/HeavyComponent'), {
+  loading: () => <Loader2 className="animate-spin" />,
+  ssr: false,
+});
 ```
 
-### MCP Connection Issues
+### Exemple de virtualisation
 
-- Check `.mcp.json` configuration
-- Verify Node.js installation
-- Use `--mcp-debug` flag when starting Claude Code
-- Use CLI as fallback if MCP unavailable
+```typescript
+import { useVirtualizer } from '@tanstack/react-virtual';
 
-### Task File Sync Issues
-
-```bash
-# Regenerate task files from tasks.json
-task-master generate
-
-# Fix dependency issues
-task-master fix-dependencies
+const rowVirtualizer = useVirtualizer({
+  count: items.length,
+  getScrollElement: () => parentRef.current,
+  estimateSize: () => 50,
+  overscan: 5,
+});
 ```
 
-DO NOT RE-INITIALIZE. That will not do anything beyond re-adding the same Taskmaster core files.
+## Tests
 
-## Important Notes
+### Principes
 
-### AI-Powered Operations
+- Tester la logique métier (services)
+- Tester les composants critiques
+- Tester les validations Zod
+- Tests d'intégration pour les workflows complets
 
-These commands make AI calls and may take up to a minute:
+### Structure de test (si implémenté)
 
-- `parse_prd` / `task-master parse-prd`
-- `analyze_project_complexity` / `task-master analyze-complexity`
-- `expand_task` / `task-master expand`
-- `expand_all` / `task-master expand --all`
-- `add_task` / `task-master add-task`
-- `update` / `task-master update`
-- `update_task` / `task-master update-task`
-- `update_subtask` / `task-master update-subtask`
+```typescript
+import { describe, it, expect } from 'vitest';
+import { photoService } from '@/services/photoService';
 
-### File Management
+describe('photoService', () => {
+  it('should fetch all photos', async () => {
+    const { photos, error } = await photoService.getAllPhotos();
 
-- Never manually edit `tasks.json` - use commands instead
-- Never manually edit `.taskmaster/config.json` - use `task-master models`
-- Task markdown files in `tasks/` are auto-generated
-- Run `task-master generate` after manual changes to tasks.json
+    expect(error).toBeNull();
+    expect(photos).toBeInstanceOf(Array);
+  });
 
-### Claude Code Session Management
+  it('should handle errors gracefully', async () => {
+    // Mock d'une erreur Supabase
+    const { photos, error } = await photoService.getAllPhotos();
 
-- Use `/clear` frequently to maintain focused context
-- Create custom slash commands for repeated Task Master workflows
-- Configure tool allowlist to streamline permissions
-- Use headless mode for automation: `claude -p "task-master next"`
-
-### Multi-Task Updates
-
-- Use `update --from=<id>` to update multiple future tasks
-- Use `update-task --id=<id>` for single task updates
-- Use `update-subtask --id=<id>` for implementation logging
-
-### Research Mode
-
-- Add `--research` flag for research-based AI enhancement
-- Requires a research model API key like Perplexity (`PERPLEXITY_API_KEY`) in environment
-- Provides more informed task creation and updates
-- Recommended for complex technical tasks
+    expect(photos).toBeNull();
+    expect(error).toBeTruthy();
+  });
+});
+```
 
 ---
 
-_This guide ensures Claude Code has immediate access to Task Master's essential functionality for agentic development workflows._
+**Note finale** : Ce fichier doit être maintenu à jour lors de l'ajout de nouveaux patterns ou conventions. Les exemples doivent refléter l'état actuel du codebase.

@@ -2,13 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
+import { MobileSidebar } from '@/components/MobileSidebar';
 import { Topbar } from '@/components/Topbar';
 import { SkipToContent } from '@/components/SkipToContent';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+
     const stored = localStorage.getItem('sidebarExpanded');
     const isExpanded = stored === null || stored === 'true';
     setSidebarWidth(isExpanded ? 256 : 64);
@@ -33,17 +38,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <SkipToContent />
       <div className="flex h-screen overflow-hidden">
         <Sidebar onToggle={(expanded) => setSidebarWidth(expanded ? 256 : 64)} />
+        <MobileSidebar open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} />
         <div
-          className="flex flex-1 flex-col overflow-hidden transition-all duration-300"
-          style={{ marginLeft: `${sidebarWidth}px` }}
+          className="flex flex-1 flex-col overflow-hidden transition-all duration-300 lg:ml-0"
+          style={{ marginLeft: isClient && window.innerWidth >= 1024 ? `${sidebarWidth}px` : '0' }}
         >
-          <Topbar />
+          <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
           <main
             id="main-content"
             tabIndex={-1}
             role="main"
             aria-label="Contenu principal"
-            className="flex-1 overflow-y-auto p-6 bg-background focus:outline-none"
+            className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background focus:outline-none"
           >
             <div className="mx-auto max-w-7xl">
               {children}

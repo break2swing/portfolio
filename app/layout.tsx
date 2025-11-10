@@ -23,6 +23,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://soundcloud.com" />
+      </head>
       <body className={inter.className}>
         <ThemeProvider>
           <ColorThemeProvider>

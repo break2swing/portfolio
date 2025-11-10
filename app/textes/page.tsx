@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { TextWithMetadata, Category, Tag } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
@@ -10,11 +10,14 @@ import { TextCard } from '@/components/texts/TextCard';
 import { VirtualizedTextList } from '@/components/texts/VirtualizedTextList';
 import { CategoryBadge } from '@/components/texts/CategoryBadge';
 import { TagBadge } from '@/components/texts/TagBadge';
+import { SearchSuggestions } from '@/components/texts/SearchSuggestions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, FileText, Search, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
+import { searchInCollection, SearchResult } from '@/lib/search';
+import { saveSearchQuery } from '@/lib/searchHistory';
 
 // Lazy load TextDetailModal
 const TextDetailModal = dynamic(() => import('@/components/texts/TextDetailModal').then(mod => ({ default: mod.TextDetailModal })), {
@@ -34,11 +37,58 @@ export default function TextesPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Recherche fuzzy avec highlighting
+  const searchResultsMemo = useMemo(() => {
+    if (!debouncedSearchQuery.trim()) {
+      return [];
+    }
+
+    const textsToSearch = allTexts.filter((text) => {
+      // Appliquer les filtres de catégorie et tags avant la recherche
+      if (selectedCategoryId && text.category_id !== selectedCategoryId) {
+        return false;
+      }
+      if (selectedTagIds.length > 0) {
+        if (!selectedTagIds.every((tagId) => text.tags?.some((tag) => tag.id === tagId))) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    return searchInCollection(
+      textsToSearch,
+      debouncedSearchQuery,
+      [
+        { field: 'title', weight: 3 },
+        { field: 'subtitle', weight: 2 },
+        { field: 'excerpt', weight: 2 },
+        { field: 'content', weight: 1 },
+      ],
+      {
+        fuzzy: true,
+        threshold: 0.7,
+        highlight: true,
+        sortByRelevance: true,
+        maxResults: 8,
+      }
+    );
+  }, [allTexts, debouncedSearchQuery, selectedCategoryId, selectedTagIds]);
+
+  // Mettre à jour les résultats de recherche pour les suggestions
+  useEffect(() => {
+    setSearchResults(searchResultsMemo);
+    setShowSuggestions(searchQuery.trim().length > 0 && searchResultsMemo.length > 0);
+  }, [searchResultsMemo, searchQuery]);
 
   const applyFilters = useMemo(() => {
     let result = [...allTexts];
@@ -57,16 +107,24 @@ export default function TextesPage() {
       );
     }
 
-    // Filter by search query (using debounced value)
+    // Filter by search query using fuzzy search
     if (debouncedSearchQuery.trim()) {
-      const query = debouncedSearchQuery.toLowerCase();
-      result = result.filter(
-        (text) =>
-          text.title.toLowerCase().includes(query) ||
-          text.subtitle?.toLowerCase().includes(query) ||
-          text.excerpt?.toLowerCase().includes(query) ||
-          text.content.toLowerCase().includes(query)
+      const searchResults = searchInCollection(
+        result,
+        debouncedSearchQuery,
+        [
+          { field: 'title', weight: 3 },
+          { field: 'subtitle', weight: 2 },
+          { field: 'excerpt', weight: 2 },
+          { field: 'content', weight: 1 },
+        ],
+        {
+          fuzzy: true,
+          threshold: 0.7,
+          sortByRelevance: true,
+        }
       );
+      result = searchResults.map((r) => r.item);
     }
 
     return result;
@@ -110,6 +168,27 @@ export default function TextesPage() {
     setSelectedCategoryId(null);
     setSelectedTagIds([]);
     setSearchQuery('');
+    setShowSuggestions(false);
+  };
+
+  const handleSearchSelect = (result: SearchResult) => {
+    const text = result.item as TextWithMetadata;
+    setSelectedText(text);
+    setShowSuggestions(false);
+    if (searchQuery.trim()) {
+      saveSearchQuery(searchQuery);
+    }
+  };
+
+  const handleHistorySelect = (query: string) => {
+    setSearchQuery(query);
+    setShowSuggestions(false);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      handleSearchSelect(searchResults[0]);
+    }
   };
 
   const hasActiveFilters = selectedCategoryId || selectedTagIds.length > 0 || searchQuery.trim();
@@ -151,13 +230,33 @@ export default function TextesPage() {
 
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
         <Input
+          ref={searchInputRef}
           placeholder="Rechercher un texte..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setShowSuggestions(e.target.value.trim().length > 0);
+          }}
+          onFocus={() => {
+            if (searchQuery.trim() || searchResults.length > 0) {
+              setShowSuggestions(true);
+            }
+          }}
+          onKeyDown={handleSearchKeyDown}
           className="pl-10"
         />
+        {showSuggestions && (
+          <SearchSuggestions
+            query={searchQuery}
+            results={searchResults}
+            onSelect={handleSearchSelect}
+            onClose={() => setShowSuggestions(false)}
+            contentType="texts"
+            onHistorySelect={handleHistorySelect}
+          />
+        )}
       </div>
 
       {/* Category Filters */}
@@ -225,9 +324,14 @@ export default function TextesPage() {
           onTextClick={setSelectedText}
         />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {filteredTexts.map((text) => (
-            <TextCard key={text.id} text={text} onClick={() => setSelectedText(text)} />
+            <TextCard
+              key={text.id}
+              text={text}
+              onClick={() => setSelectedText(text)}
+              highlightQuery={debouncedSearchQuery.trim() || undefined}
+            />
           ))}
         </div>
       )}
