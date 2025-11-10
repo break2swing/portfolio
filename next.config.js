@@ -17,6 +17,9 @@ const nextConfig = {
       exclude: ['error', 'warn'],
     } : false,
   },
+  // Note: Les headers de sécurité HTTP ne peuvent pas être configurés dans next.config.js
+  // avec output: 'export'. Ils doivent être configurés au niveau du serveur web ou
+  // de la plateforme d'hébergement. Voir docs/SECURITY.md pour les instructions.
   // Budgets de performance pour détecter les régressions
   experimental: {
     // Note: Next.js ne supporte pas directement les budgets dans la config

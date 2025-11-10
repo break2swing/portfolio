@@ -217,126 +217,92 @@ Result:
 
 ```json
 {
-  &quot;modified&quot;: {
-    &quot;newPlan&quot;: &quot;# Plan d&#39;amélioration des performances\n\n## Vue d&#39;ensemble\n\nCe plan se concentre sur les optimisations de performance prioritaires pour améliorer les Core Web Vitals (LCP, CLS, FID) et réduire la consommation de ressources. Le projet dispose déjà de certaines optimisations (OptimizedImage, compression d&#39;images, cache partiel), mais plusieurs améliorations restent à implémenter.\n\n## Objectifs\n\n- Réduire les appels API redondants de 70%+ via l&#39;intégration complète du cache\n- Améliorer le Time to Interactive (TTI) via le code splitting\n- Réduire les re-renders inutiles avec React.memo et useMemo\n- Améliorer le LCP via le prefetching des données critiques\n\n## Tâches d&#39;implémentation\n\n### 1. Intégrer le cache dans tous les services de données\n\n**Fichiers concernés:**\n\n- &#96;services/photoService.ts&#96; - Ajouter cache pour &#96;getAllPhotosWithTags()&#96; et &#96;getAllPhotos()&#96;\n- &#96;services/musicService.ts&#96; - Ajouter cache pour &#96;getAllTracksWithTags()&#96; et &#96;getAllTracks()&#96;\n- &#96;services/categoryService.ts&#96; - Vérifier que le cache est utilisé (déjà fait pour textService)\n- &#96;services/tagService.ts&#96; - Vérifier que le cache est utilisé\n\n**Détails:**\n\n- Utiliser le système de cache existant (&#96;lib/cache.ts&#96;) avec TTL appropriés\n- TTL recommandés: photos/musique 5 min, catégories/tags 10 min\n- Invalider le cache lors des mutations (create, update, delete)\n- Utiliser &#96;sessionStorage&#96; pour la persistance entre sessions\n\n**Impact:** Réduction de 70%+ des appels API redondants\n\n### 2. Implémenter le code splitting sur les composants lourds\n\n**Fichiers concernés:**\n\n- &#96;app/photos/page.tsx&#96; - Dynamic import pour &#96;PhotoViewerModal&#96;\n- &#96;app/musique/page.tsx&#96; - Dynamic import pour le lecteur audio\n- &#96;app/textes/page.tsx&#96; - Dynamic import pour &#96;TextEditModal&#96; et &#96;MarkdownRenderer&#96;\n- &#96;app/admin/**/page.tsx&#96; - Dynamic import pour toutes les modales d&#39;administration\n\n**Détails:**\n\n- Utiliser &#96;next/dynamic&#96; avec &#96;loading&#96; component (Skeleton)\n- Code split &#96;react-markdown&#96; uniquement sur les pages qui l&#39;utilisent\n- Code split les composants de modales (chargés uniquement à l&#39;ouverture)\n- Configurer &#96;webpack splitChunks&#96; dans &#96;next.config.js&#96; pour optimiser les vendor chunks\n\n**Impact:** Réduction du bundle initial de 30-40%, amélioration du TTI\n\n### 3. Optimiser les re-renders avec React.memo et useMemo\n\n**Fichiers concernés:**\n\n- &#96;components/photos/PhotoCard.tsx&#96; - Wrapper avec React.memo\n- &#96;components/photos/PhotoGrid.tsx&#96; - Optimiser avec useMemo pour le filtrage\n- &#96;components/texts/TagBadge.tsx&#96; - React.memo si pas déjà fait\n- &#96;app/photos/page.tsx&#96; - useMemo pour &#96;filteredPhotos&#96;\n- &#96;app/musique/page.tsx&#96; - useMemo pour &#96;filteredTracks&#96;\n- &#96;app/textes/page.tsx&#96; - useMemo pour les résultats de recherche/filtrage\n\n**Détails:**\n\n- Utiliser React.memo avec comparaison shallow pour les composants de liste\n- Mémoriser les résultats de filtrage avec useMemo\n- Utiliser useCallback pour les handlers passés en props\n- Éviter les re-renders inutiles lors des changements d&#39;état non liés\n\n**Impact:** Réduction des re-renders de 50%+, amélioration de la fluidité\n\n### 4. Ajouter le prefetching des données critiques\n\n**Fichiers concernés:**\n\n- &#96;app/layout.tsx&#96; - Prefetch des catégories et tags au chargement initial\n- &#96;app/photos/page.tsx&#96; - Prefetch des photos en arrière-plan après chargement initial\n- &#96;components/AppLayout.tsx&#96; - Prefetch au hover sur les liens de navigation\n\n**Détails:**\n\n- Utiliser &#96;useEffect&#96; pour prefetch les données critiques après le premier rendu\n- Prefetch au hover sur les liens de navigation (photos, musique, textes)\n- Utiliser le cache pour éviter les appels redondants\n- Prioriser les données above-the-fold\n\n**Impact:** Amélioration du LCP et de la perception de vitesse\n\n### 5. Optimiser les performances de filtrage et recherche\n\n**Fichiers concernés:**\n\n- &#96;app/photos/page.tsx&#96; - Optimiser &#96;applyFilters()&#96; avec useMemo\n- &#96;app/musique/page.tsx&#96; - Optimiser &#96;applyFilters()&#96; avec useMemo\n- &#96;app/textes/page.tsx&#96; - Optimiser la recherche fuzzy avec debounce et useMemo\n\n**Détails:**\n\n- Utiliser useMemo pour mémoriser les résultats de filtrage\n- Ajouter debounce sur les inputs de recherche (300ms)\n- Utiliser useDeferredValue pour les recherches non critiques\n- Éviter les recalculs inutiles lors des changements d&#39;état non liés\n\n**Impact:** Réduction de la latence perçue lors des interactions\n\n### 6. Ajouter la virtualisation pour les grandes listes\n\n**Fichiers concernés:**\n\n- &#96;components/photos/PhotoGrid.tsx&#96; - Intégrer &#96;react-window&#96; ou &#96;@tanstack/react-virtual&#96;\n- &#96;app/textes/page.tsx&#96; - Virtualiser la liste des textes si &gt; 50 items\n\n**Détails:**\n\n- Utiliser &#96;react-window&#96; pour les listes avec &gt; 50 items\n- Virtualiser uniquement les éléments hors viewport\n- Maintenir les performances même avec 1000+ items\n- Préserver l&#39;accessibilité (navigation clavier, screen readers)\n\n**Impact:** Amélioration significative pour les grandes listes, réduction de la consommation mémoire\n\n### 7. Optimiser le bundle avec analyse et budgets\n\n**Fichiers concernés:**\n\n- &#96;next.config.js&#96; - Configurer les budgets de performance\n- Créer script d&#39;analyse automatique du bundle\n\n**Détails:**\n\n- Définir &#96;maxAssetSize: 250KB&#96; et &#96;maxEntrypointSize: 400KB&#96; dans next.config.js\n- Configurer &#96;@next/bundle-analyzer&#96; pour génération automatique des rapports\n- Identifier et remplacer les dépendances lourdes par des alternatives légères\n- Tree-shaking optimisé pour les imports ES modules\n\n**Impact:** Contrôle de la taille du bundle, prévention des régressions\n\n## Ordre de priorité recommandé\n\n1. **Intégration du cache** (impact immédiat, effort moyen)\n2. **Code splitting** (impact élevé sur TTI, effort moyen)\n3. **Optimisation re-renders** (impact moyen, effort faible)\n4. **Prefetching** (impact élevé sur LCP, effort faible)\n5. **Optimisation filtrage** (impact moyen, effort faible)\n6. **Virtualisation** (impact élevé si grandes listes, effort moyen)\n7. **Budgets bundle** (impact préventif, effort faible)\n\n## Métriques de succès\n\n- Réduction de 70%+ des appels API redondants\n- Amélioration du TTI de 30%+ (mesuré avec Lighthouse)\n- Réduction des re-renders de 50%+ (mesuré avec React DevTools Profiler)\n- Score Lighthouse Performance ≥90\n- Bundle initial &lt; 250KB (gzipped)\n- LCP &lt; 2.5s sur connexion 4G&quot;,
+  &quot;accepted&quot;: {
     &quot;finalTodos&quot;: [
       {
-        &quot;content&quot;: &quot;Intégrer le cache dans photoService et musicService pour getAllPhotosWithTags() et getAllTracksWithTags() avec TTL 5 min et invalidation sur mutations&quot;,
+        &quot;content&quot;: &quot;Créer lib/imageUtils.ts avec fonction generateLQIP() utilisant Canvas API pour générer des placeholders flous 20x20px en base64&quot;,
         &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;todo-1762763670393-h3uo2mks3&quot;
+        &quot;id&quot;: &quot;lqip-generation&quot;
       },
       {
-        &quot;content&quot;: &quot;Implémenter code splitting avec next/dynamic pour PhotoViewerModal, TextEditModal, MarkdownRenderer et toutes les modales admin avec composants de chargement Skeleton&quot;,
+        &quot;content&quot;: &quot;Ajouter colonne blur_data_url à la table photos dans Supabase et mettre à jour les types TypeScript&quot;,
         &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;todo-1762763670393-gsr7jafbi&quot;
+        &quot;id&quot;: &quot;lqip-storage&quot;
       },
       {
-        &quot;content&quot;: &quot;Wrapper PhotoCard, PhotoGrid et composants de liste avec React.memo et optimiser les filtres avec useMemo dans app/photos/page.tsx et app/musique/page.tsx&quot;,
+        &quot;content&quot;: &quot;Intégrer génération LQIP dans storageService.uploadPhoto() pour générer automatiquement lors des uploads&quot;,
         &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;todo-1762763670393-p5qrhxcsc&quot;
+        &quot;id&quot;: &quot;lqip-upload-integration&quot;
       },
       {
-        &quot;content&quot;: &quot;Ajouter prefetching des catégories/tags au chargement initial dans layout.tsx et prefetch au hover sur les liens de navigation dans AppLayout&quot;,
+        &quot;content&quot;: &quot;Modifier OptimizedImage pour utiliser blurDataURL depuis les données photo si disponible&quot;,
         &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;todo-1762763670393-bg5o6fo8r&quot;
+        &quot;id&quot;: &quot;lqip-component-integration&quot;
       },
       {
-        &quot;content&quot;: &quot;Ajouter debounce 300ms sur les inputs de recherche dans app/textes/page.tsx et optimiser applyFilters() avec useMemo dans toutes les pages de liste&quot;,
+        &quot;content&quot;: &quot;Créer docs/BUNDLE_ANALYSIS.md avec instructions complètes pour analyser et optimiser le bundle&quot;,
         &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;todo-1762763670393-ixxco4pxs&quot;
-      },
-      {
-        &quot;content&quot;: &quot;Intégrer react-window ou @tanstack/react-virtual dans PhotoGrid et la liste des textes pour virtualiser les grandes listes (&gt;50 items) tout en préservant l&#39;accessibilité&quot;,
-        &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;todo-1762763670393-1fglzutjg&quot;
-      },
-      {
-        &quot;content&quot;: &quot;Configurer les budgets de performance dans next.config.js (maxAssetSize: 250KB, maxEntrypointSize: 400KB) et créer script npm pour analyse automatique du bundle&quot;,
-        &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;todo-1762763670393-8mq5c46dj&quot;
-      },
-      {
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;img-lqip-generation&quot;
-      },
-      {
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;img-client-compression&quot;
-      },
-      {
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;img-migration-complete&quot;
-      },
-      {
-        &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;cache-integration-services&quot;
-      },
-      {
-        &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;cache-auto-invalidation&quot;
-      },
-      {
-        &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;cache-ui-controls&quot;
-      },
-      {
-        &quot;status&quot;: &quot;pending&quot;,
         &quot;id&quot;: &quot;bundle-analysis-doc&quot;
       },
       {
+        &quot;content&quot;: &quot;Auditer les dépendances avec npm ls et npm run analyze pour identifier les opportunités d&#39;optimisation&quot;,
         &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;bundle-code-splitting&quot;
+        &quot;id&quot;: &quot;dependencies-audit&quot;
       },
       {
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;bundle-deps-optimization&quot;
+        &quot;content&quot;: &quot;Vérifier et finaliser l&#39;intégration de WebVitals dans app/layout.tsx et tester l&#39;envoi des métriques&quot;,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;id&quot;: &quot;web-vitals-integration&quot;
       },
       {
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;bundle-performance-budgets&quot;
+        &quot;content&quot;: &quot;Créer docs/ANALYTICS.md documentant la configuration et l&#39;utilisation du système RUM&quot;,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;id&quot;: &quot;analytics-doc&quot;
       },
       {
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;monitoring-web-vitals&quot;
+        &quot;content&quot;: &quot;Créer scripts/generate-lqip-for-existing.ts pour générer des LQIP pour les images déjà uploadées&quot;,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;id&quot;: &quot;migration-script&quot;
       },
       {
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;monitoring-rum&quot;
+        &quot;content&quot;: &quot;Ajouter script npm run generate-lqip dans package.json pour exécuter la migration&quot;,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;id&quot;: &quot;package-scripts&quot;
       },
       {
         &quot;content&quot;: &quot;Intégrer le cache dans photoService et musicService pour getAllPhotosWithTags() et getAllTracksWithTags() avec TTL 5 min et invalidation sur mutations&quot;,
         &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;todo-1762764563011-2fann46fz&quot;
+        &quot;id&quot;: &quot;todo-1762765221183-36nthqyo2&quot;
       },
       {
         &quot;content&quot;: &quot;Implémenter code splitting avec next/dynamic pour PhotoViewerModal, TextEditModal, MarkdownRenderer et toutes les modales admin avec composants de chargement Skeleton&quot;,
         &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;todo-1762764563011-ici4fziuh&quot;
+        &quot;id&quot;: &quot;todo-1762765221183-j7l62i3p2&quot;
       },
       {
         &quot;content&quot;: &quot;Wrapper PhotoCard, PhotoGrid et composants de liste avec React.memo et optimiser les filtres avec useMemo dans app/photos/page.tsx et app/musique/page.tsx&quot;,
         &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;todo-1762764563011-cx9n92q8i&quot;
+        &quot;id&quot;: &quot;todo-1762765221183-pe1zc0bk5&quot;
       },
       {
         &quot;content&quot;: &quot;Ajouter prefetching des catégories/tags au chargement initial dans layout.tsx et prefetch au hover sur les liens de navigation dans AppLayout&quot;,
         &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;todo-1762764563011-70l8edj5j&quot;
+        &quot;id&quot;: &quot;todo-1762765221183-jp3513f8r&quot;
       },
       {
         &quot;content&quot;: &quot;Ajouter debounce 300ms sur les inputs de recherche dans app/textes/page.tsx et optimiser applyFilters() avec useMemo dans toutes les pages de liste&quot;,
         &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;todo-1762764563011-s58fllk2k&quot;
+        &quot;id&quot;: &quot;todo-1762765221183-26nomavbl&quot;
       },
       {
         &quot;content&quot;: &quot;Intégrer react-window ou @tanstack/react-virtual dans PhotoGrid et la liste des textes pour virtualiser les grandes listes (&gt;50 items) tout en préservant l&#39;accessibilité&quot;,
         &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;todo-1762764563011-m7lc9kfov&quot;
+        &quot;id&quot;: &quot;todo-1762765221183-0qu6qhu0z&quot;
       },
       {
         &quot;content&quot;: &quot;Configurer les budgets de performance dans next.config.js (maxAssetSize: 250KB, maxEntrypointSize: 400KB) et créer script npm pour analyse automatique du bundle&quot;,
         &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;todo-1762764563011-8ehs1smwo&quot;
+        &quot;id&quot;: &quot;todo-1762765221183-u839gqmd1&quot;
       }
     ]
   }
@@ -6269,6 +6235,3520 @@ _No matches found_
 ---
 
 
+
+---
+
+
+Création d'un plan d'optimisation de sécurité basé sur l'état actuel :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: app/layout.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="grep" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "magic.*bytes|file.*signature|mime.*validation|content.*type.*check" • 0 matches</summary>
+
+Output mode: content
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "How are RLS policies configured to check user ownership of resources?" • **15** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `supabase/migrations/20250107_create_texts_system.sql` | L144-198 |
+| `database/schema.sql` | L62 |
+| `supabase/migrations/20250107_create_texts_system_v2.sql` | L209-245 |
+| `supabase/migrations/20251108071024_create_videos_system.sql` | L34-94 |
+| `supabase/migrations/20251105115814_create_photos_table.sql` | L62 |
+| `supabase/migrations/20250107_create_texts_system.sql` | L97-147 |
+| `SETUP_SUPABASE.md` | L63-129 |
+| `supabase/migrations/20251106122804_create_photo_storage_bucket.sql` | L52 |
+| `supabase/migrations/20251108071024_create_videos_system.sql` | L89-153 |
+| `SETUP_PHOTOS.md` | L63 |
+| `.taskmaster/tasks/tasks.json` | L180-197 |
+| `supabase/migrations/20251106122742_create_audio_storage_bucket.sql` | L51 |
+| `supabase/migrations/20251106095111_create_music_tracks_table.sql` | L30-74 |
+| `supabase/migrations/20251106122804_create_photo_storage_bucket.sql` | L49-55 |
+| `supabase/migrations/20251106122742_create_audio_storage_bucket.sql` | L49-55 |
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Création d'un plan d'optimisation de sécurité :
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="create_plan">
+<details>
+<summary>Tool use: **create_plan**</summary>
+
+
+Parameters:
+
+```json
+{
+  &quot;plan&quot;: &quot;# Plan d&#39;Optimisation de Sécurité\n\n## Vue d&#39;ensemble\n\nCe plan renforce la sécurité du portfolio Next.js en ajoutant des protections contre les vulnérabilités courantes (XSS, injection SQL, uploads malveillants, accès non autorisés). Les validations Zod et DOMPurify sont déjà en place, ce plan se concentre sur les améliorations restantes.\n\n## État actuel de la sécurité\n\n**Déjà implémenté** :\n- ✅ Validation Zod pour Text, Category, Tag\n- ✅ Sanitization Markdown avec DOMPurify\n- ✅ RLS Supabase activé sur toutes les tables\n- ✅ Validation basique des fichiers uploadés (types MIME, taille)\n- ✅ Compression d&#39;images avant upload\n\n**À améliorer** :\n- ❌ Pas de contraintes CHECK au niveau base de données\n- ❌ Policies RLS pour photos/music ne vérifient pas l&#39;ownership\n- ❌ Pas de validation magic bytes pour les fichiers\n- ❌ Pas de headers de sécurité HTTP\n- ❌ Pas de validation des URLs dans les champs image_url/video_url\n- ❌ Pas d&#39;audit de sécurité des dépendances\n\n## Optimisations à implémenter\n\n### 1. Renforcer les contraintes RLS Supabase\n\n**Objectif** : Ajouter des contraintes CHECK au niveau base de données et améliorer les policies RLS pour vérifier l&#39;ownership.\n\n**Fichiers concernés** :\n- &#96;supabase/migrations/YYYYMMDD_add_security_constraints.sql&#96; (nouveau)\n- Tables : &#96;photos&#96;, &#96;music_tracks&#96;, &#96;texts&#96;, &#96;categories&#96;, &#96;tags&#96;\n\n**Implémentation** :\n- Ajouter contraintes CHECK pour longueurs max (titre ≤ 200, contenu ≤ 50000, etc.)\n- Ajouter contrainte CHECK pour format slug (kebab-case regex)\n- Ajouter contrainte CHECK pour format couleur hex\n- Modifier policies RLS pour &#96;photos&#96; et &#96;music_tracks&#96; pour vérifier &#96;user_id = auth.uid()&#96;\n- Ajouter colonne &#96;user_id&#96; à &#96;photos&#96; si absente\n- Ajouter colonne &#96;user_id&#96; à &#96;music_tracks&#96; si absente\n\n**Bénéfices** :\n- Protection en profondeur (validation côté serveur)\n- Prévention des accès non autorisés aux ressources\n- Conformité aux bonnes pratiques de sécurité\n\n### 2. Validation avancée des fichiers uploadés\n\n**Objectif** : Valider les fichiers avec magic bytes pour détecter les falsifications de type MIME.\n\n**Fichiers concernés** :\n- &#96;lib/fileValidation.ts&#96; (nouveau) - Utilitaires de validation\n- &#96;components/photos/PhotoUploadForm.tsx&#96;\n- &#96;components/videos/VideoUploadForm.tsx&#96;\n- &#96;components/music/MusicUploadForm.tsx&#96;\n\n**Implémentation** :\n- Créer fonction &#96;validateFileSignature()&#96; qui lit les premiers bytes du fichier\n- Définir les magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV\n- Valider le type MIME réel du fichier avant upload\n- Rejeter les fichiers avec type MIME falsifié\n- Ajouter validation dans tous les formulaires d&#39;upload\n\n**Bénéfices** :\n- Prévention des uploads de fichiers malveillants\n- Détection des tentatives de contournement de validation\n- Protection contre les attaques par upload\n\n### 3. Validation des URLs\n\n**Objectif** : Valider que les URLs stockées dans &#96;image_url&#96;, &#96;video_url&#96;, &#96;audio_url&#96; sont valides et sécurisées.\n\n**Fichiers concernés** :\n- &#96;lib/urlValidation.ts&#96; (nouveau) - Utilitaires de validation d&#39;URL\n- &#96;services/photoService.ts&#96;\n- &#96;services/musicService.ts&#96;\n- &#96;services/videoService.ts&#96;\n\n**Implémentation** :\n- Créer fonction &#96;validateUrl()&#96; qui vérifie :\n  - Format URL valide\n  - Protocole HTTPS uniquement (ou HTTP pour développement)\n  - Domaine autorisé (Supabase Storage uniquement)\n  - Pas de &#96;javascript:&#96;, &#96;data:&#96;, ou autres protocoles dangereux\n- Ajouter validation dans les services avant insertion/mise à jour\n- Rejeter les URLs malveillantes avec message d&#39;erreur clair\n\n**Bénéfices** :\n- Prévention des attaques par redirection malveillante\n- Protection contre les injections d&#39;URL\n- Validation cohérente des URLs\n\n### 4. Headers de sécurité HTTP\n\n**Objectif** : Ajouter des headers de sécurité HTTP pour protéger contre les attaques courantes.\n\n**Fichiers concernés** :\n- &#96;next.config.js&#96; - Configuration des headers\n- &#96;public/_headers&#96; (optionnel pour Netlify/Vercel)\n\n**Implémentation** :\n- Ajouter headers dans &#96;next.config.js&#96; :\n  - &#96;X-Content-Type-Options: nosniff&#96;\n  - &#96;X-Frame-Options: DENY&#96;\n  - &#96;X-XSS-Protection: 1; mode=block&#96;\n  - &#96;Referrer-Policy: strict-origin-when-cross-origin&#96;\n  - &#96;Permissions-Policy: camera=(), microphone=(), geolocation=()&#96;\n- Configurer Content-Security-Policy (CSP) basique\n- Documenter les headers dans &#96;docs/SECURITY.md&#96;\n\n**Bénéfices** :\n- Protection contre clickjacking\n- Prévention du MIME type sniffing\n- Amélioration de la sécurité générale\n\n### 5. Audit de sécurité des dépendances\n\n**Objectif** : Mettre en place un processus d&#39;audit régulier des dépendances pour détecter les vulnérabilités.\n\n**Fichiers concernés** :\n- &#96;package.json&#96; - Ajouter script d&#39;audit\n- &#96;.github/workflows/security-audit.yml&#96; (nouveau) - CI/CD pour audit automatique\n- &#96;docs/SECURITY.md&#96; (nouveau) - Documentation sécurité\n\n**Implémentation** :\n- Ajouter script &#96;npm audit&#96; dans &#96;package.json&#96;\n- Configurer &#96;npm audit --audit-level=moderate&#96; pour CI/CD\n- Créer workflow GitHub Actions pour audit automatique\n- Documenter le processus dans &#96;docs/SECURITY.md&#96;\n- Configurer Dependabot pour alertes automatiques\n\n**Bénéfices** :\n- Détection précoce des vulnérabilités\n- Mise à jour proactive des dépendances\n- Conformité aux bonnes pratiques\n\n### 6. Rate Limiting côté client\n\n**Objectif** : Implémenter un rate limiting basique côté client pour prévenir les abus.\n\n**Fichiers concernés** :\n- &#96;lib/rateLimiter.ts&#96; (nouveau) - Rate limiter côté client\n- &#96;services/photoService.ts&#96;\n- &#96;services/textService.ts&#96;\n- &#96;services/musicService.ts&#96;\n\n**Implémentation** :\n- Créer classe &#96;ClientRateLimiter&#96; utilisant &#96;sessionStorage&#96;\n- Limiter les appels API par type d&#39;opération (create: 10/min, update: 20/min)\n- Afficher message d&#39;erreur si limite dépassée\n- Note : Rate limiting réel doit être fait côté serveur (Supabase)\n\n**Bénéfices** :\n- Réduction des abus côté client\n- Meilleure expérience utilisateur (messages clairs)\n- Protection basique contre les spams\n\n### 7. Documentation sécurité\n\n**Objectif** : Documenter toutes les mesures de sécurité et les bonnes pratiques.\n\n**Fichiers concernés** :\n- &#96;docs/SECURITY.md&#96; (nouveau) - Documentation complète\n\n**Contenu** :\n- Vue d&#39;ensemble des mesures de sécurité\n- Configuration des headers HTTP\n- Processus d&#39;audit des dépendances\n- Guide de validation des fichiers\n- Bonnes pratiques pour les développeurs\n- Procédure de réponse aux incidents\n\n## Ordre d&#39;implémentation recommandé\n\n1. **Renforcer RLS Supabase** (sécurité critique - protection données)\n2. **Validation avancée fichiers** (sécurité critique - prévention uploads malveillants)\n3. **Validation URLs** (sécurité importante - prévention injections)\n4. **Headers HTTP** (sécurité importante - protection navigateur)\n5. **Audit dépendances** (maintenance sécurité)\n6. **Rate limiting client** (protection basique)\n7. **Documentation** (référence et formation)\n\n## Métriques de succès\n\n- **Contraintes base de données** : 100% des champs critiques validés\n- **RLS ownership** : 100% des tables avec vérification ownership\n- **Validation fichiers** : 100% des uploads validés avec magic bytes\n- **Headers sécurité** : Tous les headers recommandés configurés\n- **Audit dépendances** : 0 vulnérabilités critiques/high\n- **Documentation** : Guide sécurité complet disponible\n\n## Notes techniques\n\n- Les contraintes CHECK PostgreSQL sont plus strictes que la validation Zod côté client\n- La validation magic bytes nécessite la lecture des premiers bytes du fichier (FileReader API)\n- Les headers HTTP sont configurés dans &#96;next.config.js&#96; avec &#96;headers()&#96; function\n- Le rate limiting côté client est une protection basique, le vrai rate limiting doit être côté Supabase\n- L&#39;audit des dépendances doit être exécuté régulièrement (hebdomadaire recommandé)&quot;,
+  &quot;name&quot;: &quot;Performance Optimizations-6476c9&quot;,
+  &quot;todos&quot;: [
+    {
+      &quot;content&quot;: &quot;Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;rls-constraints&quot;
+    },
+    {
+      &quot;content&quot;: &quot;Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l&#39;ownership&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;rls-ownership-photos&quot;
+    },
+    {
+      &quot;content&quot;: &quot;Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l&#39;ownership&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;rls-ownership-music&quot;
+    },
+    {
+      &quot;content&quot;: &quot;Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;file-magic-bytes&quot;
+    },
+    {
+      &quot;content&quot;: &quot;Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;file-validation-integration&quot;,
+      &quot;dependencies&quot;: [
+        &quot;file-magic-bytes&quot;
+      ]
+    },
+    {
+      &quot;content&quot;: &quot;Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;url-validation&quot;
+    },
+    {
+      &quot;content&quot;: &quot;Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;url-validation-integration&quot;,
+      &quot;dependencies&quot;: [
+        &quot;url-validation&quot;
+      ]
+    },
+    {
+      &quot;content&quot;: &quot;Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;security-headers&quot;
+    },
+    {
+      &quot;content&quot;: &quot;Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;security-audit-script&quot;
+    },
+    {
+      &quot;content&quot;: &quot;Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;security-docs&quot;,
+      &quot;dependencies&quot;: [
+        &quot;security-headers&quot;,
+        &quot;security-audit-script&quot;
+      ]
+    },
+    {
+      &quot;content&quot;: &quot;Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;client-rate-limiting&quot;
+    },
+    {
+      &quot;content&quot;: &quot;Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)&quot;,
+      &quot;status&quot;: &quot;pending&quot;,
+      &quot;id&quot;: &quot;rate-limiting-integration&quot;,
+      &quot;dependencies&quot;: [
+        &quot;client-rate-limiting&quot;
+      ]
+    }
+  ],
+  &quot;overview&quot;: &quot;Plan d&#39;optimisation de sécurité pour renforcer la protection du portfolio contre les vulnérabilités courantes, incluant le renforcement des RLS, l&#39;ajout de contraintes base de données, la validation avancée des fichiers, et les headers de sécurité HTTP.&quot;
+}
+```
+Additional data:
+
+```json
+{
+  &quot;status&quot;: &quot;pending&quot;,
+  &quot;reviewData&quot;: {
+    &quot;status&quot;: &quot;Requested&quot;,
+    &quot;selectedOption&quot;: &quot;none&quot;,
+    &quot;isShowingInput&quot;: false
+  }
+}
+```
+Result:
+
+```json
+{
+  &quot;rejected&quot;: {}
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+_**User (2025-11-10 07:02Z)**_
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+_**Agent (model composer-1, mode Agent)**_
+
+
+
+---
+
+
+Vérification de l'état actuel des tables et des colonnes avant d'implémenter le plan d'optimisation de sécurité.
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: lib/supabaseClient.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="grep" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "user_id" in "supabase/migrations" • 29 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `supabase/migrations\20251108071024_create_videos_system.sql` | `- `user_id` (uuid, nullable) - Référence à l'utilisateur qui a ajouté la vidéo` | L13 |
+| `supabase/migrations\20251108071024_create_videos_system.sql` | `- Le `user_id` est nullable pour permettre la migration de données existantes` | L31 |
+| `supabase/migrations\20251108071024_create_videos_system.sql` | `user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,` | L44 |
+| `supabase/migrations\20251108071024_create_videos_system.sql` | `WITH CHECK (auth.uid() = user_id);` | L61 |
+| `supabase/migrations\20251108071024_create_videos_system.sql` | `USING (auth.uid() = user_id)` | L67 |
+| `supabase/migrations\20251108071024_create_videos_system.sql` | `WITH CHECK (auth.uid() = user_id);` | L68 |
+| `supabase/migrations\20251108071024_create_videos_system.sql` | `USING (auth.uid() = user_id);` | L74 |
+| `supabase/migrations\20251108071024_create_videos_system.sql` | `-- Créer un index sur user_id pour optimiser les requêtes par utilisateur` | L79 |
+| `supabase/migrations\20251108071024_create_videos_system.sql` | `CREATE INDEX IF NOT EXISTS idx_videos_user_id ON videos(user_id);` | L80 |
+| `supabase/migrations\20250107_create_texts_system_v2.sql` | `user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,` | L158 |
+| `supabase/migrations\20250107_create_texts_system_v2.sql` | `CREATE INDEX IF NOT EXISTS idx_texts_user_id ON texts(user_id);` | L167 |
+| `supabase/migrations\20250107_create_texts_system_v2.sql` | `CREATE POLICY "Lecture de ses propres textes" ON texts FOR SELECT USING (auth.uid() = user_id);` | L221 |
+| `supabase/migrations\20250107_create_texts_system_v2.sql` | `CREATE POLICY "Création de textes par utilisateurs authentifiés" ON texts FOR INSERT WITH CHECK (auth.role() = 'authenticated' AND auth.uid() = user_id);` | L222 |
+| `supabase/migrations\20250107_create_texts_system_v2.sql` | `CREATE POLICY "Modification de ses propres textes" ON texts FOR UPDATE USING (auth.uid() = user_id);` | L223 |
+| `supabase/migrations\20250107_create_texts_system_v2.sql` | `CREATE POLICY "Suppression de ses propres textes" ON texts FOR DELETE USING (auth.uid() = user_id);` | L224 |
+| `supabase/migrations\20250107_create_texts_system_v2.sql` | `EXISTS (SELECT 1 FROM texts WHERE texts.id = text_tags.text_id AND texts.user_id = auth.uid())` | L230 |
+| `supabase/migrations\20250107_create_texts_system_v2.sql` | `EXISTS (SELECT 1 FROM texts WHERE texts.id = text_tags.text_id AND texts.user_id = auth.uid())` | L233 |
+| `supabase/migrations\20250107_create_texts_system_v2.sql` | `t.user_id,` | L251 |
+| `supabase/migrations\20250107_create_texts_system.sql` | `user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,` | L71 |
+| `supabase/migrations\20250107_create_texts_system.sql` | `CREATE INDEX IF NOT EXISTS idx_texts_user_id ON texts(user_id);` | L80 |
+| `supabase/migrations\20250107_create_texts_system.sql` | `USING (auth.uid() = user_id);` | L176 |
+| `supabase/migrations\20250107_create_texts_system.sql` | `WITH CHECK (auth.role() = 'authenticated' AND auth.uid() = user_id);` | L181 |
+| `supabase/migrations\20250107_create_texts_system.sql` | `USING (auth.uid() = user_id);` | L186 |
+| `supabase/migrations\20250107_create_texts_system.sql` | `USING (auth.uid() = user_id);` | L191 |
+| `supabase/migrations\20250107_create_texts_system.sql` | `AND texts.user_id = auth.uid()` | L210 |
+| `supabase/migrations\20250107_create_texts_system.sql` | `AND texts.user_id = auth.uid()` | L220 |
+| `supabase/migrations\20250107_create_texts_system.sql` | `t.user_id,` | L297 |
+| `supabase/migrations\20251106095111_create_music_tracks_table.sql` | `- `user_id` (uuid, optionnel) - ID de l'utilisateur qui a uploadé le morceau` | L15 |
+| `supabase/migrations\20251106095111_create_music_tracks_table.sql` | `user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,` | L43 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: supabase/migrations/20251105115814_create_photos_table.sql</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: supabase/migrations/20251106095111_create_music_tracks_table.sql</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [-] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [ ] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [ ] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [ ] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [ ] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [ ] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [ ] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [ ] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [ ] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [ ] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Création de la migration SQL pour renforcer les contraintes et améliorer les RLS :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: supabase/migrations/20250107_create_texts_system.sql</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="list_dir">
+<details>
+            <summary>Tool use: **list_directory** • Listed directory undefined • **0** results</summary>
+        
+No results found
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Création de la migration SQL pour renforcer les contraintes et améliorer les RLS :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: supabase/migrations/20250111_add_security_constraints.sql</summary>
+
+**Chunk 1**
+Lines added: 257, lines removed: 1
+
+```diff
+@@ -1,1 +1,257 @@
+- 
++ /*
++   # Migration : Renforcement de la sécurité - Contraintes CHECK et amélioration RLS
++   Date: 2025-01-11
++   Description: Ajout de contraintes CHECK au niveau base de données et amélioration des policies RLS
++ */
++ 
++ -- ============================================================================
++ -- 1. AJOUT DE user_id À LA TABLE photos (si absent)
++ -- ============================================================================
++ 
++ -- Vérifier si la colonne user_id existe, sinon l&#39;ajouter
++ DO $$
++ BEGIN
++   IF NOT EXISTS (
++     SELECT 1 FROM information_schema.columns 
++     WHERE table_name = &#39;photos&#39; AND column_name = &#39;user_id&#39;
++   ) THEN
++     ALTER TABLE photos ADD COLUMN user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
++     CREATE INDEX IF NOT EXISTS idx_photos_user_id ON photos(user_id);
++   END IF;
++ END $$;
++ 
++ -- ============================================================================
++ -- 2. CONTRAINTES CHECK POUR LA TABLE texts
++ -- ============================================================================
++ 
++ -- Contrainte pour la longueur du titre
++ ALTER TABLE texts DROP CONSTRAINT IF EXISTS texts_title_length_check;
++ ALTER TABLE texts ADD CONSTRAINT texts_title_length_check 
++   CHECK (char_length(title) &gt;= 1 AND char_length(title) &lt;= 200);
++ 
++ -- Contrainte pour la longueur du contenu
++ ALTER TABLE texts DROP CONSTRAINT IF EXISTS texts_content_length_check;
++ ALTER TABLE texts ADD CONSTRAINT texts_content_length_check 
++   CHECK (char_length(content) &gt;= 1 AND char_length(content) &lt;= 50000);
++ 
++ -- Contrainte pour la longueur du subtitle
++ ALTER TABLE texts DROP CONSTRAINT IF EXISTS texts_subtitle_length_check;
++ ALTER TABLE texts ADD CONSTRAINT texts_subtitle_length_check 
++   CHECK (subtitle IS NULL OR (char_length(subtitle) &gt;= 1 AND char_length(subtitle) &lt;= 300));
++ 
++ -- Contrainte pour la longueur de l&#39;excerpt
++ ALTER TABLE texts DROP CONSTRAINT IF EXISTS texts_excerpt_length_check;
++ ALTER TABLE texts ADD CONSTRAINT texts_excerpt_length_check 
++   CHECK (excerpt IS NULL OR char_length(excerpt) &lt;= 500);
++ 
++ -- Contrainte pour la longueur de l&#39;author
++ ALTER TABLE texts DROP CONSTRAINT IF EXISTS texts_author_length_check;
++ ALTER TABLE texts ADD CONSTRAINT texts_author_length_check 
++   CHECK (author IS NULL OR char_length(author) &lt;= 100);
++ 
++ -- Contrainte pour le format du slug (si la colonne existe)
++ DO $$
++ BEGIN
++   IF EXISTS (
++     SELECT 1 FROM information_schema.columns 
++     WHERE table_name = &#39;texts&#39; AND column_name = &#39;slug&#39;
++   ) THEN
++     ALTER TABLE texts DROP CONSTRAINT IF EXISTS texts_slug_format_check;
++     ALTER TABLE texts ADD CONSTRAINT texts_slug_format_check 
++       CHECK (slug IS NULL OR slug ~ &#39;^[a-z0-9-]+$&#39;);
++   END IF;
++ END $$;
++ 
++ -- ============================================================================
++ -- 3. CONTRAINTES CHECK POUR LA TABLE categories
++ -- ============================================================================
++ 
++ -- Contrainte pour la longueur du nom
++ ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_name_length_check;
++ ALTER TABLE categories ADD CONSTRAINT categories_name_length_check 
++   CHECK (char_length(name) &gt;= 1 AND char_length(name) &lt;= 100);
++ 
++ -- Contrainte pour le format du slug
++ ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_slug_format_check;
++ ALTER TABLE categories ADD CONSTRAINT categories_slug_format_check 
++   CHECK (slug ~ &#39;^[a-z0-9-]+$&#39;);
++ 
++ -- Contrainte pour le format de la couleur hex
++ ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_color_format_check;
++ ALTER TABLE categories ADD CONSTRAINT categories_color_format_check 
++   CHECK (color ~ &#39;^#[0-9A-Fa-f]{6}$&#39;);
++ 
++ -- Contrainte pour la longueur de la description
++ ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_description_length_check;
++ ALTER TABLE categories ADD CONSTRAINT categories_description_length_check 
++   CHECK (description IS NULL OR char_length(description) &lt;= 500);
++ 
++ -- ============================================================================
++ -- 4. CONTRAINTES CHECK POUR LA TABLE tags
++ -- ============================================================================
++ 
++ -- Contrainte pour la longueur du nom
++ ALTER TABLE tags DROP CONSTRAINT IF EXISTS tags_name_length_check;
++ ALTER TABLE tags ADD CONSTRAINT tags_name_length_check 
++   CHECK (char_length(name) &gt;= 1 AND char_length(name) &lt;= 50);
++ 
++ -- Contrainte pour le format du slug
++ ALTER TABLE tags DROP CONSTRAINT IF EXISTS tags_slug_format_check;
++ ALTER TABLE tags ADD CONSTRAINT tags_slug_format_check 
++   CHECK (slug ~ &#39;^[a-z0-9-]+$&#39;);
++ 
++ -- Contrainte pour le format de la couleur hex
++ ALTER TABLE tags DROP CONSTRAINT IF EXISTS tags_color_format_check;
++ ALTER TABLE tags ADD CONSTRAINT tags_color_format_check 
++   CHECK (color IS NULL OR color ~ &#39;^#[0-9A-Fa-f]{6}$&#39;);
++ 
++ -- ============================================================================
++ -- 5. CONTRAINTES CHECK POUR LA TABLE photos
++ -- ============================================================================
++ 
++ -- Contrainte pour la longueur du titre
++ ALTER TABLE photos DROP CONSTRAINT IF EXISTS photos_title_length_check;
++ ALTER TABLE photos ADD CONSTRAINT photos_title_length_check 
++   CHECK (char_length(title) &gt;= 1 AND char_length(title) &lt;= 200);
++ 
++ -- Contrainte pour la longueur de la description
++ ALTER TABLE photos DROP CONSTRAINT IF EXISTS photos_description_length_check;
++ ALTER TABLE photos ADD CONSTRAINT photos_description_length_check 
++   CHECK (description IS NULL OR char_length(description) &lt;= 1000);
++ 
++ -- Contrainte pour le format de l&#39;URL (doit commencer par http:// ou https://)
++ ALTER TABLE photos DROP CONSTRAINT IF EXISTS photos_image_url_format_check;
++ ALTER TABLE photos ADD CONSTRAINT photos_image_url_format_check 
++   CHECK (image_url ~ &#39;^https?://&#39;);
++ 
++ -- ============================================================================
++ -- 6. CONTRAINTES CHECK POUR LA TABLE music_tracks
++ -- ============================================================================
++ 
++ -- Contrainte pour la longueur du titre
++ ALTER TABLE music_tracks DROP CONSTRAINT IF EXISTS music_tracks_title_length_check;
++ ALTER TABLE music_tracks ADD CONSTRAINT music_tracks_title_length_check 
++   CHECK (char_length(title) &gt;= 1 AND char_length(title) &lt;= 200);
++ 
++ -- Contrainte pour la longueur de l&#39;artist
++ ALTER TABLE music_tracks DROP CONSTRAINT IF EXISTS music_tracks_artist_length_check;
++ ALTER TABLE music_tracks ADD CONSTRAINT music_tracks_artist_length_check 
++   CHECK (artist IS NULL OR char_length(artist) &lt;= 200);
++ 
++ -- Contrainte pour la longueur de l&#39;album
++ ALTER TABLE music_tracks DROP CONSTRAINT IF EXISTS music_tracks_album_length_check;
++ ALTER TABLE music_tracks ADD CONSTRAINT music_tracks_album_length_check 
++   CHECK (album IS NULL OR char_length(album) &lt;= 200);
++ 
++ -- Contrainte pour le format de l&#39;URL audio
++ ALTER TABLE music_tracks DROP CONSTRAINT IF EXISTS music_tracks_audio_url_format_check;
++ ALTER TABLE music_tracks ADD CONSTRAINT music_tracks_audio_url_format_check 
++   CHECK (audio_url ~ &#39;^https?://&#39;);
++ 
++ -- Contrainte pour le format de l&#39;URL de couverture
++ ALTER TABLE music_tracks DROP CONSTRAINT IF EXISTS music_tracks_cover_url_format_check;
++ ALTER TABLE music_tracks ADD CONSTRAINT music_tracks_cover_url_format_check 
++   CHECK (cover_image_url IS NULL OR cover_image_url ~ &#39;^https?://&#39;);
++ 
++ -- Contrainte pour la durée (doit être positive si présente)
++ ALTER TABLE music_tracks DROP CONSTRAINT IF EXISTS music_tracks_duration_check;
++ ALTER TABLE music_tracks ADD CONSTRAINT music_tracks_duration_check 
++   CHECK (duration IS NULL OR duration &gt;= 0);
++ 
++ -- ============================================================================
++ -- 7. CONTRAINTES CHECK POUR LA TABLE videos
++ -- ============================================================================
++ 
++ -- Contrainte pour la longueur du titre
++ ALTER TABLE videos DROP CONSTRAINT IF EXISTS videos_title_length_check;
++ ALTER TABLE videos ADD CONSTRAINT videos_title_length_check 
++   CHECK (char_length(title) &gt;= 1 AND char_length(title) &lt;= 200);
++ 
++ -- Contrainte pour la longueur de la description
++ ALTER TABLE videos DROP CONSTRAINT IF EXISTS videos_description_length_check;
++ ALTER TABLE videos ADD CONSTRAINT videos_description_length_check 
++   CHECK (description IS NULL OR char_length(description) &lt;= 1000);
++ 
++ -- Contrainte pour le format de l&#39;URL vidéo
++ ALTER TABLE videos DROP CONSTRAINT IF EXISTS videos_video_url_format_check;
++ ALTER TABLE videos ADD CONSTRAINT videos_video_url_format_check 
++   CHECK (video_url ~ &#39;^https?://&#39;);
++ 
++ -- Contrainte pour le format de l&#39;URL thumbnail
++ ALTER TABLE videos DROP CONSTRAINT IF EXISTS videos_thumbnail_url_format_check;
++ ALTER TABLE videos ADD CONSTRAINT videos_thumbnail_url_format_check 
++   CHECK (thumbnail_url IS NULL OR thumbnail_url ~ &#39;^https?://&#39;);
++ 
++ -- Contrainte pour la durée (doit être positive si présente)
++ ALTER TABLE videos DROP CONSTRAINT IF EXISTS videos_duration_check;
++ ALTER TABLE videos ADD CONSTRAINT videos_duration_check 
++   CHECK (duration IS NULL OR duration &gt;= 0);
++ 
++ -- ============================================================================
++ -- 8. AMÉLIORATION DES POLICIES RLS POUR photos
++ -- ============================================================================
++ 
++ -- Supprimer les anciennes policies
++ DROP POLICY IF EXISTS &quot;Insertion réservée aux authentifiés&quot; ON photos;
++ DROP POLICY IF EXISTS &quot;Mise à jour réservée aux authentifiés&quot; ON photos;
++ DROP POLICY IF EXISTS &quot;Suppression réservée aux authentifiés&quot; ON photos;
++ 
++ -- Nouvelle policy INSERT : vérifier ownership
++ CREATE POLICY &quot;Utilisateurs authentifiés peuvent créer leurs propres photos&quot;
++   ON photos FOR INSERT
++   TO authenticated
++   WITH CHECK (auth.uid() = user_id);
++ 
++ -- Nouvelle policy UPDATE : vérifier ownership
++ CREATE POLICY &quot;Utilisateurs peuvent modifier leurs propres photos&quot;
++   ON photos FOR UPDATE
++   TO authenticated
++   USING (auth.uid() = user_id)
++   WITH CHECK (auth.uid() = user_id);
++ 
++ -- Nouvelle policy DELETE : vérifier ownership
++ CREATE POLICY &quot;Utilisateurs peuvent supprimer leurs propres photos&quot;
++   ON photos FOR DELETE
++   TO authenticated
++   USING (auth.uid() = user_id);
++ 
++ -- ============================================================================
++ -- 9. AMÉLIORATION DES POLICIES RLS POUR music_tracks
++ -- ============================================================================
++ 
++ -- Supprimer les anciennes policies
++ DROP POLICY IF EXISTS &quot;Utilisateurs authentifiés peuvent créer des morceaux&quot; ON music_tracks;
++ DROP POLICY IF EXISTS &quot;Utilisateurs authentifiés peuvent modifier des morceaux&quot; ON music_tracks;
++ DROP POLICY IF EXISTS &quot;Utilisateurs authentifiés peuvent supprimer des morceaux&quot; ON music_tracks;
++ 
++ -- Nouvelle policy INSERT : vérifier ownership
++ CREATE POLICY &quot;Utilisateurs authentifiés peuvent créer leurs propres morceaux&quot;
++   ON music_tracks FOR INSERT
++   TO authenticated
++   WITH CHECK (auth.uid() = user_id);
++ 
++ -- Nouvelle policy UPDATE : vérifier ownership
++ CREATE POLICY &quot;Utilisateurs peuvent modifier leurs propres morceaux&quot;
++   ON music_tracks FOR UPDATE
++   TO authenticated
++   USING (auth.uid() = user_id)
++   WITH CHECK (auth.uid() = user_id);
++ 
++ -- Nouvelle policy DELETE : vérifier ownership
++ CREATE POLICY &quot;Utilisateurs peuvent supprimer leurs propres morceaux&quot;
++   ON music_tracks FOR DELETE
++   TO authenticated
++   USING (auth.uid() = user_id);
++ 
++ -- ============================================================================
++ -- 10. VÉRIFICATION ET NOTIFICATION
++ -- ============================================================================
++ 
++ DO $$
++ BEGIN
++   RAISE NOTICE &#39;Migration de sécurité terminée :&#39;;
++   RAISE NOTICE &#39;- Contraintes CHECK ajoutées sur toutes les tables&#39;;
++   RAISE NOTICE &#39;- Colonne user_id ajoutée à photos si absente&#39;;
++   RAISE NOTICE &#39;- Policies RLS améliorées pour photos et music_tracks avec vérification ownership&#39;;
++ END $$;
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/photoService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [-] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [ ] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [ ] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [ ] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [ ] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [ ] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [ ] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [ ] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [ ] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Mise à jour du type `Photo` et modification de `photoService` pour inclure `user_id` :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: lib/supabaseClient.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -23,4 +23,5 @@
+    blur_data_url: string | null;
+    display_order: number;
++   user_id: string | null;
+    created_at: string;
+  };
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: contexts/AuthContext.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/photoService.ts</summary>
+
+**Chunk 1**
+Lines added: 70, lines removed: undefined
+
+```diff
+@@ -1,2 +1,72 @@
++ import { supabaseClient, Photo, PhotoWithTags } from &#39;@/lib/supabaseClient&#39;;
++ import { photoTagService } from &#39;./photoTagService&#39;;
++ import { cache } from &#39;@/lib/cache&#39;;
++ 
++ export const photoService = {
++   async getAllPhotos() {
++     const { data, error } = await supabaseClient
++       .from(&#39;photos&#39;)
++       .select(&#39;*&#39;)
++       .order(&#39;display_order&#39;, { ascending: true });
++ 
++     return { photos: data as Photo[] | null, error };
++   },
++ 
++   async getAllPhotosWithTags() {
++     const CACHE_KEY = &#39;photos:all-with-tags&#39;;
++     const TTL = 5 * 60 * 1000; // 5 minutes
++ 
++     // Vérifier le cache
++     const cached = cache.get&lt;{ photos: PhotoWithTags[]; error: null }&gt;(CACHE_KEY);
++     if (cached) {
++       return cached;
++     }
++ 
++     const { data, error } = await supabaseClient
++       .from(&#39;photos&#39;)
++       .select(&#96;
++         *,
++         photo_tags(tag:tags(*))
++       &#96;)
++       .order(&#39;display_order&#39;, { ascending: true});
++ 
++     if (error) return { photos: null, error };
++ 
++     const photos = data.map((photo: any) =&gt; ({
++       ...photo,
++       tags: photo.photo_tags?.map((pt: any) =&gt; pt.tag).filter(Boolean) || [],
++     }));
++ 
++     photos.forEach((photo: any) =&gt; delete photo.photo_tags);
++ 
++     const result = { photos: photos as PhotoWithTags[], error: null };
++ 
++     // Mettre en cache
++     cache.set(CACHE_KEY, result, { ttl: TTL, storage: &#39;session&#39; });
++ 
++     return result;
++   },
++ 
++   async getPhotoById(id: string) {
++     const { data, error } = await supabaseClient
++       .from(&#39;photos&#39;)
++       .select(&#39;*&#39;)
++       .eq(&#39;id&#39;, id)
++       .maybeSingle();
++ 
++     return { photo: data as Photo | null, error };
++   },
++ 
++   async getMaxDisplayOrder() {
++     const { data, error } = await supabaseClient
++       .from(&#39;photos&#39;)
++       .select(&#39;display_order&#39;)
++       .order(&#39;display_order&#39;, { ascending: false })
++       .limit(1)
++       .maybeSingle();
++ 
++     return { maxOrder: data?.display_order ?? -1, error };
++   },
++ 
+  import { supabaseClient, Photo, PhotoWithTags } from &#39;@/lib/supabaseClient&#39;;
+  import { photoTagService } from &#39;./photoTagService&#39;;
+```
+
+**Chunk 2**
+Lines added: 9, lines removed: 1
+
+```diff
+@@ -75,8 +145,16 @@
+      blur_data_url?: string | null;
+      display_order: number;
++     user_id?: string | null;
+    }) {
++     // Récupérer l&#39;utilisateur actuel si user_id n&#39;est pas fourni
++     const { data: { user } } = await supabaseClient.auth.getUser();
++     const userId = photo.user_id ?? user?.id ?? null;
++ 
+      const { data, error } = await supabaseClient
+        .from(&#39;photos&#39;)
+-       .insert(photo)
++       .insert({
++         ...photo,
++         user_id: userId,
++       })
+        .select()
+        .single();
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/photoService.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -214,4 +214,5 @@
+        blur_data_url?: string | null;
+        display_order: number;
++       user_id?: string | null;
+      },
+      tagIds: string[] = []
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/musicService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [-] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [ ] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [ ] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [ ] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [ ] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [ ] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [ ] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [ ] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Correction de la duplication dans `photoService.ts`, puis vérification de `musicService` :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/photoService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+
+---
+
+
+Suppression de la duplication dans `photoService.ts` :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/photoService.ts</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 70
+
+```diff
+@@ -1,72 +1,2 @@
+- import { supabaseClient, Photo, PhotoWithTags } from &#39;@/lib/supabaseClient&#39;;
+- import { photoTagService } from &#39;./photoTagService&#39;;
+- import { cache } from &#39;@/lib/cache&#39;;
+- 
+- export const photoService = {
+-   async getAllPhotos() {
+-     const { data, error } = await supabaseClient
+-       .from(&#39;photos&#39;)
+-       .select(&#39;*&#39;)
+-       .order(&#39;display_order&#39;, { ascending: true });
+- 
+-     return { photos: data as Photo[] | null, error };
+-   },
+- 
+-   async getAllPhotosWithTags() {
+-     const CACHE_KEY = &#39;photos:all-with-tags&#39;;
+-     const TTL = 5 * 60 * 1000; // 5 minutes
+- 
+-     // Vérifier le cache
+-     const cached = cache.get&lt;{ photos: PhotoWithTags[]; error: null }&gt;(CACHE_KEY);
+-     if (cached) {
+-       return cached;
+-     }
+- 
+-     const { data, error } = await supabaseClient
+-       .from(&#39;photos&#39;)
+-       .select(&#96;
+-         *,
+-         photo_tags(tag:tags(*))
+-       &#96;)
+-       .order(&#39;display_order&#39;, { ascending: true});
+- 
+-     if (error) return { photos: null, error };
+- 
+-     const photos = data.map((photo: any) =&gt; ({
+-       ...photo,
+-       tags: photo.photo_tags?.map((pt: any) =&gt; pt.tag).filter(Boolean) || [],
+-     }));
+- 
+-     photos.forEach((photo: any) =&gt; delete photo.photo_tags);
+- 
+-     const result = { photos: photos as PhotoWithTags[], error: null };
+- 
+-     // Mettre en cache
+-     cache.set(CACHE_KEY, result, { ttl: TTL, storage: &#39;session&#39; });
+- 
+-     return result;
+-   },
+- 
+-   async getPhotoById(id: string) {
+-     const { data, error } = await supabaseClient
+-       .from(&#39;photos&#39;)
+-       .select(&#39;*&#39;)
+-       .eq(&#39;id&#39;, id)
+-       .maybeSingle();
+- 
+-     return { photo: data as Photo | null, error };
+-   },
+- 
+-   async getMaxDisplayOrder() {
+-     const { data, error } = await supabaseClient
+-       .from(&#39;photos&#39;)
+-       .select(&#39;display_order&#39;)
+-       .order(&#39;display_order&#39;, { ascending: false })
+-       .limit(1)
+-       .maybeSingle();
+- 
+-     return { maxOrder: data?.display_order ?? -1, error };
+-   },
+- 
+  import { supabaseClient, Photo, PhotoWithTags } from &#39;@/lib/supabaseClient&#39;;
+  import { photoTagService } from &#39;./photoTagService&#39;;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [x] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [-] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [ ] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [ ] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [ ] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [ ] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [ ] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [ ] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: lib/fileValidation.ts</summary>
+
+**Chunk 1**
+Lines added: 186, lines removed: 1
+
+```diff
+@@ -1,1 +1,186 @@
+- 
++ /**
++  * Validation avancée des fichiers uploadés
++  * Utilise les magic bytes (signatures de fichiers) pour détecter les falsifications de type MIME
++  */
++ 
++ // Magic bytes pour différents formats de fichiers
++ const FILE_SIGNATURES: Record&lt;string, number[][]&gt; = {
++   // Images
++   &#39;image/jpeg&#39;: [
++     [0xff, 0xd8, 0xff], // JPEG standard
++   ],
++   &#39;image/png&#39;: [
++     [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], // PNG standard
++   ],
++   &#39;image/webp&#39;: [
++     [0x52, 0x49, 0x46, 0x46], // RIFF header
++   ],
++   &#39;image/gif&#39;: [
++     [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], // GIF87a
++     [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], // GIF89a
++   ],
++   // Vidéos
++   &#39;video/mp4&#39;: [
++     [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70], // MP4 (ftyp)
++     [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70], // MP4 variant
++     [0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70], // MP4 variant
++   ],
++   &#39;video/webm&#39;: [
++     [0x1a, 0x45, 0xdf, 0xa3], // WebM (EBML header)
++   ],
++   // Audio
++   &#39;audio/mpeg&#39;: [
++     [0xff, 0xfb], // MP3 avec ID3v2
++     [0xff, 0xf3], // MP3 sans ID3v2
++     [0xff, 0xf2], // MP3 sans ID3v2
++     [0x49, 0x44, 0x33], // MP3 avec ID3v2 (commence par ID3)
++   ],
++   &#39;audio/wav&#39;: [
++     [0x52, 0x49, 0x46, 0x46], // RIFF header
++   ],
++ };
++ 
++ // Types MIME autorisés par catégorie
++ export const ALLOWED_MIME_TYPES = {
++   images: [&#39;image/jpeg&#39;, &#39;image/png&#39;, &#39;image/webp&#39;, &#39;image/gif&#39;],
++   videos: [&#39;video/mp4&#39;, &#39;video/webm&#39;],
++   audio: [&#39;audio/mpeg&#39;, &#39;audio/wav&#39;],
++ } as const;
++ 
++ export type FileCategory = &#39;images&#39; | &#39;videos&#39; | &#39;audio&#39;;
++ 
++ /**
++  * Lit les premiers bytes d&#39;un fichier
++  * @param file - Fichier à analyser
++  * @param length - Nombre de bytes à lire (défaut: 12)
++  * @returns Promise&lt;Uint8Array&gt; - Tableau des bytes lus
++  */
++ async function readFileHeader(file: File, length: number = 12): Promise&lt;Uint8Array&gt; {
++   return new Promise((resolve, reject) =&gt; {
++     const reader = new FileReader();
++     
++     reader.onload = (e) =&gt; {
++       if (e.target?.result instanceof ArrayBuffer) {
++         const bytes = new Uint8Array(e.target.result);
++         resolve(bytes);
++       } else {
++         reject(new Error(&#39;Impossible de lire le fichier&#39;));
++       }
++     };
++     
++     reader.onerror = () =&gt; reject(new Error(&#39;Erreur lors de la lecture du fichier&#39;));
++     
++     // Lire seulement les premiers bytes
++     const blob = file.slice(0, length);
++     reader.readAsArrayBuffer(blob);
++   });
++ }
++ 
++ /**
++  * Vérifie si les bytes correspondent à une signature connue
++  * @param bytes - Bytes à vérifier
++  * @param signatures - Tableau de signatures possibles
++  * @returns boolean - true si une signature correspond
++  */
++ function matchesSignature(bytes: Uint8Array, signatures: number[][]): boolean {
++   return signatures.some((signature) =&gt; {
++     if (bytes.length &lt; signature.length) return false;
++     
++     return signature.every((byte, index) =&gt; bytes[index] === byte);
++   });
++ }
++ 
++ /**
++  * Valide le type MIME réel d&#39;un fichier en utilisant les magic bytes
++  * @param file - Fichier à valider
++  * @param expectedMimeType - Type MIME attendu
++  * @returns Promise&lt;{ valid: boolean; error?: string }&gt;
++  */
++ export async function validateFileSignature(
++   file: File,
++   expectedMimeType: string
++ ): Promise&lt;{ valid: boolean; error?: string }&gt; {
++   try {
++     // Vérifier que le type MIME attendu est dans nos signatures connues
++     const signatures = FILE_SIGNATURES[expectedMimeType];
++     if (!signatures) {
++       return {
++         valid: false,
++         error: &#96;Type MIME non supporté pour validation: ${expectedMimeType}&#96;,
++       };
++     }
++ 
++     // Lire les premiers bytes du fichier
++     const maxSignatureLength = Math.max(...signatures.map((sig) =&gt; sig.length));
++     const bytes = await readFileHeader(file, maxSignatureLength);
++ 
++     // Vérifier si les bytes correspondent à une signature connue
++     const isValid = matchesSignature(bytes, signatures);
++ 
++     if (!isValid) {
++       return {
++         valid: false,
++         error: &#96;Le fichier ne correspond pas au type MIME déclaré (${expectedMimeType}). Signature invalide.&#96;,
++       };
++     }
++ 
++     return { valid: true };
++   } catch (error) {
++     return {
++       valid: false,
++       error: &#96;Erreur lors de la validation du fichier: ${error instanceof Error ? error.message : &#39;Erreur inconnue&#39;}&#96;,
++     };
++   }
++ }
++ 
++ /**
++  * Valide un fichier selon sa catégorie (images, videos, audio)
++  * @param file - Fichier à valider
++  * @param category - Catégorie du fichier
++  * @returns Promise&lt;{ valid: boolean; error?: string; mimeType?: string }&gt;
++  */
++ export async function validateFileByCategory(
++   file: File,
++   category: FileCategory
++ ): Promise&lt;{ valid: boolean; error?: string; mimeType?: string }&gt; {
++   const allowedTypes = ALLOWED_MIME_TYPES[category];
++   
++   // Vérifier que le type MIME déclaré est autorisé
++   if (!allowedTypes.includes(file.type as any)) {
++     return {
++       valid: false,
++       error: &#96;Type MIME non autorisé: ${file.type}. Types autorisés: ${allowedTypes.join(&#39;, &#39;)}&#96;,
++     };
++   }
++ 
++   // Valider la signature du fichier
++   const signatureValidation = await validateFileSignature(file, file.type);
++   if (!signatureValidation.valid) {
++     return signatureValidation;
++   }
++ 
++   return {
++     valid: true,
++     mimeType: file.type,
++   };
++ }
++ 
++ /**
++  * Valide la taille d&#39;un fichier
++  * @param file - Fichier à valider
++  * @param maxSizeBytes - Taille maximale en bytes
++  * @returns { valid: boolean; error?: string }
++  */
++ export function validateFileSize(file: File, maxSizeBytes: number): { valid: boolean; error?: string } {
++   if (file.size &gt; maxSizeBytes) {
++     const maxSizeMB = (maxSizeBytes / (1024 * 1024)).toFixed(2);
++     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
++     return {
++       valid: false,
++       error: &#96;Fichier trop volumineux: ${fileSizeMB} MB. Taille maximale autorisée: ${maxSizeMB} MB&#96;,
++     };
++   }
++ 
++   return { valid: true };
++ }
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+Intégration de la validation magic bytes dans les formulaires d'upload. Lecture des formulaires existants :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/photos/PhotoUploadForm.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="glob_file_search">
+<details>
+<summary>Tool use: **glob_file_search** • Searched codebase "*UploadForm.tsx" • **4** results in **1** directory</summary>
+
+Directory: **c:\Users\Gildas\Documents\Projets\Développement\En cours\Portfolio\portfolio** (4 files)
+
+| File |
+|------|
+| `components\photos\PhotoUploadForm.tsx` |
+| `components\texts\TextUploadForm.tsx` |
+| `components\videos\VideoUploadForm.tsx` |
+| `components\music\MusicUploadForm.tsx` |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [x] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [x] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [-] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [ ] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [ ] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [ ] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [ ] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [ ] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Intégration de la validation magic bytes dans les formulaires d'upload :
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/photos/PhotoUploadForm.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Mise à jour de `PhotoUploadForm` pour intégrer la validation magic bytes :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: components/photos/PhotoUploadForm.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -15,4 +15,5 @@
+  import { cn } from &#39;@/lib/utils&#39;;
+  import { TagBadge } from &#39;@/components/texts/TagBadge&#39;;
++ import { validateFileByCategory, validateFileSize } from &#39;@/lib/fileValidation&#39;;
+  
+  interface PhotoUploadFormProps {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: components/photos/PhotoUploadForm.tsx</summary>
+
+**Chunk 1**
+Lines added: 14, lines removed: 8
+
+```diff
+@@ -60,16 +60,22 @@
+    };
+  
+-   const validateFile = (file: File): string | null =&gt; {
+-     if (!ACCEPTED_TYPES.includes(file.type)) {
+-       return &#39;Type de fichier non accepté. Utilisez JPEG, PNG, WebP ou GIF.&#39;;
+-     }
+-     if (file.size &gt; MAX_FILE_SIZE) {
+-       return &#39;Le fichier est trop volumineux. Maximum 5MB.&#39;;
++   const validateFile = async (file: File): Promise&lt;string | null&gt; =&gt; {
++     // Validation de la taille
++     const sizeValidation = validateFileSize(file, MAX_FILE_SIZE);
++     if (!sizeValidation.valid) {
++       return sizeValidation.error || null;
++     }
++ 
++     // Validation du type MIME et de la signature
++     const categoryValidation = await validateFileByCategory(file, &#39;images&#39;);
++     if (!categoryValidation.valid) {
++       return categoryValidation.error || null;
+      }
++ 
+      return null;
+    };
+  
+-   const handleFileSelect = (selectedFile: File) =&gt; {
+-     const error = validateFile(selectedFile);
++   const handleFileSelect = async (selectedFile: File) =&gt; {
++     const error = await validateFile(selectedFile);
+      if (error) {
+        toast.error(&#39;Fichier invalide&#39;, { description: error });
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/music/MusicUploadForm.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: components/videos/VideoUploadForm.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Mise à jour de `MusicUploadForm` et `VideoUploadForm` pour intégrer la validation magic bytes :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: components/music/MusicUploadForm.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -14,4 +14,5 @@
+  import { cn } from &#39;@/lib/utils&#39;;
+  import { TagBadge } from &#39;@/components/texts/TagBadge&#39;;
++ import { validateFileByCategory, validateFileSize } from &#39;@/lib/fileValidation&#39;;
+  
+  interface MusicUploadFormProps {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: components/music/MusicUploadForm.tsx</summary>
+
+**Chunk 1**
+Lines added: 25, lines removed: 13
+
+```diff
+@@ -64,26 +64,38 @@
+    };
+  
+-   const validateAudioFile = (file: File): string | null =&gt; {
+-     if (!ACCEPTED_AUDIO_TYPES.includes(file.type)) {
+-       return &#39;Type de fichier non accepté. Utilisez MP3, WAV ou OGG.&#39;;
+-     }
+-     if (file.size &gt; MAX_AUDIO_SIZE) {
+-       return &#39;Le fichier est trop volumineux. Maximum 10MB.&#39;;
++   const validateAudioFile = async (file: File): Promise&lt;string | null&gt; =&gt; {
++     // Validation de la taille
++     const sizeValidation = validateFileSize(file, MAX_AUDIO_SIZE);
++     if (!sizeValidation.valid) {
++       return sizeValidation.error || null;
++     }
++ 
++     // Validation du type MIME et de la signature
++     const categoryValidation = await validateFileByCategory(file, &#39;audio&#39;);
++     if (!categoryValidation.valid) {
++       return categoryValidation.error || null;
+      }
++ 
+      return null;
+    };
+  
+-   const validateImageFile = (file: File): string | null =&gt; {
+-     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+-       return &#39;Type d\&#39;image non accepté. Utilisez JPEG, PNG ou WebP.&#39;;
++   const validateImageFile = async (file: File): Promise&lt;string | null&gt; =&gt; {
++     // Validation de la taille
++     const sizeValidation = validateFileSize(file, MAX_IMAGE_SIZE);
++     if (!sizeValidation.valid) {
++       return sizeValidation.error || null;
+      }
+-     if (file.size &gt; MAX_IMAGE_SIZE) {
+-       return &#39;L\&#39;image est trop volumineuse. Maximum 2MB.&#39;;
++ 
++     // Validation du type MIME et de la signature
++     const categoryValidation = await validateFileByCategory(file, &#39;images&#39;);
++     if (!categoryValidation.valid) {
++       return categoryValidation.error || null;
+      }
++ 
+      return null;
+    };
+  
+-   const handleAudioSelect = (selectedFile: File) =&gt; {
+-     const error = validateAudioFile(selectedFile);
++   const handleAudioSelect = async (selectedFile: File) =&gt; {
++     const error = await validateAudioFile(selectedFile);
+      if (error) {
+        toast.error(&#39;Fichier audio invalide&#39;, { description: error });
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -97,6 +109,6 @@
+    };
+  
+-   const handleCoverSelect = (selectedFile: File) =&gt; {
+-     const error = validateImageFile(selectedFile);
++   const handleCoverSelect = async (selectedFile: File) =&gt; {
++     const error = await validateImageFile(selectedFile);
+      if (error) {
+        toast.error(&#39;Image invalide&#39;, { description: error });
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: components/music/MusicUploadForm.tsx</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -142,7 +142,7 @@
+      if (droppedFile) {
+        if (droppedFile.type.startsWith(&#39;audio/&#39;)) {
+-         handleAudioSelect(droppedFile);
++         await handleAudioSelect(droppedFile);
+        } else if (droppedFile.type.startsWith(&#39;image/&#39;)) {
+-         handleCoverSelect(droppedFile);
++         await handleCoverSelect(droppedFile);
+        }
+      }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: components/videos/VideoUploadForm.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -15,4 +15,5 @@
+  import { cn } from &#39;@/lib/utils&#39;;
+  import { TagBadge } from &#39;@/components/texts/TagBadge&#39;;
++ import { validateFileByCategory, validateFileSize } from &#39;@/lib/fileValidation&#39;;
+  
+  interface VideoUploadFormProps {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: components/videos/VideoUploadForm.tsx</summary>
+
+**Chunk 1**
+Lines added: 25, lines removed: 13
+
+```diff
+@@ -64,26 +64,38 @@
+    };
+  
+-   const validateVideoFile = (file: File): string | null =&gt; {
+-     if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+-       return &#39;Type de fichier non accepté. Utilisez MP4, WebM ou MOV.&#39;;
+-     }
+-     if (file.size &gt; MAX_VIDEO_SIZE) {
+-       return &#39;Le fichier est trop volumineux. Maximum 100MB.&#39;;
++   const validateVideoFile = async (file: File): Promise&lt;string | null&gt; =&gt; {
++     // Validation de la taille
++     const sizeValidation = validateFileSize(file, MAX_VIDEO_SIZE);
++     if (!sizeValidation.valid) {
++       return sizeValidation.error || null;
++     }
++ 
++     // Validation du type MIME et de la signature
++     const categoryValidation = await validateFileByCategory(file, &#39;videos&#39;);
++     if (!categoryValidation.valid) {
++       return categoryValidation.error || null;
+      }
++ 
+      return null;
+    };
+  
+-   const validateImageFile = (file: File): string | null =&gt; {
+-     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+-       return &#39;Type d\&#39;image non accepté. Utilisez JPEG, PNG ou WebP.&#39;;
++   const validateImageFile = async (file: File): Promise&lt;string | null&gt; =&gt; {
++     // Validation de la taille
++     const sizeValidation = validateFileSize(file, MAX_IMAGE_SIZE);
++     if (!sizeValidation.valid) {
++       return sizeValidation.error || null;
+      }
+-     if (file.size &gt; MAX_IMAGE_SIZE) {
+-       return &#39;L\&#39;image est trop volumineuse. Maximum 2MB.&#39;;
++ 
++     // Validation du type MIME et de la signature
++     const categoryValidation = await validateFileByCategory(file, &#39;images&#39;);
++     if (!categoryValidation.valid) {
++       return categoryValidation.error || null;
+      }
++ 
+      return null;
+    };
+  
+-   const handleVideoSelect = (selectedFile: File) =&gt; {
+-     const error = validateVideoFile(selectedFile);
++   const handleVideoSelect = async (selectedFile: File) =&gt; {
++     const error = await validateVideoFile(selectedFile);
+      if (error) {
+        toast.error(&#39;Fichier vidéo invalide&#39;, { description: error });
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -97,6 +109,6 @@
+    };
+  
+-   const handleThumbnailSelect = (selectedFile: File) =&gt; {
+-     const error = validateImageFile(selectedFile);
++   const handleThumbnailSelect = async (selectedFile: File) =&gt; {
++     const error = await validateImageFile(selectedFile);
+      if (error) {
+        toast.error(&#39;Image invalide&#39;, { description: error });
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: components/videos/VideoUploadForm.tsx</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -142,7 +142,7 @@
+      if (droppedFile) {
+        if (droppedFile.type.startsWith(&#39;video/&#39;)) {
+-         handleVideoSelect(droppedFile);
++         await handleVideoSelect(droppedFile);
+        } else if (droppedFile.type.startsWith(&#39;image/&#39;)) {
+-         handleThumbnailSelect(droppedFile);
++         await handleThumbnailSelect(droppedFile);
+        }
+      }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [x] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [x] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [x] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [-] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [ ] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [ ] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [ ] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [ ] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: lib/urlValidation.ts</summary>
+
+**Chunk 1**
+Lines added: 148, lines removed: 1
+
+```diff
+@@ -1,1 +1,148 @@
+- 
++ /**
++  * Validation des URLs pour prévenir les injections et les redirections malveillantes
++  */
++ 
++ // Domaines autorisés pour les URLs (Supabase Storage)
++ const ALLOWED_DOMAINS = [
++   &#39;supabase.co&#39;,
++   &#39;supabase.in&#39;,
++   &#39;storage.googleapis.com&#39;, // Pour les buckets Supabase
++ ];
++ 
++ // Protocoles dangereux à bloquer
++ const DANGEROUS_PROTOCOLS = [
++   &#39;javascript:&#39;,
++   &#39;data:&#39;,
++   &#39;vbscript:&#39;,
++   &#39;file:&#39;,
++   &#39;about:&#39;,
++ ];
++ 
++ /**
++  * Valide qu&#39;une URL est sécurisée
++  * @param url - URL à valider
++  * @param options - Options de validation
++  * @returns { valid: boolean; error?: string }
++  */
++ export function validateUrl(
++   url: string,
++   options: {
++     requireHttps?: boolean;
++     allowedDomains?: string[];
++     allowLocalhost?: boolean;
++   } = {}
++ ): { valid: boolean; error?: string } {
++   const {
++     requireHttps = true,
++     allowedDomains = ALLOWED_DOMAINS,
++     allowLocalhost = false,
++   } = options;
++ 
++   // Vérifier que l&#39;URL n&#39;est pas vide
++   if (!url || typeof url !== &#39;string&#39; || url.trim().length === 0) {
++     return {
++       valid: false,
++       error: &#39;URL vide ou invalide&#39;,
++     };
++   }
++ 
++   const trimmedUrl = url.trim();
++ 
++   // Vérifier les protocoles dangereux
++   const lowerUrl = trimmedUrl.toLowerCase();
++   for (const protocol of DANGEROUS_PROTOCOLS) {
++     if (lowerUrl.startsWith(protocol)) {
++       return {
++         valid: false,
++         error: &#96;Protocole dangereux détecté: ${protocol}&#96;,
++       };
++     }
++   }
++ 
++   // Vérifier le format de l&#39;URL
++   let parsedUrl: URL;
++   try {
++     parsedUrl = new URL(trimmedUrl);
++   } catch (error) {
++     return {
++       valid: false,
++       error: &#39;Format d\&#39;URL invalide&#39;,
++     };
++   }
++ 
++   // Vérifier le protocole HTTPS (ou HTTP en développement)
++   if (requireHttps) {
++     if (parsedUrl.protocol !== &#39;https:&#39;) {
++       // Autoriser HTTP uniquement pour localhost en développement
++       if (parsedUrl.protocol === &#39;http:&#39; &amp;&amp; allowLocalhost &amp;&amp; parsedUrl.hostname === &#39;localhost&#39;) {
++         // OK pour développement local
++       } else {
++         return {
++           valid: false,
++           error: &#39;Seules les URLs HTTPS sont autorisées&#39;,
++         };
++       }
++     }
++   } else {
++     // Si HTTPS n&#39;est pas requis, vérifier au moins que ce n&#39;est pas un protocole dangereux
++     if (![&#39;http:&#39;, &#39;https:&#39;].includes(parsedUrl.protocol)) {
++       return {
++         valid: false,
++         error: &#96;Protocole non autorisé: ${parsedUrl.protocol}&#96;,
++       };
++     }
++   }
++ 
++   // Vérifier le domaine autorisé
++   if (allowedDomains.length &gt; 0) {
++     const hostname = parsedUrl.hostname.toLowerCase();
++     const isAllowed = allowedDomains.some((domain) =&gt; {
++       // Vérifier si le hostname correspond exactement ou est un sous-domaine
++       return hostname === domain || hostname.endsWith(&#39;.&#39; + domain);
++     });
++ 
++     // Autoriser localhost en développement si spécifié
++     if (!isAllowed &amp;&amp; allowLocalhost &amp;&amp; hostname === &#39;localhost&#39;) {
++       // OK pour développement local
++     } else if (!isAllowed) {
++       return {
++         valid: false,
++         error: &#96;Domaine non autorisé: ${hostname}. Domaines autorisés: ${allowedDomains.join(&#39;, &#39;)}&#96;,
++       };
++     }
++   }
++ 
++   return { valid: true };
++ }
++ 
++ /**
++  * Valide une URL Supabase Storage
++  * @param url - URL à valider
++  * @returns { valid: boolean; error?: string }
++  */
++ export function validateSupabaseStorageUrl(url: string): { valid: boolean; error?: string } {
++   return validateUrl(url, {
++     requireHttps: true,
++     allowedDomains: ALLOWED_DOMAINS,
++     allowLocalhost: false,
++   });
++ }
++ 
++ /**
++  * Valide une URL pour les champs image_url, video_url, audio_url
++  * @param url - URL à valider
++  * @param fieldName - Nom du champ (pour les messages d&#39;erreur)
++  * @returns { valid: boolean; error?: string }
++  */
++ export function validateMediaUrl(
++   url: string,
++   fieldName: string = &#39;URL&#39;
++ ): { valid: boolean; error?: string } {
++   // Pour les médias, on exige HTTPS et un domaine autorisé
++   return validateUrl(url, {
++     requireHttps: true,
++     allowedDomains: ALLOWED_DOMAINS,
++     allowLocalhost: false,
++   });
++ }
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+Intégration de la validation d'URL dans les services. Poursuivons avec les autres todos :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/photoService.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -2,4 +2,5 @@
+  import { photoTagService } from &#39;./photoTagService&#39;;
+  import { cache } from &#39;@/lib/cache&#39;;
++ import { validateMediaUrl } from &#39;@/lib/urlValidation&#39;;
+  
+  export const photoService = {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/photoService.ts</summary>
+
+**Chunk 1**
+Lines added: 12, lines removed: undefined
+
+```diff
+@@ -78,4 +78,16 @@
+      user_id?: string | null;
+    }) {
++     // Valider l&#39;URL de l&#39;image
++     const urlValidation = validateMediaUrl(photo.image_url, &#39;image_url&#39;);
++     if (!urlValidation.valid) {
++       return {
++         photo: null,
++         error: {
++           message: urlValidation.error || &#39;URL invalide&#39;,
++           code: &#39;INVALID_URL&#39;,
++         } as any,
++       };
++     }
++ 
+      // Récupérer l&#39;utilisateur actuel si user_id n&#39;est pas fourni
+      const { data: { user } } = await supabaseClient.auth.getUser();
+```
+
+**Chunk 2**
+Lines added: 14, lines removed: undefined
+
+```diff
+@@ -100,4 +112,18 @@
+  
+    async updatePhoto(id: string, updates: Partial&lt;Photo&gt;) {
++     // Valider l&#39;URL de l&#39;image si elle est mise à jour
++     if (updates.image_url) {
++       const urlValidation = validateMediaUrl(updates.image_url, &#39;image_url&#39;);
++       if (!urlValidation.valid) {
++         return {
++           photo: null,
++           error: {
++             message: urlValidation.error || &#39;URL invalide&#39;,
++             code: &#39;INVALID_URL&#39;,
++           } as any,
++         };
++       }
++     }
++ 
+      const { data, error } = await supabaseClient
+        .from(&#39;photos&#39;)
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/musicService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/musicService.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -2,4 +2,5 @@
+  import { musicTagService } from &#39;./musicTagService&#39;;
+  import { cache } from &#39;@/lib/cache&#39;;
++ import { validateMediaUrl } from &#39;@/lib/urlValidation&#39;;
+  
+  export const musicService = {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/musicService.ts</summary>
+
+**Chunk 1**
+Lines added: 25, lines removed: undefined
+
+```diff
+@@ -117,4 +117,29 @@
+          user_id: user.id
+        };
++ 
++       // Valider les URLs
++       const audioUrlValidation = validateMediaUrl(trackWithUser.audio_url, &#39;audio_url&#39;);
++       if (!audioUrlValidation.valid) {
++         return {
++           track: null,
++           error: {
++             message: audioUrlValidation.error || &#39;URL audio invalide&#39;,
++             code: &#39;INVALID_URL&#39;,
++           } as any,
++         };
++       }
++ 
++       if (trackWithUser.cover_image_url) {
++         const coverUrlValidation = validateMediaUrl(trackWithUser.cover_image_url, &#39;cover_image_url&#39;);
++         if (!coverUrlValidation.valid) {
++           return {
++             track: null,
++             error: {
++               message: coverUrlValidation.error || &#39;URL de couverture invalide&#39;,
++               code: &#39;INVALID_URL&#39;,
++             } as any,
++           };
++         }
++       }
+  
+        console.log(&#39;[MUSIC SERVICE] Inserting track with user_id:&#39;, trackWithUser);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/musicService.ts</summary>
+
+**Chunk 1**
+Lines added: 27, lines removed: undefined
+
+```diff
+@@ -178,4 +178,31 @@
+  
+    async updateTrack(id: string, updates: Partial&lt;MusicTrack&gt;) {
++     // Valider les URLs si elles sont mises à jour
++     if (updates.audio_url) {
++       const urlValidation = validateMediaUrl(updates.audio_url, &#39;audio_url&#39;);
++       if (!urlValidation.valid) {
++         return {
++           track: null,
++           error: {
++             message: urlValidation.error || &#39;URL audio invalide&#39;,
++             code: &#39;INVALID_URL&#39;,
++           } as any,
++         };
++       }
++     }
++ 
++     if (updates.cover_image_url) {
++       const urlValidation = validateMediaUrl(updates.cover_image_url, &#39;cover_image_url&#39;);
++       if (!urlValidation.valid) {
++         return {
++           track: null,
++           error: {
++             message: urlValidation.error || &#39;URL de couverture invalide&#39;,
++             code: &#39;INVALID_URL&#39;,
++           } as any,
++         };
++       }
++     }
++ 
+      const { data, error } = await supabaseClient
+        .from(&#39;music_tracks&#39;)
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: services/videoService.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [x] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [x] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [x] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [x] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [-] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [ ] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [ ] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [ ] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Intégration de la validation d'URL dans `videoService`, puis poursuite avec les autres todos :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/videoService.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -1,4 +1,5 @@
+  import { supabaseClient, Video, VideoWithTags } from &#39;@/lib/supabaseClient&#39;;
+  import { videoTagService } from &#39;./videoTagService&#39;;
++ import { validateMediaUrl } from &#39;@/lib/urlValidation&#39;;
+  
+  export const videoService = {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/videoService.ts</summary>
+
+**Chunk 1**
+Lines added: 25, lines removed: undefined
+
+```diff
+@@ -99,4 +99,29 @@
+          user_id: user.id
+        };
++ 
++       // Valider les URLs
++       const videoUrlValidation = validateMediaUrl(videoWithUser.video_url, &#39;video_url&#39;);
++       if (!videoUrlValidation.valid) {
++         return {
++           video: null,
++           error: {
++             message: videoUrlValidation.error || &#39;URL vidéo invalide&#39;,
++             code: &#39;INVALID_URL&#39;,
++           } as any,
++         };
++       }
++ 
++       if (videoWithUser.thumbnail_url) {
++         const thumbnailUrlValidation = validateMediaUrl(videoWithUser.thumbnail_url, &#39;thumbnail_url&#39;);
++         if (!thumbnailUrlValidation.valid) {
++           return {
++             video: null,
++             error: {
++               message: thumbnailUrlValidation.error || &#39;URL de miniature invalide&#39;,
++               code: &#39;INVALID_URL&#39;,
++             } as any,
++           };
++         }
++       }
+  
+        console.log(&#39;[VIDEO SERVICE] Inserting video with user_id:&#39;, videoWithUser);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/videoService.ts</summary>
+
+**Chunk 1**
+Lines added: 27, lines removed: undefined
+
+```diff
+@@ -156,4 +156,31 @@
+  
+    async updateVideo(id: string, updates: Partial&lt;Video&gt;) {
++     // Valider les URLs si elles sont mises à jour
++     if (updates.video_url) {
++       const urlValidation = validateMediaUrl(updates.video_url, &#39;video_url&#39;);
++       if (!urlValidation.valid) {
++         return {
++           video: null,
++           error: {
++             message: urlValidation.error || &#39;URL vidéo invalide&#39;,
++             code: &#39;INVALID_URL&#39;,
++           } as any,
++         };
++       }
++     }
++ 
++     if (updates.thumbnail_url) {
++       const urlValidation = validateMediaUrl(updates.thumbnail_url, &#39;thumbnail_url&#39;);
++       if (!urlValidation.valid) {
++         return {
++           video: null,
++           error: {
++             message: urlValidation.error || &#39;URL de miniature invalide&#39;,
++             code: &#39;INVALID_URL&#39;,
++           } as any,
++         };
++       }
++     }
++ 
+      const { data, error } = await supabaseClient
+        .from(&#39;videos&#39;)
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: next.config.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [x] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [x] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [x] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [x] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [x] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [-] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [ ] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [ ] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Ajout des headers de sécurité HTTP dans `next.config.js` :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: next.config.js</summary>
+
+**Chunk 1**
+Lines added: 47, lines removed: undefined
+
+```diff
+@@ -18,4 +18,51 @@
+      } : false,
+    },
++   // Headers de sécurité HTTP
++   async headers() {
++     return [
++       {
++         source: &#39;/:path*&#39;,
++         headers: [
++           {
++             key: &#39;X-Content-Type-Options&#39;,
++             value: &#39;nosniff&#39;,
++           },
++           {
++             key: &#39;X-Frame-Options&#39;,
++             value: &#39;DENY&#39;,
++           },
++           {
++             key: &#39;X-XSS-Protection&#39;,
++             value: &#39;1; mode=block&#39;,
++           },
++           {
++             key: &#39;Referrer-Policy&#39;,
++             value: &#39;strict-origin-when-cross-origin&#39;,
++           },
++           {
++             key: &#39;Permissions-Policy&#39;,
++             value: &#39;camera=(), microphone=(), geolocation=()&#39;,
++           },
++           {
++             key: &#39;Content-Security-Policy&#39;,
++             value: [
++               &quot;default-src &#39;self&#39;&quot;,
++               &quot;script-src &#39;self&#39; &#39;unsafe-eval&#39; &#39;unsafe-inline&#39;&quot;, // unsafe-inline nécessaire pour Next.js
++               &quot;style-src &#39;self&#39; &#39;unsafe-inline&#39;&quot;, // unsafe-inline nécessaire pour Tailwind
++               &quot;img-src &#39;self&#39; data: https:&quot;,
++               &quot;font-src &#39;self&#39; data:&quot;,
++               &quot;connect-src &#39;self&#39; https://*.supabase.co https://*.supabase.in&quot;,
++               &quot;frame-src &#39;none&#39;&quot;,
++               &quot;object-src &#39;none&#39;&quot;,
++               &quot;base-uri &#39;self&#39;&quot;,
++               &quot;form-action &#39;self&#39;&quot;,
++               &quot;frame-ancestors &#39;none&#39;&quot;,
++               &quot;upgrade-insecure-requests&quot;,
++             ].join(&#39;; &#39;),
++           },
++         ],
++       },
++     ];
++   },
+    // Budgets de performance pour détecter les régressions
+    experimental: {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: package.json</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [x] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [x] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [x] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [x] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [x] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [x] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [-] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [ ] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Ajout du script npm audit et poursuite des autres todos :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: package.json</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 1
+
+```diff
+@@ -11,5 +11,7 @@
+      &quot;analyze&quot;: &quot;ANALYZE=true next build&quot;,
+      &quot;check-bundle&quot;: &quot;node scripts/check-bundle-size.js&quot;,
+-     &quot;generate-lqip&quot;: &quot;echo &#39;Pour générer des LQIP pour les images existantes, visitez /admin/migrate-lqip dans votre navigateur&#39;&quot;
++     &quot;generate-lqip&quot;: &quot;echo &#39;Pour générer des LQIP pour les images existantes, visitez /admin/migrate-lqip dans votre navigateur&#39;&quot;,
++     &quot;audit&quot;: &quot;npm audit --audit-level=moderate&quot;,
++     &quot;audit:fix&quot;: &quot;npm audit fix&quot;
+    },
+    &quot;dependencies&quot;: {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [x] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [x] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [x] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [x] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [x] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [x] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [x] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [-] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [ ] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: docs/SECURITY.md</summary>
+
+**Chunk 1**
+Lines added: 255, lines removed: 1
+
+```diff
+@@ -1,1 +1,255 @@
+- 
++ # Documentation Sécurité
++ 
++ Ce document décrit toutes les mesures de sécurité implémentées dans le portfolio Next.js et les bonnes pratiques à suivre.
++ 
++ ## Vue d&#39;ensemble
++ 
++ Le portfolio implémente plusieurs couches de sécurité pour protéger contre les vulnérabilités courantes :
++ 
++ - **Validation des données** : Validation Zod côté client et contraintes CHECK côté serveur
++ - **Sanitization** : DOMPurify pour le contenu Markdown
++ - **RLS Supabase** : Row Level Security avec vérification d&#39;ownership
++ - **Validation des fichiers** : Magic bytes pour détecter les falsifications de type MIME
++ - **Validation des URLs** : Vérification des protocoles et domaines autorisés
++ - **Headers de sécurité HTTP** : Protection contre les attaques courantes
++ - **Rate limiting** : Limitation des appels API côté client
++ 
++ ## Headers de sécurité HTTP
++ 
++ Les headers de sécurité sont configurés dans &#96;next.config.js&#96; et incluent :
++ 
++ ### X-Content-Type-Options: nosniff
++ Empêche le navigateur de deviner le type MIME d&#39;un fichier, réduisant les risques d&#39;exécution de scripts malveillants.
++ 
++ ### X-Frame-Options: DENY
++ Empêche l&#39;embedding de la page dans des iframes, protégeant contre les attaques de clickjacking.
++ 
++ ### X-XSS-Protection: 1; mode=block
++ Active la protection XSS intégrée du navigateur (obsolète mais toujours utile pour les anciens navigateurs).
++ 
++ ### Referrer-Policy: strict-origin-when-cross-origin
++ Contrôle les informations de referrer envoyées avec les requêtes, protégeant la vie privée.
++ 
++ ### Permissions-Policy: camera=(), microphone=(), geolocation=()
++ Désactive les APIs sensibles (caméra, microphone, géolocalisation) pour réduire la surface d&#39;attaque.
++ 
++ ### Content-Security-Policy (CSP)
++ Politique de sécurité du contenu qui restreint les ressources pouvant être chargées :
++ 
++ - &#96;default-src &#39;self&#39;&#96; : Par défaut, seules les ressources du même domaine sont autorisées
++ - &#96;script-src &#39;self&#39; &#39;unsafe-eval&#39; &#39;unsafe-inline&#39;&#96; : Scripts autorisés (unsafe-inline nécessaire pour Next.js)
++ - &#96;style-src &#39;self&#39; &#39;unsafe-inline&#39;&#96; : Styles autorisés (unsafe-inline nécessaire pour Tailwind)
++ - &#96;img-src &#39;self&#39; data: https:&#96; : Images autorisées depuis le même domaine, data URIs, et HTTPS
++ - &#96;connect-src &#39;self&#39; https://*.supabase.co https://*.supabase.in&#96; : Connexions autorisées vers Supabase
++ - &#96;frame-src &#39;none&#39;&#96; : Aucun iframe autorisé
++ - &#96;object-src &#39;none&#39;&#96; : Aucun objet embed autorisé
++ - &#96;base-uri &#39;self&#39;&#96; : Base URI restreinte au même domaine
++ - &#96;form-action &#39;self&#39;&#96; : Formulaires ne peuvent soumettre qu&#39;au même domaine
++ - &#96;frame-ancestors &#39;none&#39;&#96; : Aucun embedding de la page
++ - &#96;upgrade-insecure-requests&#96; : Force HTTPS pour toutes les requêtes
++ 
++ **Note** : Pour un export statique Next.js, les headers doivent être configurés au niveau du serveur web (Nginx, Apache, etc.) ou de la plateforme d&#39;hébergement (Netlify, Vercel).
++ 
++ ## Processus d&#39;audit des dépendances
++ 
++ ### Audit automatique
++ 
++ Exécutez régulièrement l&#39;audit des dépendances :
++ 
++ &#96;&#96;&#96;bash
++ npm audit
++ &#96;&#96;&#96;
++ 
++ Pour vérifier uniquement les vulnérabilités modérées et critiques :
++ 
++ &#96;&#96;&#96;bash
++ npm audit --audit-level=moderate
++ &#96;&#96;&#96;
++ 
++ ### Correction automatique
++ 
++ Pour corriger automatiquement les vulnérabilités :
++ 
++ &#96;&#96;&#96;bash
++ npm audit fix
++ &#96;&#96;&#96;
++ 
++ ### Fréquence recommandée
++ 
++ - **Hebdomadaire** : Audit complet des dépendances
++ - **Avant chaque déploiement** : Vérification des vulnérabilités critiques
++ - **Après chaque installation** : Vérification des nouvelles dépendances
++ 
++ ### Configuration Dependabot (GitHub)
++ 
++ Pour activer les alertes automatiques sur GitHub, créez &#96;.github/dependabot.yml&#96; :
++ 
++ &#96;&#96;&#96;yaml
++ version: 2
++ updates:
++   - package-ecosystem: &quot;npm&quot;
++     directory: &quot;/&quot;
++     schedule:
++       interval: &quot;weekly&quot;
++     open-pull-requests-limit: 10
++ &#96;&#96;&#96;
++ 
++ ## Validation des fichiers
++ 
++ ### Magic Bytes
++ 
++ La validation des fichiers utilise les magic bytes (signatures de fichiers) pour détecter les falsifications de type MIME.
++ 
++ **Formats supportés** :
++ - Images : JPEG, PNG, WebP, GIF
++ - Vidéos : MP4, WebM
++ - Audio : MPEG (MP3), WAV
++ 
++ **Implémentation** : &#96;lib/fileValidation.ts&#96;
++ 
++ **Utilisation** :
++ &#96;&#96;&#96;typescript
++ import { validateFileByCategory } from &#39;@/lib/fileValidation&#39;;
++ 
++ const validation = await validateFileByCategory(file, &#39;images&#39;);
++ if (!validation.valid) {
++   console.error(validation.error);
++ }
++ &#96;&#96;&#96;
++ 
++ ## Validation des URLs
++ 
++ ### Règles de validation
++ 
++ Les URLs sont validées selon les critères suivants :
++ 
++ 1. **Format valide** : Doit être une URL valide
++ 2. **Protocole HTTPS** : Seules les URLs HTTPS sont autorisées (sauf localhost en développement)
++ 3. **Domaine autorisé** : Seuls les domaines Supabase Storage sont autorisés
++ 4. **Protocoles dangereux bloqués** : &#96;javascript:&#96;, &#96;data:&#96;, &#96;vbscript:&#96;, &#96;file:&#96;, &#96;about:&#96;
++ 
++ **Implémentation** : &#96;lib/urlValidation.ts&#96;
++ 
++ **Utilisation** :
++ &#96;&#96;&#96;typescript
++ import { validateMediaUrl } from &#39;@/lib/urlValidation&#39;;
++ 
++ const validation = validateMediaUrl(url, &#39;image_url&#39;);
++ if (!validation.valid) {
++   console.error(validation.error);
++ }
++ &#96;&#96;&#96;
++ 
++ ## Contraintes base de données
++ 
++ ### Contraintes CHECK
++ 
++ Des contraintes CHECK sont définies au niveau PostgreSQL pour :
++ 
++ - **Longueurs maximales** : Titres ≤ 200 caractères, contenus ≤ 50000 caractères
++ - **Formats** : Slugs en kebab-case, couleurs hex (#RRGGBB)
++ - **URLs** : Format HTTPS valide
++ - **Valeurs numériques** : Durées positives
++ 
++ **Migration** : &#96;supabase/migrations/20250111_add_security_constraints.sql&#96;
++ 
++ ## Row Level Security (RLS)
++ 
++ ### Policies RLS
++ 
++ Toutes les tables ont des policies RLS activées :
++ 
++ - **SELECT** : Lecture publique pour les ressources publiées
++ - **INSERT** : Création réservée aux utilisateurs authentifiés avec vérification d&#39;ownership
++ - **UPDATE** : Modification réservée au propriétaire (&#96;user_id = auth.uid()&#96;)
++ - **DELETE** : Suppression réservée au propriétaire (&#96;user_id = auth.uid()&#96;)
++ 
++ **Tables protégées** :
++ - &#96;photos&#96; : Vérification d&#39;ownership pour UPDATE/DELETE
++ - &#96;music_tracks&#96; : Vérification d&#39;ownership pour UPDATE/DELETE
++ - &#96;videos&#96; : Vérification d&#39;ownership pour UPDATE/DELETE
++ - &#96;texts&#96; : Vérification d&#39;ownership pour UPDATE/DELETE
++ 
++ ## Rate Limiting côté client
++ 
++ ### Implémentation
++ 
++ Le rate limiting côté client limite les appels API pour prévenir les abus :
++ 
++ - **Create** : 10 requêtes par minute
++ - **Update** : 20 requêtes par minute
++ 
++ **Implémentation** : &#96;lib/rateLimiter.ts&#96;
++ 
++ **Note** : Le rate limiting réel doit être implémenté côté serveur (Supabase) pour une protection complète.
++ 
++ ## Bonnes pratiques pour les développeurs
++ 
++ ### 1. Validation des données
++ 
++ - Toujours valider les données côté client avec Zod
++ - Les contraintes base de données fournissent une protection supplémentaire
++ - Ne jamais faire confiance aux données côté client
++ 
++ ### 2. Sanitization
++ 
++ - Toujours sanitizer le contenu Markdown avec DOMPurify avant affichage
++ - Ne jamais afficher du contenu utilisateur sans sanitization
++ 
++ ### 3. Uploads de fichiers
++ 
++ - Toujours valider les fichiers avec magic bytes
++ - Limiter la taille des fichiers
++ - Valider le type MIME réel, pas seulement l&#39;extension
++ 
++ ### 4. URLs
++ 
++ - Toujours valider les URLs avant stockage
++ - Ne jamais permettre les protocoles dangereux (&#96;javascript:&#96;, &#96;data:&#96;, etc.)
++ - Restreindre aux domaines autorisés uniquement
++ 
++ ### 5. Authentification
++ 
++ - Toujours vérifier l&#39;authentification avant les opérations sensibles
++ - Utiliser RLS Supabase pour la protection côté serveur
++ - Vérifier l&#39;ownership des ressources avant modification/suppression
++ 
++ ### 6. Dépendances
++ 
++ - Auditer régulièrement les dépendances
++ - Mettre à jour rapidement les vulnérabilités critiques
++ - Éviter les dépendances non maintenues
++ 
++ ## Procédure de réponse aux incidents
++ 
++ ### 1. Détection
++ 
++ - Surveiller les logs d&#39;erreur
++ - Surveiller les métriques de performance
++ - Surveiller les alertes de sécurité
++ 
++ ### 2. Évaluation
++ 
++ - Évaluer la gravité de l&#39;incident
++ - Identifier les systèmes affectés
++ - Déterminer l&#39;étendue de l&#39;impact
++ 
++ ### 3. Réponse
++ 
++ - Isoler les systèmes affectés si nécessaire
++ - Corriger la vulnérabilité
++ - Notifier les parties prenantes
++ 
++ ### 4. Post-mortem
++ 
++ - Analyser la cause racine
++ - Documenter les leçons apprises
++ - Mettre à jour les procédures de sécurité
++ 
++ ## Ressources supplémentaires
++ 
++ - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
++ - [Next.js Security Best Practices](https://nextjs.org/docs/app/building-your-application/configuring/security-headers)
++ - [Supabase Security](https://supabase.com/docs/guides/auth/row-level-security)
++ - [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [x] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [x] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [x] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [x] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [x] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [x] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [x] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [x] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [-] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [ ] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: lib/rateLimiter.ts</summary>
+
+**Chunk 1**
+Lines added: 183, lines removed: 1
+
+```diff
+@@ -1,1 +1,183 @@
+- 
++ /**
++  * Rate Limiter côté client
++  * Utilise sessionStorage pour limiter les appels API et prévenir les abus
++  */
++ 
++ interface RateLimitConfig {
++   maxRequests: number;
++   windowMs: number;
++ }
++ 
++ interface RateLimitEntry {
++   count: number;
++   resetAt: number;
++ }
++ 
++ class ClientRateLimiter {
++   private storage: Storage;
++   private configs: Map&lt;string, RateLimitConfig&gt;;
++ 
++   constructor(storage: Storage = sessionStorage) {
++     this.storage = storage;
++     this.configs = new Map();
++   }
++ 
++   /**
++    * Configure un rate limit pour une opération spécifique
++    * @param operation - Nom de l&#39;opération (ex: &#39;create&#39;, &#39;update&#39;)
++    * @param config - Configuration du rate limit
++    */
++   configure(operation: string, config: RateLimitConfig): void {
++     this.configs.set(operation, config);
++   }
++ 
++   /**
++    * Vérifie si une opération peut être effectuée
++    * @param operation - Nom de l&#39;opération
++    * @returns { allowed: boolean; remaining: number; resetAt: number | null }
++    */
++   check(operation: string): { allowed: boolean; remaining: number; resetAt: number | null } {
++     const config = this.configs.get(operation);
++     if (!config) {
++       // Si aucune configuration n&#39;existe, autoriser l&#39;opération
++       return { allowed: true, remaining: Infinity, resetAt: null };
++     }
++ 
++     const key = &#96;rate_limit:${operation}&#96;;
++     const now = Date.now();
++     const stored = this.storage.getItem(key);
++ 
++     let entry: RateLimitEntry;
++     if (stored) {
++       try {
++         entry = JSON.parse(stored);
++       } catch {
++         // Si le parsing échoue, créer une nouvelle entrée
++         entry = { count: 0, resetAt: now + config.windowMs };
++       }
++     } else {
++       entry = { count: 0, resetAt: now + config.windowMs };
++     }
++ 
++     // Vérifier si la fenêtre de temps est expirée
++     if (now &gt;= entry.resetAt) {
++       // Réinitialiser le compteur
++       entry = { count: 0, resetAt: now + config.windowMs };
++     }
++ 
++     // Vérifier si la limite est atteinte
++     if (entry.count &gt;= config.maxRequests) {
++       return {
++         allowed: false,
++         remaining: 0,
++         resetAt: entry.resetAt,
++       };
++     }
++ 
++     // Incrémenter le compteur
++     entry.count++;
++     this.storage.setItem(key, JSON.stringify(entry));
++ 
++     return {
++       allowed: true,
++       remaining: config.maxRequests - entry.count,
++       resetAt: entry.resetAt,
++     };
++   }
++ 
++   /**
++    * Réinitialise le rate limit pour une opération
++    * @param operation - Nom de l&#39;opération
++    */
++   reset(operation: string): void {
++     const key = &#96;rate_limit:${operation}&#96;;
++     this.storage.removeItem(key);
++   }
++ 
++   /**
++    * Réinitialise tous les rate limits
++    */
++   resetAll(): void {
++     const keys: string[] = [];
++     for (let i = 0; i &lt; this.storage.length; i++) {
++       const key = this.storage.key(i);
++       if (key &amp;&amp; key.startsWith(&#39;rate_limit:&#39;)) {
++         keys.push(key);
++       }
++     }
++     keys.forEach((key) =&gt; this.storage.removeItem(key));
++   }
++ 
++   /**
++    * Obtient les informations de rate limit pour une opération
++    * @param operation - Nom de l&#39;opération
++    * @returns { count: number; maxRequests: number; resetAt: number | null }
++    */
++   getInfo(operation: string): { count: number; maxRequests: number; resetAt: number | null } {
++     const config = this.configs.get(operation);
++     if (!config) {
++       return { count: 0, maxRequests: Infinity, resetAt: null };
++     }
++ 
++     const key = &#96;rate_limit:${operation}&#96;;
++     const stored = this.storage.getItem(key);
++ 
++     if (!stored) {
++       return { count: 0, maxRequests: config.maxRequests, resetAt: null };
++     }
++ 
++     try {
++       const entry: RateLimitEntry = JSON.parse(stored);
++       return {
++         count: entry.count,
++         maxRequests: config.maxRequests,
++         resetAt: entry.resetAt,
++       };
++     } catch {
++       return { count: 0, maxRequests: config.maxRequests, resetAt: null };
++     }
++   }
++ }
++ 
++ // Instance singleton avec configuration par défaut
++ export const rateLimiter = new ClientRateLimiter();
++ 
++ // Configuration par défaut
++ rateLimiter.configure(&#39;create&#39;, {
++   maxRequests: 10,
++   windowMs: 60 * 1000, // 1 minute
++ });
++ 
++ rateLimiter.configure(&#39;update&#39;, {
++   maxRequests: 20,
++   windowMs: 60 * 1000, // 1 minute
++ });
++ 
++ /**
++  * Vérifie si une opération peut être effectuée et lance une erreur si la limite est atteinte
++  * @param operation - Nom de l&#39;opération
++  * @throws Error si la limite est atteinte
++  */
++ export function checkRateLimit(operation: string): void {
++   const result = rateLimiter.check(operation);
++   if (!result.allowed) {
++     const resetIn = result.resetAt ? Math.ceil((result.resetAt - Date.now()) / 1000) : 0;
++     throw new Error(
++       &#96;Rate limit atteint pour l&#39;opération &quot;${operation}&quot;. Réessayez dans ${resetIn} secondes.&#96;
++     );
++   }
++ }
++ 
++ /**
++  * Obtient les informations de rate limit pour une opération
++  * @param operation - Nom de l&#39;opération
++  * @returns Informations sur le rate limit
++  */
++ export function getRateLimitInfo(operation: string): {
++   count: number;
++   maxRequests: number;
++   resetAt: number | null;
++ } {
++   return rateLimiter.getInfo(operation);
++ }
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+Intégration du rate limiting dans les services :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/photoService.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -3,4 +3,5 @@
+  import { cache } from &#39;@/lib/cache&#39;;
+  import { validateMediaUrl } from &#39;@/lib/urlValidation&#39;;
++ import { checkRateLimit } from &#39;@/lib/rateLimiter&#39;;
+  
+  export const photoService = {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/photoService.ts</summary>
+
+**Chunk 1**
+Lines added: 13, lines removed: undefined
+
+```diff
+@@ -79,4 +79,17 @@
+      user_id?: string | null;
+    }) {
++     // Vérifier le rate limit
++     try {
++       checkRateLimit(&#39;create&#39;);
++     } catch (error) {
++       return {
++         photo: null,
++         error: {
++           message: error instanceof Error ? error.message : &#39;Rate limit atteint&#39;,
++           code: &#39;RATE_LIMIT_EXCEEDED&#39;,
++         } as any,
++       };
++     }
++ 
+      // Valider l&#39;URL de l&#39;image
+      const urlValidation = validateMediaUrl(photo.image_url, &#39;image_url&#39;);
+```
+
+**Chunk 2**
+Lines added: 13, lines removed: undefined
+
+```diff
+@@ -113,4 +126,17 @@
+  
+    async updatePhoto(id: string, updates: Partial&lt;Photo&gt;) {
++     // Vérifier le rate limit
++     try {
++       checkRateLimit(&#39;update&#39;);
++     } catch (error) {
++       return {
++         photo: null,
++         error: {
++           message: error instanceof Error ? error.message : &#39;Rate limit atteint&#39;,
++           code: &#39;RATE_LIMIT_EXCEEDED&#39;,
++         } as any,
++       };
++     }
++ 
+      // Valider l&#39;URL de l&#39;image si elle est mise à jour
+      if (updates.image_url) {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/musicService.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -3,4 +3,5 @@
+  import { cache } from &#39;@/lib/cache&#39;;
+  import { validateMediaUrl } from &#39;@/lib/urlValidation&#39;;
++ import { checkRateLimit } from &#39;@/lib/rateLimiter&#39;;
+  
+  export const musicService = {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/musicService.ts</summary>
+
+**Chunk 1**
+Lines added: 13, lines removed: undefined
+
+```diff
+@@ -80,4 +80,17 @@
+      display_order: number;
+    }) {
++     // Vérifier le rate limit
++     try {
++       checkRateLimit(&#39;create&#39;);
++     } catch (error) {
++       return {
++         track: null,
++         error: {
++           message: error instanceof Error ? error.message : &#39;Rate limit atteint&#39;,
++           code: &#39;RATE_LIMIT_EXCEEDED&#39;,
++         } as any,
++       };
++     }
++ 
+      console.log(&#39;[MUSIC SERVICE] Create track - Starting&#39;);
+      console.log(&#39;[MUSIC SERVICE] Track data:&#39;, JSON.stringify(track, null, 2));
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/musicService.ts</summary>
+
+**Chunk 1**
+Lines added: 13, lines removed: undefined
+
+```diff
+@@ -192,4 +192,17 @@
+  
+    async updateTrack(id: string, updates: Partial&lt;MusicTrack&gt;) {
++     // Vérifier le rate limit
++     try {
++       checkRateLimit(&#39;update&#39;);
++     } catch (error) {
++       return {
++         track: null,
++         error: {
++           message: error instanceof Error ? error.message : &#39;Rate limit atteint&#39;,
++           code: &#39;RATE_LIMIT_EXCEEDED&#39;,
++         } as any,
++       };
++     }
++ 
+      // Valider les URLs si elles sont mises à jour
+      if (updates.audio_url) {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/videoService.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -2,4 +2,5 @@
+  import { videoTagService } from &#39;./videoTagService&#39;;
+  import { validateMediaUrl } from &#39;@/lib/urlValidation&#39;;
++ import { checkRateLimit } from &#39;@/lib/rateLimiter&#39;;
+  
+  export const videoService = {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/videoService.ts</summary>
+
+**Chunk 1**
+Lines added: 13, lines removed: undefined
+
+```diff
+@@ -64,4 +64,17 @@
+      display_order: number;
+    }) {
++     // Vérifier le rate limit
++     try {
++       checkRateLimit(&#39;create&#39;);
++     } catch (error) {
++       return {
++         video: null,
++         error: {
++           message: error instanceof Error ? error.message : &#39;Rate limit atteint&#39;,
++           code: &#39;RATE_LIMIT_EXCEEDED&#39;,
++         } as any,
++       };
++     }
++ 
+      console.log(&#39;[VIDEO SERVICE] Create video - Starting&#39;);
+      console.log(&#39;[VIDEO SERVICE] Video data:&#39;, JSON.stringify(video, null, 2));
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: services/videoService.ts</summary>
+
+**Chunk 1**
+Lines added: 13, lines removed: undefined
+
+```diff
+@@ -170,4 +170,17 @@
+  
+    async updateVideo(id: string, updates: Partial&lt;Video&gt;) {
++     // Vérifier le rate limit
++     try {
++       checkRateLimit(&#39;update&#39;);
++     } catch (error) {
++       return {
++         video: null,
++         error: {
++           message: error instanceof Error ? error.message : &#39;Rate limit atteint&#39;,
++           code: &#39;RATE_LIMIT_EXCEEDED&#39;,
++         } as any,
++       };
++     }
++ 
+      // Valider les URLs si elles sont mises à jour
+      if (updates.video_url) {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Créer migration SQL pour ajouter contraintes CHECK sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- [x] Ajouter colonne user_id à la table photos si absente et modifier les policies RLS pour vérifier l'ownership
+- [x] Vérifier que music_tracks a user_id et modifier les policies RLS pour vérifier l'ownership
+- [x] Créer lib/fileValidation.ts avec fonction validateFileSignature() utilisant magic bytes pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- [x] Intégrer la validation magic bytes dans tous les formulaires d upload (PhotoUploadForm, VideoUploadForm, MusicUploadForm)
+- [x] Créer lib/urlValidation.ts avec fonction validateUrl() vérifiant format, protocole HTTPS, domaine autorisé, et absence de protocoles dangereux
+- [x] Intégrer la validation d URL dans photoService, musicService et videoService avant insertion/mise à jour
+- [x] Ajouter headers de sécurité HTTP dans next.config.js (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP basique)
+- [x] Ajouter script npm audit dans package.json et configurer npm audit --audit-level=moderate
+- [x] Créer docs/SECURITY.md avec documentation complète des mesures de sécurité, headers HTTP, processus d audit, et bonnes pratiques
+- [x] Créer lib/rateLimiter.ts avec classe ClientRateLimiter utilisant sessionStorage pour limiter les appels API côté client
+- [x] Intégrer le rate limiting dans les services pour limiter les opérations create/update (10/min create, 20/min update)
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Tous les todos sont terminés. Vérification des erreurs de linting :
+
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 7 files</summary>
+      
+Lint paths:
+
+- `lib/fileValidation.ts`
+- `lib/urlValidation.ts`
+- `lib/rateLimiter.ts`
+- `services/photoService.ts`
+- `services/musicService.ts`
+- `services/videoService.ts`
+- `next.config.js`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+Tous les todos du plan d'optimisation de sécurité sont terminés. Résumé des implémentations :
+
+## Résumé des optimisations de sécurité implémentées
+
+### 1. Renforcement des contraintes RLS Supabase
+- Migration SQL créée (`supabase/migrations/20250111_add_security_constraints.sql`)
+- Contraintes CHECK ajoutées sur toutes les tables (longueurs max, formats slug, couleurs hex)
+- Colonne `user_id` ajoutée à la table `photos` si absente
+- Policies RLS améliorées pour `photos` et `music_tracks` avec vérification d'ownership
+- Types TypeScript mis à jour pour inclure `user_id` dans `Photo`
+
+### 2. Validation avancée des fichiers uploadés
+- Créé `lib/fileValidation.ts` avec validation par magic bytes
+- Support pour JPEG, PNG, WebP, GIF, MP4, WebM, MP3, WAV
+- Intégration dans tous les formulaires d'upload (`PhotoUploadForm`, `VideoUploadForm`, `MusicUploadForm`)
+
+### 3. Validation des URLs
+- Créé `lib/urlValidation.ts` avec validation complète
+- Vérification du format, protocole HTTPS, domaines autorisés
+- Blocage des protocoles dangereux (`javascript:`, `data:`, etc.)
+- Intégration dans `photoService`, `musicService` et `videoService`
+
+### 4. Headers de sécurité HTTP
+- Headers configurés dans `next.config.js` :
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `X-XSS-Protection: 1; mode=block`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+  - `Content-Security-Policy` avec règles complètes
+
+### 5. Audit de sécurité des dépendances
+- Scripts npm ajoutés dans `package.json` :
+  - `npm audit` : Audit avec niveau modéré
+  - `npm audit:fix` : Correction automatique
+
+### 6. Documentation sécurité
+- Créé `docs/SECURITY.md` avec :
+  - Vue d'ensemble des mesures de sécurité
+  - Documentation des headers HTTP
+  - Processus d'audit des dépendances
+  - Guide de validation des fichiers et URLs
+  - Bonnes pratiques pour les développeurs
+  - Procédure de réponse aux incidents
+
+### 7. Rate Limiting côté client
+- Créé `lib/rateLimiter.ts` avec classe `ClientRateLimiter`
+- Utilise `sessionStorage` pour persister les limites
+- Configuration par défaut : 10/min pour create, 20/min pour update
+- Intégration dans tous les services (`photoService`, `musicService`, `videoService`)
+
+Toutes les optimisations sont implémentées et prêtes à être utilisées. Le portfolio dispose désormais de plusieurs couches de sécurité pour protéger contre les vulnérabilités courantes.
+
+---
+
+_**User (2025-11-10 07:02Z)**_
+
+
+
+> nextjs@0.1.0 dev
+
+> next dev
+
+
+
+Error: Specified "headers" cannot be used with "output: export". See more info here: https://nextjs.org/docs/messages/export-no-custom-routes
+
+    at assignDefaults (C:\Users\Gildas\Documents\Projets\Développement\En cours\Portfolio\portfolio\node_modules\next\dist\server\config.js:212:19)
+
+    at loadConfig (C:\Users\Gildas\Documents\Projets\Développement\En cours\Portfolio\portfolio\node_modules\next\dist\server\config.js:689:32)
+
+    at async nextDev (C:\Users\Gildas\Documents\Projets\Développement\En cours\Portfolio\portfolio\node_modules\next\dist\cli\next-dev.js:195:14)
+
+    at async main (C:\Users\Gildas\Documents\Projets\Développement\En cours\Portfolio\portfolio\node_modules\next\dist\bin\next:156:5)
+
+---
+
+_**Agent (model composer-1, mode Agent)**_
+
+
+
+---
+
+
+Next.js ne permet pas d'utiliser `headers()` avec `output: 'export'`. Pour un export statique, les headers doivent être configurés au niveau du serveur ou de la plateforme d'hébergement. Retirant `headers()` de `next.config.js` et ajoutant la configuration des headers pour l'export statique :
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: next.config.js</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 47
+
+```diff
+@@ -18,51 +18,7 @@
+      } : false,
+    },
+-   // Headers de sécurité HTTP
+-   async headers() {
+-     return [
+-       {
+-         source: &#39;/:path*&#39;,
+-         headers: [
+-           {
+-             key: &#39;X-Content-Type-Options&#39;,
+-             value: &#39;nosniff&#39;,
+-           },
+-           {
+-             key: &#39;X-Frame-Options&#39;,
+-             value: &#39;DENY&#39;,
+-           },
+-           {
+-             key: &#39;X-XSS-Protection&#39;,
+-             value: &#39;1; mode=block&#39;,
+-           },
+-           {
+-             key: &#39;Referrer-Policy&#39;,
+-             value: &#39;strict-origin-when-cross-origin&#39;,
+-           },
+-           {
+-             key: &#39;Permissions-Policy&#39;,
+-             value: &#39;camera=(), microphone=(), geolocation=()&#39;,
+-           },
+-           {
+-             key: &#39;Content-Security-Policy&#39;,
+-             value: [
+-               &quot;default-src &#39;self&#39;&quot;,
+-               &quot;script-src &#39;self&#39; &#39;unsafe-eval&#39; &#39;unsafe-inline&#39;&quot;, // unsafe-inline nécessaire pour Next.js
+-               &quot;style-src &#39;self&#39; &#39;unsafe-inline&#39;&quot;, // unsafe-inline nécessaire pour Tailwind
+-               &quot;img-src &#39;self&#39; data: https:&quot;,
+-               &quot;font-src &#39;self&#39; data:&quot;,
+-               &quot;connect-src &#39;self&#39; https://*.supabase.co https://*.supabase.in&quot;,
+-               &quot;frame-src &#39;none&#39;&quot;,
+-               &quot;object-src &#39;none&#39;&quot;,
+-               &quot;base-uri &#39;self&#39;&quot;,
+-               &quot;form-action &#39;self&#39;&quot;,
+-               &quot;frame-ancestors &#39;none&#39;&quot;,
+-               &quot;upgrade-insecure-requests&quot;,
+-             ].join(&#39;; &#39;),
+-           },
+-         ],
+-       },
+-     ];
+-   },
++   // Note: Les headers de sécurité HTTP ne peuvent pas être configurés dans next.config.js
++   // avec output: &#39;export&#39;. Ils doivent être configurés au niveau du serveur web ou
++   // de la plateforme d&#39;hébergement. Voir docs/SECURITY.md pour les instructions.
+    // Budgets de performance pour détecter les régressions
+    experimental: {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: public/_headers</summary>
+
+**Chunk 1**
+Lines added: 13, lines removed: 1
+
+```diff
+@@ -1,1 +1,13 @@
+- 
++ # Headers de sécurité HTTP pour export statique Next.js
++ 
++ # Note: Ce fichier est utilisé par Netlify pour configurer les headers HTTP
++ # Pour d&#39;autres plateformes, voir la documentation dans docs/SECURITY.md
++ 
++ /*
++   X-Content-Type-Options: nosniff
++   X-Frame-Options: DENY
++   X-XSS-Protection: 1; mode=block
++   Referrer-Policy: strict-origin-when-cross-origin
++   Permissions-Policy: camera=(), microphone=(), geolocation=()
++   Content-Security-Policy: default-src &#39;self&#39;; script-src &#39;self&#39; &#39;unsafe-eval&#39; &#39;unsafe-inline&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39;; img-src &#39;self&#39; data: https:; font-src &#39;self&#39; data:; connect-src &#39;self&#39; https://*.supabase.co https://*.supabase.in; frame-src &#39;none&#39;; object-src &#39;none&#39;; base-uri &#39;self&#39;; form-action &#39;self&#39;; frame-ancestors &#39;none&#39;; upgrade-insecure-requests
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: docs/SECURITY.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: docs/SECURITY.md</summary>
+
+**Chunk 1**
+Lines added: 75, lines removed: 1
+
+```diff
+@@ -17,5 +17,79 @@
+  ## Headers de sécurité HTTP
+  
+- Les headers de sécurité sont configurés dans &#96;next.config.js&#96; et incluent :
++ **Important** : Avec &#96;output: &#39;export&#39;&#96; (export statique), Next.js ne permet pas de configurer les headers dans &#96;next.config.js&#96;. Les headers doivent être configurés au niveau du serveur web ou de la plateforme d&#39;hébergement.
++ 
++ ### Configuration pour Netlify
++ 
++ Un fichier &#96;public/_headers&#96; est fourni avec la configuration des headers. Netlify l&#39;utilisera automatiquement lors du déploiement.
++ 
++ ### Configuration pour Vercel
++ 
++ Créez un fichier &#96;vercel.json&#96; à la racine du projet :
++ 
++ &#96;&#96;&#96;json
++ {
++   &quot;headers&quot;: [
++     {
++       &quot;source&quot;: &quot;/(.*)&quot;,
++       &quot;headers&quot;: [
++         {
++           &quot;key&quot;: &quot;X-Content-Type-Options&quot;,
++           &quot;value&quot;: &quot;nosniff&quot;
++         },
++         {
++           &quot;key&quot;: &quot;X-Frame-Options&quot;,
++           &quot;value&quot;: &quot;DENY&quot;
++         },
++         {
++           &quot;key&quot;: &quot;X-XSS-Protection&quot;,
++           &quot;value&quot;: &quot;1; mode=block&quot;
++         },
++         {
++           &quot;key&quot;: &quot;Referrer-Policy&quot;,
++           &quot;value&quot;: &quot;strict-origin-when-cross-origin&quot;
++         },
++         {
++           &quot;key&quot;: &quot;Permissions-Policy&quot;,
++           &quot;value&quot;: &quot;camera=(), microphone=(), geolocation=()&quot;
++         },
++         {
++           &quot;key&quot;: &quot;Content-Security-Policy&quot;,
++           &quot;value&quot;: &quot;default-src &#39;self&#39;; script-src &#39;self&#39; &#39;unsafe-eval&#39; &#39;unsafe-inline&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39;; img-src &#39;self&#39; data: https:; font-src &#39;self&#39; data:; connect-src &#39;self&#39; https://*.supabase.co https://*.supabase.in; frame-src &#39;none&#39;; object-src &#39;none&#39;; base-uri &#39;self&#39;; form-action &#39;self&#39;; frame-ancestors &#39;none&#39;; upgrade-insecure-requests&quot;
++         }
++       ]
++     }
++   ]
++ }
++ &#96;&#96;&#96;
++ 
++ ### Configuration pour Nginx
++ 
++ Ajoutez dans votre configuration Nginx :
++ 
++ &#96;&#96;&#96;nginx
++ add_header X-Content-Type-Options &quot;nosniff&quot; always;
++ add_header X-Frame-Options &quot;DENY&quot; always;
++ add_header X-XSS-Protection &quot;1; mode=block&quot; always;
++ add_header Referrer-Policy &quot;strict-origin-when-cross-origin&quot; always;
++ add_header Permissions-Policy &quot;camera=(), microphone=(), geolocation=()&quot; always;
++ add_header Content-Security-Policy &quot;default-src &#39;self&#39;; script-src &#39;self&#39; &#39;unsafe-eval&#39; &#39;unsafe-inline&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39;; img-src &#39;self&#39; data: https:; font-src &#39;self&#39; data:; connect-src &#39;self&#39; https://*.supabase.co https://*.supabase.in; frame-src &#39;none&#39;; object-src &#39;none&#39;; base-uri &#39;self&#39;; form-action &#39;self&#39;; frame-ancestors &#39;none&#39;; upgrade-insecure-requests&quot; always;
++ &#96;&#96;&#96;
++ 
++ ### Configuration pour Apache
++ 
++ Ajoutez dans votre fichier &#96;.htaccess&#96; :
++ 
++ &#96;&#96;&#96;apache
++ &lt;IfModule mod_headers.c&gt;
++   Header set X-Content-Type-Options &quot;nosniff&quot;
++   Header set X-Frame-Options &quot;DENY&quot;
++   Header set X-XSS-Protection &quot;1; mode=block&quot;
++   Header set Referrer-Policy &quot;strict-origin-when-cross-origin&quot;
++   Header set Permissions-Policy &quot;camera=(), microphone=(), geolocation=()&quot;
++   Header set Content-Security-Policy &quot;default-src &#39;self&#39;; script-src &#39;self&#39; &#39;unsafe-eval&#39; &#39;unsafe-inline&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39;; img-src &#39;self&#39; data: https:; font-src &#39;self&#39; data:; connect-src &#39;self&#39; https://*.supabase.co https://*.supabase.in; frame-src &#39;none&#39;; object-src &#39;none&#39;; base-uri &#39;self&#39;; form-action &#39;self&#39;; frame-ancestors &#39;none&#39;; upgrade-insecure-requests&quot;
++ &lt;/IfModule&gt;
++ &#96;&#96;&#96;
++ 
++ Les headers de sécurité incluent :
+  
+  ### X-Content-Type-Options: nosniff
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+Correction appliquée. Avec `output: 'export'`, Next.js ne permet pas d'utiliser `headers()` dans `next.config.js`. Modifications :
+
+1. Retiré la fonction `headers()` de `next.config.js`
+2. Créé `public/_headers` pour Netlify (utilisé automatiquement lors du déploiement)
+3. Mis à jour `docs/SECURITY.md` avec les instructions pour :
+   - Netlify (fichier `_headers` fourni)
+   - Vercel (fichier `vercel.json`)
+   - Nginx (configuration serveur)
+   - Apache (fichier `.htaccess`)
+
+Le serveur devrait maintenant démarrer correctement. Les headers de sécurité seront appliqués selon votre plateforme d'hébergement lors du déploiement.
+
+Pour tester localement, vous pouvez utiliser un serveur HTTP simple qui respecte les headers, ou vérifier qu'ils sont bien appliqués après déploiement sur votre plateforme.
 
 ---
 

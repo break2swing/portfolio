@@ -22,6 +22,7 @@ export type Photo = {
   image_url: string;
   blur_data_url: string | null;
   display_order: number;
+  user_id: string | null;
   created_at: string;
 };
 

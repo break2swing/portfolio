@@ -1,6 +1,8 @@
 import { supabaseClient, Photo, PhotoWithTags } from '@/lib/supabaseClient';
 import { photoTagService } from './photoTagService';
 import { cache } from '@/lib/cache';
+import { validateMediaUrl } from '@/lib/urlValidation';
+import { checkRateLimit } from '@/lib/rateLimiter';
 
 export const photoService = {
   async getAllPhotos() {
@@ -74,10 +76,43 @@ export const photoService = {
     image_url: string;
     blur_data_url?: string | null;
     display_order: number;
+    user_id?: string | null;
   }) {
+    // Vérifier le rate limit
+    try {
+      checkRateLimit('create');
+    } catch (error) {
+      return {
+        photo: null,
+        error: {
+          message: error instanceof Error ? error.message : 'Rate limit atteint',
+          code: 'RATE_LIMIT_EXCEEDED',
+        } as any,
+      };
+    }
+
+    // Valider l'URL de l'image
+    const urlValidation = validateMediaUrl(photo.image_url, 'image_url');
+    if (!urlValidation.valid) {
+      return {
+        photo: null,
+        error: {
+          message: urlValidation.error || 'URL invalide',
+          code: 'INVALID_URL',
+        } as any,
+      };
+    }
+
+    // Récupérer l'utilisateur actuel si user_id n'est pas fourni
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const userId = photo.user_id ?? user?.id ?? null;
+
     const { data, error } = await supabaseClient
       .from('photos')
-      .insert(photo)
+      .insert({
+        ...photo,
+        user_id: userId,
+      })
       .select()
       .single();
 
@@ -90,6 +125,33 @@ export const photoService = {
   },
 
   async updatePhoto(id: string, updates: Partial<Photo>) {
+    // Vérifier le rate limit
+    try {
+      checkRateLimit('update');
+    } catch (error) {
+      return {
+        photo: null,
+        error: {
+          message: error instanceof Error ? error.message : 'Rate limit atteint',
+          code: 'RATE_LIMIT_EXCEEDED',
+        } as any,
+      };
+    }
+
+    // Valider l'URL de l'image si elle est mise à jour
+    if (updates.image_url) {
+      const urlValidation = validateMediaUrl(updates.image_url, 'image_url');
+      if (!urlValidation.valid) {
+        return {
+          photo: null,
+          error: {
+            message: urlValidation.error || 'URL invalide',
+            code: 'INVALID_URL',
+          } as any,
+        };
+      }
+    }
+
     const { data, error } = await supabaseClient
       .from('photos')
       .update(updates)
@@ -135,6 +197,7 @@ export const photoService = {
       image_url: string;
       blur_data_url?: string | null;
       display_order: number;
+      user_id?: string | null;
     },
     tagIds: string[] = []
   ) {

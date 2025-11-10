@@ -14,6 +14,7 @@ import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { TagBadge } from '@/components/texts/TagBadge';
+import { validateFileByCategory, validateFileSize } from '@/lib/fileValidation';
 
 interface PhotoUploadFormProps {
   onSuccess: () => void;
@@ -58,18 +59,24 @@ export function PhotoUploadForm({ onSuccess }: PhotoUploadFormProps) {
     );
   };
 
-  const validateFile = (file: File): string | null => {
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      return 'Type de fichier non accepté. Utilisez JPEG, PNG, WebP ou GIF.';
+  const validateFile = async (file: File): Promise<string | null> => {
+    // Validation de la taille
+    const sizeValidation = validateFileSize(file, MAX_FILE_SIZE);
+    if (!sizeValidation.valid) {
+      return sizeValidation.error || null;
     }
-    if (file.size > MAX_FILE_SIZE) {
-      return 'Le fichier est trop volumineux. Maximum 5MB.';
+
+    // Validation du type MIME et de la signature
+    const categoryValidation = await validateFileByCategory(file, 'images');
+    if (!categoryValidation.valid) {
+      return categoryValidation.error || null;
     }
+
     return null;
   };
 
-  const handleFileSelect = (selectedFile: File) => {
-    const error = validateFile(selectedFile);
+  const handleFileSelect = async (selectedFile: File) => {
+    const error = await validateFile(selectedFile);
     if (error) {
       toast.error('Fichier invalide', { description: error });
       return;

@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "analyze": "ANALYZE=true next build",
     "check-bundle": "node scripts/check-bundle-size.js",
-    "generate-lqip": "echo 'Pour générer des LQIP pour les images existantes, visitez /admin/migrate-lqip dans votre navigateur'"
+    "generate-lqip": "echo 'Pour générer des LQIP pour les images existantes, visitez /admin/migrate-lqip dans votre navigateur'",
+    "audit": "npm audit --audit-level=moderate",
+    "audit:fix": "npm audit fix"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

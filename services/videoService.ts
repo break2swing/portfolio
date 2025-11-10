@@ -1,5 +1,7 @@
 import { supabaseClient, Video, VideoWithTags } from '@/lib/supabaseClient';
 import { videoTagService } from './videoTagService';
+import { validateMediaUrl } from '@/lib/urlValidation';
+import { checkRateLimit } from '@/lib/rateLimiter';
 
 export const videoService = {
   async getAllVideos() {
@@ -61,6 +63,19 @@ export const videoService = {
     duration: number | null;
     display_order: number;
   }) {
+    // Vérifier le rate limit
+    try {
+      checkRateLimit('create');
+    } catch (error) {
+      return {
+        video: null,
+        error: {
+          message: error instanceof Error ? error.message : 'Rate limit atteint',
+          code: 'RATE_LIMIT_EXCEEDED',
+        } as any,
+      };
+    }
+
     console.log('[VIDEO SERVICE] Create video - Starting');
     console.log('[VIDEO SERVICE] Video data:', JSON.stringify(video, null, 2));
 
@@ -98,6 +113,31 @@ export const videoService = {
         user_id: user.id
       };
 
+      // Valider les URLs
+      const videoUrlValidation = validateMediaUrl(videoWithUser.video_url, 'video_url');
+      if (!videoUrlValidation.valid) {
+        return {
+          video: null,
+          error: {
+            message: videoUrlValidation.error || 'URL vidéo invalide',
+            code: 'INVALID_URL',
+          } as any,
+        };
+      }
+
+      if (videoWithUser.thumbnail_url) {
+        const thumbnailUrlValidation = validateMediaUrl(videoWithUser.thumbnail_url, 'thumbnail_url');
+        if (!thumbnailUrlValidation.valid) {
+          return {
+            video: null,
+            error: {
+              message: thumbnailUrlValidation.error || 'URL de miniature invalide',
+              code: 'INVALID_URL',
+            } as any,
+          };
+        }
+      }
+
       console.log('[VIDEO SERVICE] Inserting video with user_id:', videoWithUser);
 
       const { data, error } = await supabaseClient
@@ -129,6 +169,46 @@ export const videoService = {
   },
 
   async updateVideo(id: string, updates: Partial<Video>) {
+    // Vérifier le rate limit
+    try {
+      checkRateLimit('update');
+    } catch (error) {
+      return {
+        video: null,
+        error: {
+          message: error instanceof Error ? error.message : 'Rate limit atteint',
+          code: 'RATE_LIMIT_EXCEEDED',
+        } as any,
+      };
+    }
+
+    // Valider les URLs si elles sont mises à jour
+    if (updates.video_url) {
+      const urlValidation = validateMediaUrl(updates.video_url, 'video_url');
+      if (!urlValidation.valid) {
+        return {
+          video: null,
+          error: {
+            message: urlValidation.error || 'URL vidéo invalide',
+            code: 'INVALID_URL',
+          } as any,
+        };
+      }
+    }
+
+    if (updates.thumbnail_url) {
+      const urlValidation = validateMediaUrl(updates.thumbnail_url, 'thumbnail_url');
+      if (!urlValidation.valid) {
+        return {
+          video: null,
+          error: {
+            message: urlValidation.error || 'URL de miniature invalide',
+            code: 'INVALID_URL',
+          } as any,
+        };
+      }
+    }
+
     const { data, error } = await supabaseClient
       .from('videos')
       .update(updates)

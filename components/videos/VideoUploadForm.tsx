@@ -14,6 +14,7 @@ import { Upload, X, Loader2, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { TagBadge } from '@/components/texts/TagBadge';
+import { validateFileByCategory, validateFileSize } from '@/lib/fileValidation';
 
 interface VideoUploadFormProps {
   onSuccess: () => void;
@@ -62,28 +63,40 @@ export function VideoUploadForm({ onSuccess }: VideoUploadFormProps) {
     );
   };
 
-  const validateVideoFile = (file: File): string | null => {
-    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
-      return 'Type de fichier non accepté. Utilisez MP4, WebM ou MOV.';
+  const validateVideoFile = async (file: File): Promise<string | null> => {
+    // Validation de la taille
+    const sizeValidation = validateFileSize(file, MAX_VIDEO_SIZE);
+    if (!sizeValidation.valid) {
+      return sizeValidation.error || null;
     }
-    if (file.size > MAX_VIDEO_SIZE) {
-      return 'Le fichier est trop volumineux. Maximum 100MB.';
+
+    // Validation du type MIME et de la signature
+    const categoryValidation = await validateFileByCategory(file, 'videos');
+    if (!categoryValidation.valid) {
+      return categoryValidation.error || null;
     }
+
     return null;
   };
 
-  const validateImageFile = (file: File): string | null => {
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      return 'Type d\'image non accepté. Utilisez JPEG, PNG ou WebP.';
+  const validateImageFile = async (file: File): Promise<string | null> => {
+    // Validation de la taille
+    const sizeValidation = validateFileSize(file, MAX_IMAGE_SIZE);
+    if (!sizeValidation.valid) {
+      return sizeValidation.error || null;
     }
-    if (file.size > MAX_IMAGE_SIZE) {
-      return 'L\'image est trop volumineuse. Maximum 2MB.';
+
+    // Validation du type MIME et de la signature
+    const categoryValidation = await validateFileByCategory(file, 'images');
+    if (!categoryValidation.valid) {
+      return categoryValidation.error || null;
     }
+
     return null;
   };
 
-  const handleVideoSelect = (selectedFile: File) => {
-    const error = validateVideoFile(selectedFile);
+  const handleVideoSelect = async (selectedFile: File) => {
+    const error = await validateVideoFile(selectedFile);
     if (error) {
       toast.error('Fichier vidéo invalide', { description: error });
       return;
@@ -95,8 +108,8 @@ export function VideoUploadForm({ onSuccess }: VideoUploadFormProps) {
     }
   };
 
-  const handleThumbnailSelect = (selectedFile: File) => {
-    const error = validateImageFile(selectedFile);
+  const handleThumbnailSelect = async (selectedFile: File) => {
+    const error = await validateImageFile(selectedFile);
     if (error) {
       toast.error('Image invalide', { description: error });
       return;
@@ -128,9 +141,9 @@ export function VideoUploadForm({ onSuccess }: VideoUploadFormProps) {
     const droppedFile = e.dataTransfer.files?.[0];
     if (droppedFile) {
       if (droppedFile.type.startsWith('video/')) {
-        handleVideoSelect(droppedFile);
+        await handleVideoSelect(droppedFile);
       } else if (droppedFile.type.startsWith('image/')) {
-        handleThumbnailSelect(droppedFile);
+        await handleThumbnailSelect(droppedFile);
       }
     }
   };
