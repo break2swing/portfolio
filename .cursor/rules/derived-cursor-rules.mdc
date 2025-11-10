@@ -60,7 +60,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
         *   Project-specific points of attention.
         *   Language conventions.
     *   **Template Format:** Always provide concrete code examples showing the expected file structure.
-6.  **Validation:** Ensure consistency between the two files, up-to-date information, correct code examples, accurate file paths, and a provider hierarchy in `CLAUDE.md` that matches the actual code. Also ensure new services/contexts are documented.
+6.  **Validation:** Ensure consistency between the two files, up-to-date information, correct code examples, accurate file paths, and a provider hierarchy in `app/layout.tsx` that matches the actual code. Also ensure new services/contexts are documented.
 7. **Process:**
     * List the identified changes as bullet points.
     * Update `CLAUDE.md` with the necessary modifications.
@@ -78,6 +78,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 ## TECH STACK
 
 *   `@tanstack/react-virtual`
+*   `lucide-react`
 
 ## WORKFLOW & RELEASE RULES
 
@@ -259,6 +260,8 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 
 ## CODING STANDARDS
 
+*   When importing icons from `lucide-react`, and there is a naming conflict with a type or variable, rename the imported icon using `as`. For example: `import { Video as VideoIcon } from 'lucide-react'`.
+
 ## DEBUG
 
 *   When debugging errors, especially those reported as generic messages like "Impossible de modifier le morceau," follow these steps:
@@ -286,3 +289,5 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     * Page Videos: only tags from the `video_tags` table.
     * Page Texts: only tags from the `text_tags` table.
 * When implementing code splitting with `next/dynamic`, always include a `<Skeleton>` component as the `loading` fallback, and set `ssr: false`.
+* With `output: 'export'`, Next.js does not allow the use of `headers()` in `next.config.js`. For a static export, headers must be configured at the web server or hosting platform level. See `docs/SECURITY.md` for instructions.
+* When encountering `ReferenceError: sessionStorage is not defined`, especially during server-side rendering (SSR), ensure that `sessionStorage` is only accessed in a client-side context. Use a conditional check (`typeof window !== 'undefined'`) before accessing `window.sessionStorage`. If server-side functionality is required, provide a fallback or alternative storage mechanism.

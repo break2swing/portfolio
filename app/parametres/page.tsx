@@ -1,11 +1,26 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useColorTheme, ColorThemeName } from '@/contexts/ColorThemeContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { getSearchHistory, clearSearchHistory, removeSearchQuery } from '@/lib/searchHistory';
+import { Trash2, Clock, X } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const colorThemes: { value: Exclude<ColorThemeName, 'custom'>; label: string; description: string }[] = [
   { value: 'ocean', label: 'Océan', description: 'Tons bleus et cyan apaisants' },
@@ -77,6 +92,31 @@ function hexToHsl(hex: string): string {
 export default function ParametresPage() {
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme, customColors, setCustomColors } = useColorTheme();
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSearchHistory(getSearchHistory());
+    
+    // Écouter les changements dans localStorage pour mettre à jour l'historique
+    const handleStorageChange = () => {
+      setSearchHistory(getSearchHistory());
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  const handleClearHistory = () => {
+    clearSearchHistory();
+    setSearchHistory([]);
+  };
+
+  const handleRemoveQuery = (query: string) => {
+    removeSearchQuery(query);
+    setSearchHistory(getSearchHistory());
+  };
 
   const handleCustomColorChange = (key: 'primary' | 'secondary' | 'accent', hexValue: string) => {
     const hslValue = hexToHsl(hexValue);
@@ -208,6 +248,69 @@ export default function ParametresPage() {
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Historique de recherche</CardTitle>
+          <CardDescription>
+            Gérez vos recherches récentes ({searchHistory.length} recherche{searchHistory.length > 1 ? 's' : ''})
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {searchHistory.length > 0 ? (
+            <>
+              <div className="space-y-2">
+                {searchHistory.map((query, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between rounded-md border p-3 hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm truncate">{query}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0"
+                      onClick={() => handleRemoveQuery(query)}
+                      aria-label={`Supprimer "${query}" de l'historique`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="w-full">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Effacer tout l&apos;historique
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Effacer l&apos;historique de recherche</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir effacer tout l&apos;historique de recherche ? Cette action est irréversible.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearHistory}>
+                      Effacer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Aucune recherche récente
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

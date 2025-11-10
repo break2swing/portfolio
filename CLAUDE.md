@@ -35,6 +35,17 @@ npm run lint
 
 # Type checking
 npm run typecheck
+
+# Bundle analysis
+npm run analyze
+npm run check-bundle
+
+# LQIP generation for existing images
+npm run generate-lqip  # Instructions pour utiliser /admin/migrate-lqip
+
+# Security audit
+npm run audit
+npm run audit:fix
 ```
 
 ## Architecture
@@ -45,6 +56,11 @@ npm run typecheck
 - Images non optimisées pour compatibilité avec l'export statique
 - ESLint ignoré pendant les builds
 - App Router (Next.js 13+)
+- **Optimisations webpack** :
+  - Chunks séparés pour vendor, markdown (react-markdown), et radix-ui
+  - `removeConsole` en production (sauf error/warn)
+  - Source maps désactivés en production
+- **Bundle analyzer** intégré avec `@next/bundle-analyzer`
 
 ### Structure des Routes
 
@@ -67,7 +83,9 @@ Le projet utilise l'App Router avec les routes suivantes :
 **Pages d'administration** (protégées, nécessitent authentification) :
 - `/admin/photos` - Administration de la galerie photos
 - `/admin/music` - Administration de la bibliothèque musicale
+- `/admin/videos` - Administration de la galerie vidéos
 - `/admin/texts` - Administration des textes
+- `/admin/migrate-lqip` - Utilitaire de migration LQIP pour images existantes
 
 Chaque route a son propre fichier `page.tsx` dans un dossier dédié sous `app/`.
 
@@ -85,11 +103,14 @@ Cette séparation permet d'avoir un layout côté serveur avec metadata et des c
   └─ ThemeProvider
      └─ ColorThemeProvider
         └─ AuthProvider
+           ├─ PrefetchData (préchargement catégories/tags)
            ├─ AppLayout (client component)
+           │  ├─ SkipToContent (a11y)
            │  ├─ Sidebar (collapsible, largeur variable)
            │  ├─ Topbar
            │  └─ Main content area
-           └─ Toaster (sonner notifications)
+           ├─ Toaster (sonner notifications)
+           └─ WebVitals (monitoring des performances)
 ```
 
 ### Theme System
@@ -151,13 +172,21 @@ Tous les composants interactifs doivent utiliser `'use client'` en première lig
 ### Service Layer
 
 Le projet utilise une couche service pour la logique métier :
+
+**Services principaux** :
 - `services/authService.ts` - Wrapper autour de Supabase Auth
 - `services/photoService.ts` - Gestion des photos (CRUD + ordre d'affichage)
 - `services/musicService.ts` - Gestion des morceaux de musique (CRUD + ordre d'affichage)
+- `services/videoService.ts` - Gestion des vidéos (CRUD + ordre d'affichage)
 - `services/textService.ts` - Gestion des textes (CRUD + ordre d'affichage, catégories, tags, recherche)
 - `services/categoryService.ts` - Gestion des catégories pour les textes (CRUD + ordre d'affichage)
-- `services/tagService.ts` - Gestion des tags pour les textes (CRUD + relations text_tags)
-- `services/storageService.ts` - Gestion du stockage Supabase (photos et fichiers audio)
+- `services/storageService.ts` - Gestion du stockage Supabase (photos, audio, vidéos)
+
+**Services de tags spécialisés** :
+- `services/tagService.ts` - Gestion globale des tags (CRUD)
+- `services/photoTagService.ts` - Relations entre photos et tags
+- `services/musicTagService.ts` - Relations entre morceaux et tags
+- `services/videoTagService.ts` - Relations entre vidéos et tags
 
 Les services encapsulent les appels Supabase et sont utilisés par les contextes et composants. Tous suivent le pattern de retour `{ data, error }` pour faciliter la gestion d'erreurs.
 
@@ -178,15 +207,16 @@ Le projet utilise **Supabase** comme backend :
 - **Authentification** : Gérée via `authService` avec email/password
 - **Storage** : Service de stockage de fichiers disponible (buckets `photo-files` et `audio-files`)
 - **Base de données** : Tables principales :
-  - `photos` - Galerie de photos
+  - `photos` - Galerie de photos (avec champ `blur_data_url` pour LQIP)
   - `music_tracks` - Bibliothèque musicale
+  - `videos` - Galerie de vidéos
   - `texts` - Textes et articles (avec support Markdown)
   - `categories` - Catégories pour organiser les textes
-  - `tags` - Tags pour étiqueter les textes
-  - `text_tags` - Table de liaison entre textes et tags
+  - `tags` - Tags pour étiqueter tous les types de contenu
+  - `text_tags`, `music_tags`, `video_tags`, `photo_tags` - Tables de liaison many-to-many
 - Configuration via variables d'environnement (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
-**Types TypeScript** : `lib/supabaseClient.ts` exporte les types `Photo`, `MusicTrack`, `Text`, `TextWithMetadata`, `Category`, `Tag`, `TextTag` et `Database` pour une utilisation typée dans tout le projet.
+**Types TypeScript** : `lib/supabaseClient.ts` exporte les types `Photo`, `MusicTrack`, `Video`, `Text`, `Category`, `Tag`, ainsi que les types enrichis `TextWithMetadata`, `MusicTrackWithTags`, `VideoWithTags`, `PhotoWithTags` et les types de liaison `TextTag`, `MusicTag`, `VideoTag`, `PhotoTag`. Le type `Database` contient toute la structure typée de la base.
 
 ### Notifications
 
@@ -194,15 +224,59 @@ Le projet utilise **Supabase** comme backend :
 - Composant `<Toaster />` monté au niveau root dans `layout.tsx`
 - Import depuis `@/components/ui/sonner`
 
+### Système de bibliothèques utilitaires
+
+Le projet inclut plusieurs bibliothèques système pour améliorer les performances et l'observabilité :
+
+**Performance et cache** :
+- `lib/cache.ts` - Système de cache côté client avec TTL, support sessionStorage
+- `lib/image.ts` - Génération de LQIP (Low Quality Image Placeholder) avec Canvas API, génération srcset/sizes
+- `lib/imageUtils.ts` - Utilitaires supplémentaires pour images
+
+**Monitoring et logs** :
+- `lib/logger.ts` - Système de logs structurés avec niveaux (debug/info/warn/error), namespaces, sanitization
+- `lib/analytics.ts` - RUM (Real User Monitoring) pour Core Web Vitals, intégration Google Analytics/Vercel
+- `components/WebVitals.tsx` - Collecte automatique des métriques (CLS, FCP, INP, LCP, TTFB)
+- `components/PrefetchData.tsx` - Préchargement intelligent des données critiques (catégories/tags)
+
+**Validation et sécurité** :
+- `lib/validators.ts` - Schémas Zod pour texts, categories, tags (avec validation HSL/hex colors)
+- `lib/fileValidation.ts` - Validation de fichiers uploadés
+- `lib/urlValidation.ts` - Validation et sanitization d'URLs
+- `lib/rateLimiter.ts` - Rate limiting côté client
+
+**Recherche** :
+- `lib/search.ts` - Fonctionnalités de recherche
+- `lib/searchHistory.ts` - Gestion de l'historique de recherche
+
+**Composants d'optimisation** :
+- `components/OptimizedImage.tsx` - Composant d'image avec lazy loading (Intersection Observer), LQIP, srcset/sizes, fallback SVG
+
 ## Dependencies Notes
 
+**UI et formulaires** :
+- **shadcn/ui** + **Radix UI** - Composants UI accessibles
 - **React Hook Form** + **Zod** disponibles pour les formulaires
 - **Lucide React** pour les icônes
+- **Tailwind CSS** + **tailwindcss-animate** pour le styling
+
+**Fonctionnalités** :
 - **date-fns** pour la manipulation de dates
-- **Recharts** pour les graphiques (si nécessaire)
+- **Recharts** pour les graphiques
 - **react-markdown** + **remark-gfm** pour le rendu Markdown des textes
+- **isomorphic-dompurify** pour la sanitization XSS
+
+**Performance** :
+- **web-vitals** pour le monitoring des Core Web Vitals
+- **browser-image-compression** pour la compression d'images côté client
+- **@tanstack/react-virtual** pour la virtualisation de longues listes
+- **@next/bundle-analyzer** pour l'analyse du bundle
+
+**Notifications et UI** :
 - **sonner** pour les notifications toast
 - **next-themes** pour la gestion des thèmes clair/sombre
+- **embla-carousel-react** pour les carrousels
+- **vaul** pour les drawers
 
 ## Outils IA
 

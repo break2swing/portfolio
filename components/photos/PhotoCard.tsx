@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { Photo } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 import { OptimizedImage } from '@/components/OptimizedImage';
+import { BookmarkButton } from '@/components/BookmarkButton';
 
 interface PhotoCardProps {
   photo: Photo;
@@ -31,9 +32,19 @@ export const PhotoCard = memo(function PhotoCard({ photo, onClick }: PhotoCardPr
         className={cn(
           'absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent',
           'opacity-0 group-hover:opacity-100 transition-opacity duration-300',
-          'flex items-end p-4'
+          'flex flex-col justify-between p-4'
         )}
       >
+        <div className="flex justify-end">
+          <BookmarkButton
+            type="photo"
+            itemId={photo.id}
+            itemTitle={photo.title}
+            variant="ghost"
+            size="icon"
+            className="bg-black/40 hover:bg-black/60 text-white"
+          />
+        </div>
         <div className="text-white">
           <h3 className="font-semibold text-lg leading-tight">{photo.title}</h3>
           {photo.description && (

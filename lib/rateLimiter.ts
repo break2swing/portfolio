@@ -17,8 +17,26 @@ class ClientRateLimiter {
   private storage: Storage;
   private configs: Map<string, RateLimitConfig>;
 
-  constructor(storage: Storage = sessionStorage) {
-    this.storage = storage;
+  constructor(storage?: Storage) {
+    // Use provided storage or get sessionStorage only on client side
+    if (storage) {
+      this.storage = storage;
+    } else {
+      // Check if we're in a browser environment
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        this.storage = window.sessionStorage;
+      } else {
+        // Fallback to a no-op storage for SSR
+        this.storage = {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+          clear: () => {},
+          key: () => null,
+          length: 0,
+        } as Storage;
+      }
+    }
     this.configs = new Map();
   }
 

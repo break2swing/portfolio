@@ -70,4 +70,28 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  mark {
+    @apply bg-yellow-200 dark:bg-yellow-900 text-foreground rounded px-0.5;
+    font-weight: 500;
+  }
+}
+
+@layer utilities {
+  .cursor-wait {
+    cursor: wait;
+  }
+
+  @media (max-width: 640px) {
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    button,
+    a {
+      padding-top: 0.625rem;
+      padding-bottom: 0.625rem;
+    }
+  }
 }

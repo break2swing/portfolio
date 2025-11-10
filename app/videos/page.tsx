@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { VideoWithTags, Tag } from '@/lib/supabaseClient';
 import { videoService } from '@/services/videoService';
 import { videoTagService } from '@/services/videoTagService';
 import { VideoGrid } from '@/components/videos/VideoGrid';
 import { TagBadge } from '@/components/texts/TagBadge';
+import { SearchSuggestions } from '@/components/texts/SearchSuggestions';
 import { Button } from '@/components/ui/button';
-import { Loader2, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, X, Search } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
+import { searchInCollection, SearchResult } from '@/lib/search';
+import { saveSearchQuery } from '@/lib/searchHistory';
 
 export default function VideosPage() {
   const [allVideos, setAllVideos] = useState<VideoWithTags[]>([]);
@@ -16,15 +21,15 @@ export default function VideosPage() {
   const [loading, setLoading] = useState(true);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagsAvailable, setTagsAvailable] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
-
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allVideos, selectedTagIds]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -60,7 +65,46 @@ export default function VideosPage() {
     }
   };
 
-  const applyFilters = () => {
+  // Recherche fuzzy avec highlighting
+  const searchResultsMemo = useMemo(() => {
+    if (!debouncedSearchQuery.trim()) {
+      return [];
+    }
+
+    const videosToSearch = allVideos.filter((video) => {
+      // Appliquer les filtres de tags avant la recherche
+      if (selectedTagIds.length > 0) {
+        if (!selectedTagIds.every((tagId) => video.tags?.some((tag) => tag.id === tagId))) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    return searchInCollection(
+      videosToSearch,
+      debouncedSearchQuery,
+      [
+        { field: 'title', weight: 3 },
+        { field: 'description', weight: 2 },
+      ],
+      {
+        fuzzy: true,
+        threshold: 0.7,
+        highlight: true,
+        sortByRelevance: true,
+        maxResults: 8,
+      }
+    );
+  }, [allVideos, debouncedSearchQuery, selectedTagIds]);
+
+  // Mettre à jour les résultats de recherche pour les suggestions
+  useEffect(() => {
+    setSearchResults(searchResultsMemo);
+    setShowSuggestions(searchQuery.trim().length > 0 && searchResultsMemo.length > 0);
+  }, [searchResultsMemo, searchQuery]);
+
+  const applyFilters = useMemo(() => {
     let result = [...allVideos];
 
     // Filter by tags (AND logic: video must have ALL selected tags)
@@ -72,8 +116,30 @@ export default function VideosPage() {
       );
     }
 
-    setFilteredVideos(result);
-  };
+    // Filter by search query using fuzzy search
+    if (debouncedSearchQuery.trim()) {
+      const searchResults = searchInCollection(
+        result,
+        debouncedSearchQuery,
+        [
+          { field: 'title', weight: 3 },
+          { field: 'description', weight: 2 },
+        ],
+        {
+          fuzzy: true,
+          threshold: 0.7,
+          sortByRelevance: true,
+        }
+      );
+      result = searchResults.map((r) => r.item);
+    }
+
+    return result;
+  }, [allVideos, selectedTagIds, debouncedSearchQuery]);
+
+  useEffect(() => {
+    setFilteredVideos(applyFilters);
+  }, [applyFilters]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prev) =>
@@ -83,9 +149,31 @@ export default function VideosPage() {
 
   const clearFilters = () => {
     setSelectedTagIds([]);
+    setSearchQuery('');
+    setShowSuggestions(false);
   };
 
-  const hasActiveFilters = selectedTagIds.length > 0;
+  const handleSearchSelect = (result: SearchResult) => {
+    const video = result.item as VideoWithTags;
+    // Optionnel: ouvrir la vidéo ou naviguer vers elle
+    setShowSuggestions(false);
+    if (searchQuery.trim()) {
+      saveSearchQuery(searchQuery);
+    }
+  };
+
+  const handleHistorySelect = (query: string) => {
+    setSearchQuery(query);
+    setShowSuggestions(false);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      handleSearchSelect(searchResults[0]);
+    }
+  };
+
+  const hasActiveFilters = selectedTagIds.length > 0 || searchQuery.trim();
 
   return (
     <div className="space-y-8">
@@ -94,6 +182,37 @@ export default function VideosPage() {
         <p className="text-muted-foreground mt-2">
           Découvrez mes créations vidéo
         </p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+        <Input
+          ref={searchInputRef}
+          placeholder="Rechercher une vidéo..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setShowSuggestions(e.target.value.trim().length > 0);
+          }}
+          onFocus={() => {
+            if (searchQuery.trim() || searchResults.length > 0) {
+              setShowSuggestions(true);
+            }
+          }}
+          onKeyDown={handleSearchKeyDown}
+          className="pl-10"
+        />
+        {showSuggestions && (
+          <SearchSuggestions
+            query={searchQuery}
+            results={searchResults}
+            onSelect={handleSearchSelect}
+            onClose={() => setShowSuggestions(false)}
+            contentType="videos"
+            onHistorySelect={handleHistorySelect}
+          />
+        )}
       </div>
 
       {loading ? (
@@ -131,12 +250,10 @@ export default function VideosPage() {
           )}
 
           {/* Results Count */}
-          {hasActiveFilters && (
-            <p className="text-sm text-muted-foreground">
-              {filteredVideos.length} {filteredVideos.length > 1 ? 'vidéos' : 'vidéo'}
-              {` sur ${allVideos.length}`}
-            </p>
-          )}
+          <p className="text-sm text-muted-foreground">
+            {filteredVideos.length} {filteredVideos.length > 1 ? 'vidéos' : 'vidéo'}
+            {hasActiveFilters && ` sur ${allVideos.length}`}
+          </p>
 
           {/* Videos Grid */}
           {filteredVideos.length === 0 && hasActiveFilters ? (
