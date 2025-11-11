@@ -261,6 +261,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 ## CODING STANDARDS
 
 *   When importing icons from `lucide-react`, and there is a naming conflict with a type or variable, rename the imported icon using `as`. For example: `import { Video as VideoIcon } from 'lucide-react'`.
+*   When implementing a social share feature, create `lib/shareUtils.ts` with all sharing utility functions and `components/ShareButton.tsx` with a dropdown menu and share options. Modify `PhotoViewerModal.tsx`, `TextDetailModal.tsx`, and `AudioPlayer.tsx` to include the `ShareButton`.
 
 ## DEBUG
 
@@ -291,3 +292,22 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 * When implementing code splitting with `next/dynamic`, always include a `<Skeleton>` component as the `loading` fallback, and set `ssr: false`.
 * With `output: 'export'`, Next.js does not allow the use of `headers()` in `next.config.js`. For a static export, headers must be configured at the web server or hosting platform level. See `docs/SECURITY.md` for instructions.
 * When encountering `ReferenceError: sessionStorage is not defined`, especially during server-side rendering (SSR), ensure that `sessionStorage` is only accessed in a client-side context. Use a conditional check (`typeof window !== 'undefined'`) before accessing `window.sessionStorage`. If server-side functionality is required, provide a fallback or alternative storage mechanism.
+* When implementing enhanced audio player features, follow these guidelines:
+    *   **State Management:** Utilize `localStorage` via `lib/audioPlayerStorage.ts` to persist and restore player state (shuffle, repeat, volume, current time). Expire saved data after 30 days.
+    *   **Shuffle Mode:** Implement shuffle using the Fisher-Yates algorithm.
+    *   **Repeat Mode:** Support 'none', 'one', and 'all' repeat modes.
+    *   **Progress Bar Preview:** Display a preview with formatted time on the progress bar during hover.
+    *   **Keyboard Controls:** Implement keyboard controls for play/pause (Space), skip forward/backward (ArrowLeft/ArrowRight), volume control (ArrowUp/ArrowDown), and track navigation (Shift + ArrowLeft/ArrowRight).
+    *   **Track List Styling:** Indicate the currently playing track in `TrackList.tsx` with visual cues (icon, background color).
+    *   **Tooltips:** Use tooltips to explain the functionality of shuffle and repeat buttons.
+* When the `LinkedinIcon` component is not defined, it means that the icon was removed during code cleanup. It must be added back by including the relevant SVG code in the `components/ShareButton.tsx` file.
+* When using `window.location.origin` in components like `PhotoViewerModal`, `TextDetailModal`, and `AudioPlayer`, ensure to use a conditional check (`typeof window !== 'undefined'`) to prevent errors during server-side rendering or dynamic loading. Example:
+    ````
+    url={`${typeof window !== 'undefined' ? window.location.origin : ''}/photos#photo-${currentPhoto.id}`}
+    ````
+* When using `navigator` or `document` APIs (e.g., in `copyToClipboard` function), ensure to use conditional checks to prevent errors during server-side rendering or dynamic loading. Example:
+    ````
+    if (typeof window === 'undefined' || typeof navigator === 'undefined' || typeof document === 'undefined') {
+        return false;
+    }
+    ````

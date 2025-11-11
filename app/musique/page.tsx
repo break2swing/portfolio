@@ -288,6 +288,7 @@ export default function MusiquePage() {
                 <TrackList
                   tracks={filteredTracks}
                   currentTrackId={filteredTracks[currentTrackIndex]?.id}
+                  isPlaying={false}
                   onTrackSelect={setCurrentTrackIndex}
                 />
               </div>

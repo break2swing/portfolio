@@ -11,12 +11,12 @@ import {
   ZoomIn,
   ZoomOut,
   Download,
-  Share2,
   Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { OptimizedImage } from '@/components/OptimizedImage';
+import { ShareButton } from '@/components/ShareButton';
 
 interface PhotoViewerModalProps {
   photos: Photo[];
@@ -83,41 +83,6 @@ export function PhotoViewerModal({ photos, initialIndex, open, onClose }: PhotoV
     }
   };
 
-  const handleShare = async () => {
-    if (!currentPhoto) return;
-
-    const shareData = {
-      title: currentPhoto.title,
-      text: currentPhoto.description || currentPhoto.title,
-      url: window.location.href,
-    };
-
-    if (navigator.share && navigator.canShare?.(shareData)) {
-      try {
-        await navigator.share(shareData);
-        toast.success('Photo partagée', {
-          description: 'Le partage a été effectué',
-        });
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          toast.error('Erreur', {
-            description: 'Impossible de partager',
-          });
-        }
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Lien copié', {
-          description: 'Le lien a été copié dans le presse-papiers',
-        });
-      } catch (error) {
-        toast.error('Erreur', {
-          description: 'Impossible de copier le lien',
-        });
-      }
-    }
-  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -185,14 +150,18 @@ export function PhotoViewerModal({ photos, initialIndex, open, onClose }: PhotoV
                 <Download className="h-4 w-4" />
               )}
             </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={handleShare}
-              className="bg-black/50 hover:bg-black/70 text-white border-0"
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
+            {currentPhoto && (
+              <ShareButton
+                url={`${typeof window !== 'undefined' ? window.location.origin : ''}/photos#photo-${currentPhoto.id}`}
+                title={currentPhoto.title}
+                description={currentPhoto.description || currentPhoto.title}
+                imageUrl={currentPhoto.image_url}
+                type="photo"
+                variant="secondary"
+                size="icon"
+                className="bg-black/50 hover:bg-black/70 text-white border-0"
+              />
+            )}
             <Button
               variant="secondary"
               size="icon"
