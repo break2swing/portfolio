@@ -6,6 +6,7 @@ import { musicService } from '@/services/musicService';
 import { musicTagService } from '@/services/musicTagService';
 import { AudioPlayer } from '@/components/music/AudioPlayer';
 import { TrackList } from '@/components/music/TrackList';
+import { PlaylistManager } from '@/components/music/PlaylistManager';
 import { TagBadge } from '@/components/texts/TagBadge';
 import { SearchSuggestions } from '@/components/texts/SearchSuggestions';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDebounce } from '@/hooks/useDebounce';
 import { searchInCollection, SearchResult } from '@/lib/search';
 import { saveSearchQuery } from '@/lib/searchHistory';
+import { playlistService } from '@/services/playlistService';
+import { MusicTrack } from '@/lib/supabaseClient';
 
 export default function MusiquePage() {
   const [allTracks, setAllTracks] = useState<MusicTrackWithTags[]>([]);
@@ -27,12 +30,101 @@ export default function MusiquePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
+  const [playlistTracks, setPlaylistTracks] = useState<MusicTrack[]>([]);
+  const [loadingPlaylist, setLoadingPlaylist] = useState(false);
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Charger les tracks d'une playlist quand elle est sélectionnée
+  useEffect(() => {
+    if (activePlaylistId) {
+      loadPlaylistTracks(activePlaylistId);
+    } else {
+      setPlaylistTracks([]);
+      // Réappliquer les filtres quand on revient à la liste complète
+      // Cela sera géré par le useEffect qui écoute applyFilters
+    }
+  }, [activePlaylistId]);
+
+  const loadPlaylistTracks = async (playlistId: string) => {
+    setLoadingPlaylist(true);
+    try {
+      const { tracks, error } = await playlistService.getPlaylistTracks(playlistId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Convertir en MusicTrackWithTags pour compatibilité
+      const tracksWithTags: MusicTrackWithTags[] = (tracks || []).map((track) => ({
+        ...track,
+        tags: [],
+      }));
+
+      setPlaylistTracks(tracks || []);
+      setFilteredTracks(tracksWithTags);
+      setCurrentTrackIndex(0);
+    } catch (error: any) {
+      console.error('Error loading playlist tracks:', error);
+      setPlaylistTracks([]);
+      setFilteredTracks([]);
+    } finally {
+      setLoadingPlaylist(false);
+    }
+  };
+
+  const handlePlaylistSelect = (playlistId: string | null) => {
+    setActivePlaylistId(playlistId);
+    if (!playlistId) {
+      // Revenir à la liste complète - les filtres seront appliqués automatiquement via useEffect
+      // Ne rien faire ici, les filtres existants seront appliqués
+    }
+  };
+
+  const handleReorder = async (newOrder: number[]) => {
+    // Réorganiser les tracks localement
+    const reorderedTracks = newOrder.map((index) => filteredTracks[index]);
+    setFilteredTracks(reorderedTracks);
+
+    // Mettre à jour currentTrackIndex si le morceau actuel a changé de position
+    const currentTrack = filteredTracks[currentTrackIndex];
+    if (currentTrack) {
+      const newIndex = reorderedTracks.findIndex((t) => t.id === currentTrack.id);
+      if (newIndex !== -1 && newIndex !== currentTrackIndex) {
+        setCurrentTrackIndex(newIndex);
+      }
+    }
+
+    // Si une playlist est active, sauvegarder l'ordre dans Supabase
+    if (activePlaylistId) {
+      try {
+        const trackOrders = reorderedTracks.map((track, index) => ({
+          trackId: track.id,
+          order: index,
+        }));
+
+        const { error } = await playlistService.updatePlaylistOrder(
+          activePlaylistId,
+          trackOrders
+        );
+
+        if (error) {
+          console.error('Error updating playlist order:', error);
+          // Revenir à l'ordre précédent en cas d'erreur
+          setFilteredTracks(filteredTracks);
+        }
+      } catch (error) {
+        console.error('Unexpected error updating playlist order:', error);
+        // Revenir à l'ordre précédent en cas d'erreur
+        setFilteredTracks(filteredTracks);
+      }
+    }
+  };
 
   // Recherche fuzzy avec highlighting
   const searchResultsMemo = useMemo(() => {
@@ -109,6 +201,11 @@ export default function MusiquePage() {
   }, [allTracks, selectedTagIds, debouncedSearchQuery]);
 
   useEffect(() => {
+    // Ne pas appliquer les filtres si une playlist est active
+    if (activePlaylistId) {
+      return;
+    }
+    
     setFilteredTracks(applyFilters);
     
     // Réinitialiser l'index si le morceau actuel n'est plus dans les résultats filtrés
@@ -117,7 +214,7 @@ export default function MusiquePage() {
     } else if (applyFilters.length === 0) {
       setCurrentTrackIndex(0);
     }
-  }, [applyFilters, currentTrackIndex]);
+  }, [applyFilters, currentTrackIndex, activePlaylistId]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -273,13 +370,31 @@ export default function MusiquePage() {
       </p>
 
       <Tabs defaultValue="player" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="player">Lecteur Audio</TabsTrigger>
+          <TabsTrigger value="playlists">Mes Playlists</TabsTrigger>
           <TabsTrigger value="soundcloud">SoundCloud</TabsTrigger>
         </TabsList>
 
         <TabsContent value="player" className="space-y-6 mt-6">
-          {filteredTracks.length > 0 ? (
+          {activePlaylistId && (
+            <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Playlist active</p>
+                <p className="font-semibold">
+                  {playlistTracks.length} morceau{playlistTracks.length > 1 ? 'x' : ''}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => handlePlaylistSelect(null)}>
+                Revenir à la liste complète
+              </Button>
+            </div>
+          )}
+          {loadingPlaylist ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredTracks.length > 0 ? (
             <>
               <AudioPlayer tracks={filteredTracks} initialTrackIndex={currentTrackIndex} />
 
@@ -290,6 +405,8 @@ export default function MusiquePage() {
                   currentTrackId={filteredTracks[currentTrackIndex]?.id}
                   isPlaying={false}
                   onTrackSelect={setCurrentTrackIndex}
+                  onReorder={handleReorder}
+                  reorderable={!!activePlaylistId}
                 />
               </div>
             </>
@@ -310,6 +427,13 @@ export default function MusiquePage() {
               </p>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="playlists" className="space-y-6 mt-6">
+          <PlaylistManager
+            onSelectPlaylist={handlePlaylistSelect}
+            activePlaylistId={activePlaylistId}
+          />
         </TabsContent>
 
         <TabsContent value="soundcloud" className="space-y-6 mt-6">
