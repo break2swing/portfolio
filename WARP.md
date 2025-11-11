@@ -30,6 +30,26 @@ npm run lint
 npm run typecheck
 ```
 
+### Analyse et audit
+
+```bash
+# Analyser la taille du bundle
+npm run analyze
+
+# Vérifier la taille du bundle
+npm run check-bundle
+
+# Audit de sécurité
+npm run audit
+
+# Correction automatique des vulnérabilités
+npm run audit:fix
+
+# Générer les LQIP pour les images (Low Quality Image Placeholder)
+npm run generate-lqip
+# Note : Visiter /admin/migrate-lqip dans le navigateur
+```
+
 ### Configuration initiale (Supabase)
 
 ```bash
@@ -55,6 +75,14 @@ cp .env.example .env.local
 - **TypeScript** : Configuration stricte
 - **Icônes** : Lucide React
 - **Notifications** : Sonner
+- **Gestion d'état** : React Context + Custom Hooks
+- **Optimisation** : Bundle Analyzer, Image Compression, LQIP (Low Quality Image Placeholder)
+- **Performance** : Web Vitals monitoring, Virtual scrolling (@tanstack/react-virtual)
+- **Drag & Drop** : @dnd-kit (sortable, core, utilities)
+- **Markdown** : react-markdown + remark-gfm + react-syntax-highlighter
+- **Formulaires** : react-hook-form + zod (validation)
+- **UI Components** : embla-carousel, recharts, vaul, cmdk
+- **Sécurité** : dompurify (sanitization), rate limiting
 
 ### Pattern de Layout
 
@@ -101,15 +129,55 @@ Architecture avec couche service pour la logique métier (pattern `{ data, error
 - **`services/authService.ts`** : Wrapper Supabase Auth (email/password)
 - **`services/photoService.ts`** : CRUD pour la table `photos` + gestion `display_order`
 - **`services/musicService.ts`** : CRUD pour la table `music_tracks` + gestion `display_order`
+- **`services/videoService.ts`** : CRUD pour la table `videos` + validation d'URL + rate limiting
+- **`services/textService.ts`** : CRUD pour la table `texts` + cache + logging
 - **`services/storageService.ts`** : Upload/delete fichiers sur buckets Supabase (`photo-files`, `audio-files`)
+- **`services/githubService.ts`** : Intégration GitHub API pour repositories
+- **`services/repositoryService.ts`** : CRUD pour repositories (local/GitHub)
+- **`services/playlistService.ts`** : Gestion des playlists musicales
+- **`services/categoryService.ts`** : CRUD pour les catégories
+- **`services/tagService.ts`** : CRUD pour les tags
+- **`services/photoTagService.ts`** : Relations photos-tags
+- **`services/musicTagService.ts`** : Relations music-tags
+- **`services/videoTagService.ts`** : Relations videos-tags
 
 **Convention** : Chaque méthode retourne `{ data, error }` pour une gestion d'erreur cohérente.
+
+**Fonctionnalités avancées** :
+- Cache avec TTL et invalidation par pattern (`lib/cache.ts`)
+- Logging structuré (`lib/logger.ts`)
+- Validation d'URL et sanitization (`lib/urlValidation.ts`)
+- Rate limiting pour protéger les API (`lib/rateLimiter.ts`)
+
+### Custom Hooks
+
+Le projet utilise plusieurs hooks personnalisés pour la logique réutilisable :
+
+- **`hooks/useAuth.ts`** : Hook pour l'authentification
+- **`hooks/useBookmarks.ts`** : Gestion des favoris
+- **`hooks/useClickOutside.ts`** : Détection des clics en dehors d'un élément
+- **`hooks/useDebounce.ts`** : Debouncing pour les inputs
+- **`hooks/useFilters.ts`** : Gestion des filtres (catégories, tags, recherche)
+- **`hooks/useGlobalSearch.ts`** : Recherche globale dans le portfolio
+- **`hooks/use-toast.ts`** : Hook pour les notifications (shadcn/ui)
 
 ### Composants UI
 
 - **shadcn/ui** : Bibliothèque complète sous `components/ui/`
 - **Tailwind CSS** : Styling avec l'utilitaire `cn()` (`lib/utils.ts`)
 - **Alias de chemin** : `@/*` → racine du projet
+
+**Composants personnalisés** :
+- **Layout** : `AppLayout`, `Sidebar`, `MobileSidebar`, `Topbar`
+- **Navigation** : `SkipToContent`, `GlobalSearch`, `AdvancedFilters`
+- **Médias** : `OptimizedImage` (LQIP), `VirtualizedPhotoGrid`, `PhotoViewerModal`
+- **Musique** : `AudioPlayer`, `AudioVisualization`, `PlaylistManager`, `TrackList`
+- **Vidéos** : Composants de gestion vidéo
+- **Textes** : `MarkdownViewer`, `CodeViewer`
+- **Applications** : `RepositoryCard`, `RepositoryDetail`, `FileExplorer`
+- **Interactions** : `BookmarkButton`, `ShareButton`, `RefreshButton`
+- **Performance** : `PrefetchData`, `WebVitals`
+- **Sécurité** : `ProtectedRoute` (wrapper pour routes admin)
 
 ## Backend Supabase
 
@@ -123,31 +191,51 @@ Architecture avec couche service pour la logique métier (pattern `{ data, error
 ### Base de données
 
 **Tables** (types dans `lib/supabaseClient.ts`) :
-- `photos` : galerie photos (id, title, description, image_url, display_order, created_at)
+- `photos` : galerie photos (id, title, description, image_url, blur_data_url, display_order, user_id, created_at)
 - `music_tracks` : bibliothèque musicale (id, title, artist, album, audio_url, cover_image_url, duration, display_order, user_id, created_at)
+- `videos` : galerie vidéos (id, title, description, video_url, thumbnail_url, duration, display_order, user_id, created_at)
+- `texts` : créations textuelles (id, title, subtitle, content, excerpt, author, published_date, category_id, is_published, view_count, display_order, user_id, created_at, updated_at)
+- `categories` : catégories pour textes (id, name, slug, description, color, display_order, created_at, updated_at)
+- `tags` : tags réutilisables (id, name, slug, color, created_at, updated_at)
+- `photo_tags` : relation photos-tags (photo_id, tag_id, created_at)
+- `music_tags` : relation music-tags (music_track_id, tag_id, created_at)
+- `video_tags` : relation videos-tags (video_id, tag_id, created_at)
+- `text_tags` : relation texts-tags (text_id, tag_id, created_at)
+- `repositories` : applications/repositories (id, name, description, source_type, github_owner, github_repo, github_branch, storage_path, language, is_public, display_order, user_id, created_at, updated_at)
+- `repository_files` : fichiers de repositories (id, repository_id, path, content, size, is_directory, last_modified, created_at)
+- `playlists` : playlists musicales (id, name, description, user_id, is_public, display_order, created_at, updated_at)
+- `playlist_tracks` : relation playlists-tracks (id, playlist_id, track_id, display_order, added_at)
 
 **RLS (Row Level Security)** :
 - `SELECT` : public (anon, authenticated)
 - `INSERT` / `UPDATE` / `DELETE` : authenticated uniquement
+
+**Schéma SQL** : Voir `database/schema.sql` pour la structure complète
 
 ### Storage
 
 **Buckets** :
 - `photo-files` : images (public)
 - `audio-files` : fichiers audio
+- Configuration : compression d'image côté client (browser-image-compression)
+- LQIP : génération de placeholders basse qualité pour améliorer le LCP
 
 **Auth** : Supabase Auth avec email/password
+- Session persistante avec auto-refresh
+- Détection de session dans URL
 
 ## Structure des routes
 
 ### Pages publiques
 
 - `/` — Page d'accueil
-- `/photos` — Galerie photos
-- `/musique` — Créations musicales (lecteur + embeds SoundCloud)
+- `/photos` — Galerie photos (avec virtualisation)
+- `/musique` — Créations musicales (lecteur + playlists)
 - `/videos` — Galerie vidéos
-- `/textes` — Créations textuelles
-- `/applications` — Portfolio d'applications
+- `/textes` — Créations textuelles (Markdown + catégories + tags)
+- `/applications` — Portfolio d'applications (GitHub integration)
+- `/applications/[id]` — Détail d'une application (viewer de code)
+- `/favoris` — Page des favoris
 - `/a-propos` — Page à propos
 - `/contact` — Page de contact
 - `/parametres` — Paramètres d'apparence
@@ -155,8 +243,12 @@ Architecture avec couche service pour la logique métier (pattern `{ data, error
 ### Pages admin (protégées)
 
 - `/login` — Authentification
-- `/admin/photos` — Gestion galerie photos (upload, réordonnancement, suppression)
-- `/admin/music` — Gestion bibliothèque musicale
+- `/admin/photos` — Gestion galerie photos (upload, réordonnancement, suppression, tags)
+- `/admin/music` — Gestion bibliothèque musicale (upload, playlists, tags)
+- `/admin/videos` — Gestion galerie vidéos (upload, tags)
+- `/admin/textes` — Gestion créations textuelles (Markdown, catégories, tags)
+- `/admin/applications` — Gestion portfolio applications (local/GitHub)
+- `/admin/migrate-lqip` — Outil de migration LQIP pour images existantes
 
 **Protection** : Les pages `/admin/*` sont wrapées dans `<ProtectedRoute>` qui redirige vers `/login` si non authentifié.
 
@@ -221,11 +313,86 @@ const handleAction = async () => {
 };
 ```
 
+## Fonctionnalités avancées
+
+### Système de tags et catégories
+
+- **Catégories** : Pour les textes uniquement (hiérarchie sémantique)
+- **Tags** : Système transversal pour photos, musiques, vidéos et textes
+- **Relations many-to-many** : tables de jonction pour chaque type de contenu
+- **Filtres avancés** : Combinaison catégories + tags + recherche textuelle
+
+### Optimisation des performances
+
+- **Virtual scrolling** : Pour les grandes listes (photos, textes)
+- **LQIP (Low Quality Image Placeholder)** : Améliore le LCP (Largest Contentful Paint)
+- **Lazy loading** : Images et composants chargés à la demande
+- **Cache** : Stratégie de cache avec TTL pour réduire les appels Supabase
+- **Bundle analysis** : Monitoring de la taille du bundle
+- **Web Vitals** : Monitoring des Core Web Vitals en production
+
+### Recherche et filtres
+
+- **Recherche globale** : Recherche multi-contenu (photos, musiques, vidéos, textes, applications)
+- **Filtres avancés** : Par catégorie, tags, date, type de contenu
+- **Debouncing** : Optimisation des requêtes de recherche
+
+### Intégration GitHub
+
+- **Repositories** : Affichage de projets GitHub
+- **File explorer** : Navigation dans les fichiers du repository
+- **Code viewer** : Coloration syntaxique avec react-syntax-highlighter
+- **Metadata** : Langages, statistiques, README
+
+### Système de favoris
+
+- **Bookmarks** : Marquer des contenus favoris
+- **Persistance** : localStorage pour préserver les favoris
+- **Page dédiée** : `/favoris` pour retrouver tous les contenus favoris
+
+### Sécurité
+
+- **Rate limiting** : Protection contre les abus d'API
+- **URL validation** : Validation stricte des URLs de médias
+- **Content sanitization** : DOMPurify pour nettoyer le HTML/Markdown
+- **RLS (Row Level Security)** : Policies Supabase strictes
+
+## Structure des dossiers
+
+```
+portfolio/
+├── .bolt/              # Configuration Bolt
+├── .claude/            # Configuration Claude
+├── .codex/             # Configuration Codex
+├── .cursor/            # Configuration Cursor
+├── .gemini/            # Configuration Gemini
+├── .github/            # GitHub workflows
+├── .kiro/              # Configuration Kiro
+├── .plan/              # Plans de développement
+├── .specstory/         # Spécifications
+├── .taskmaster/        # Gestion des tâches
+├── .vscode/            # Configuration VS Code
+├── app/                # Pages Next.js (App Router)
+├── components/         # Composants React
+├── contexts/           # React Contexts
+├── database/           # Schémas SQL
+├── docs/               # Documentation
+├── hooks/              # Custom hooks
+├── lib/                # Utilitaires et clients
+├── public/             # Fichiers statiques
+├── scripts/            # Scripts utilitaires
+└── services/           # Couche service (logique métier)
+```
+
 ## Documentation de référence
 
 Pour plus de détails sur l'architecture, les patterns et les workflows :
 
 - **README.md** — Démarrage rapide et technologies
 - **SETUP_SUPABASE.md** — Configuration Supabase pas à pas
+- **SETUP_PHOTOS.md** — Configuration spécifique pour la galerie photos
+- **SETUP_TEXTS.md** — Configuration spécifique pour les textes
 - **CLAUDE.md** — Architecture complète et patterns de développement
 - **AGENTS.md** — Conventions de code et workflows pour agents IA
+- **AI_TOOLS.md** — Guide des outils IA (Claude, Gemini, Codex)
+- **GEMINI.md** — Configuration spécifique Gemini

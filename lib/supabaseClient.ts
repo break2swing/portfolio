@@ -117,6 +117,67 @@ export type PhotoWithTags = Photo & {
   tags?: Tag[];
 };
 
+export type Repository = {
+  id: string;
+  name: string;
+  description: string | null;
+  source_type: 'local' | 'github';
+  github_owner: string | null;
+  github_repo: string | null;
+  github_branch: string | null;
+  storage_path: string | null;
+  language: string | null;
+  is_public: boolean;
+  display_order: number;
+  user_id: string | null;
+  github_stars: number | null;
+  github_forks: number | null;
+  github_watchers: number | null;
+  github_open_issues: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RepositoryFile = {
+  id: string;
+  repository_id: string;
+  path: string;
+  content: string | null;
+  size: number | null;
+  is_directory: boolean;
+  last_modified: string | null;
+  created_at: string;
+};
+
+export type RepositoryWithFiles = Repository & {
+  files?: RepositoryFile[];
+};
+
+export type Gist = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  is_public: boolean;
+  user_id: string | null;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GistFile = {
+  id: string;
+  gist_id: string;
+  filename: string;
+  content: string;
+  language: string | null;
+  display_order: number;
+  created_at: string;
+};
+
+export type GistWithFiles = Gist & {
+  files: GistFile[];
+};
+
 export type Playlist = {
   id: string;
   name: string;
@@ -242,6 +303,40 @@ export type Database = {
           added_at?: string;
         };
         Update: Partial<Omit<PlaylistTrack, 'id' | 'added_at'>>;
+      };
+      repositories: {
+        Row: Repository;
+        Insert: Omit<Repository, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Repository, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      repository_files: {
+        Row: RepositoryFile;
+        Insert: Omit<RepositoryFile, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Omit<RepositoryFile, 'id' | 'created_at'>>;
+      };
+      gists: {
+        Row: Gist;
+        Insert: Omit<Gist, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Gist, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      gist_files: {
+        Row: GistFile;
+        Insert: Omit<GistFile, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Omit<GistFile, 'id' | 'created_at'>>;
       };
     };
   };

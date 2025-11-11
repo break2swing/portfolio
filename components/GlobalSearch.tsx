@@ -11,12 +11,14 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command';
-import { FileText, Image, Video, Music, AppWindow, Clock } from 'lucide-react';
+import { FileText, Image, Video, Music, AppWindow, Clock, Code } from 'lucide-react';
 import { searchAllContent, GlobalSearchItem } from '@/lib/search';
 import { textService } from '@/services/textService';
 import { photoService } from '@/services/photoService';
 import { videoService } from '@/services/videoService';
 import { musicService } from '@/services/musicService';
+import { repositoryService } from '@/services/repositoryService';
+import { gistService } from '@/services/gistService';
 import { useDebounce } from '@/hooks/useDebounce';
 import { serviceLogger } from '@/lib/logger';
 import { saveSearchQuery, getSearchHistory } from '@/lib/searchHistory';
@@ -29,6 +31,7 @@ const iconMap = {
   Video,
   Music,
   AppWindow,
+  Code,
 };
 
 interface GlobalSearchProps {
@@ -61,11 +64,13 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
       logger.info('Performing global search', { query: debouncedQuery });
 
       try {
-        const [textsData, photosData, videosData, musicData] = await Promise.all([
+        const [textsData, photosData, videosData, musicData, repositoriesData, gistsData] = await Promise.all([
           textService.getAllTexts(),
           photoService.getAllPhotos(),
           videoService.getAllVideos(),
           musicService.getAllTracks(),
+          repositoryService.getAllRepositories(),
+          gistService.getAllGists(),
         ]);
 
         const searchResults = searchAllContent(
@@ -75,6 +80,8 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
             photos: photosData.photos || [],
             videos: videosData.videos || [],
             music: musicData.tracks || [],
+            repositories: repositoriesData.repositories || [],
+            gists: gistsData.gists || [],
           },
           {
             fuzzy: true,
