@@ -68,8 +68,8 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLInputElement>(null);
   const progressContainerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const animationRef = useRef<number | undefined>(undefined);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const previousTracksRef = useRef<MusicTrack[]>(tracks);
   const isPlayingRef = useRef(isPlaying);
 
@@ -654,17 +654,20 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
           )}
         </div>
 
-        <div className="flex items-center justify-center gap-4 mb-2">
+        <div className="flex items-center justify-between mb-2">
           <button
             onClick={previousVisualization}
-            className="p-2 rounded-full hover:bg-secondary/80 transition-colors"
+            className="p-2 rounded-full bg-secondary hover:bg-secondary/80 shadow-md hover:shadow-lg transition-all"
             aria-label="Visualisation précédente"
           >
             <ChevronLeft size={20} />
           </button>
+          <span className="text-sm text-muted-foreground font-medium">
+            {VISUALIZATION_NAMES[currentVisualization]}
+          </span>
           <button
             onClick={nextVisualization}
-            className="p-2 rounded-full hover:bg-secondary/80 transition-colors"
+            className="p-2 rounded-full bg-secondary hover:bg-secondary/80 shadow-md hover:shadow-lg transition-all"
             aria-label="Visualisation suivante"
           >
             <ChevronRight size={20} />
@@ -723,16 +726,16 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={toggleShuffle}
-                    className={`p-2 rounded-full transition-colors ${
+                    className={`p-3 rounded-full shadow-md hover:shadow-lg transition-all ${
                       shuffle
                         ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'hover:bg-secondary/80'
+                        : 'bg-secondary hover:bg-secondary/80'
                     }`}
                     aria-label={shuffle ? 'Désactiver le mode aléatoire' : 'Activer le mode aléatoire'}
                   >
@@ -747,35 +750,35 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
             <button
               onClick={playPrevious}
               disabled={tracks.length === 0 || (currentTrackIndex === 0 && repeat !== 'all')}
-              className="p-2 rounded-full hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-3 rounded-full bg-secondary hover:bg-secondary/80 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-md"
               aria-label="Morceau précédent"
             >
-              <SkipBack size={24} />
+              <SkipBack size={20} />
             </button>
             <button
               onClick={togglePlay}
-              className="p-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="p-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all"
               aria-label={isPlaying ? 'Pause' : 'Lecture'}
             >
-              {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+              {isPlaying ? <Pause size={28} /> : <Play size={28} />}
             </button>
             <button
               onClick={playNext}
               disabled={tracks.length === 0 || (currentTrackIndex === tracks.length - 1 && repeat !== 'all')}
-              className="p-2 rounded-full hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-3 rounded-full bg-secondary hover:bg-secondary/80 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-md"
               aria-label="Morceau suivant"
             >
-              <SkipForward size={24} />
+              <SkipForward size={20} />
             </button>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={toggleRepeat}
-                    className={`p-2 rounded-full transition-colors ${
+                    className={`p-3 rounded-full shadow-md hover:shadow-lg transition-all ${
                       repeat !== 'none'
                         ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'hover:bg-secondary/80'
+                        : 'bg-secondary hover:bg-secondary/80'
                     }`}
                     aria-label={
                       repeat === 'none'
@@ -788,7 +791,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
                     {repeat === 'one' ? (
                       <div className="relative">
                         <Repeat size={20} />
-                        <span className="absolute -top-1 -right-1 text-xs">1</span>
+                        <span className="absolute -top-1 -right-1 text-xs font-bold">1</span>
                       </div>
                     ) : (
                       <Repeat size={20} />
@@ -810,7 +813,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
           <div className="flex items-center space-x-2">
             <button
               onClick={toggleMute}
-              className="p-2 rounded-full hover:bg-secondary/80 transition-colors"
+              className="p-3 rounded-full bg-secondary hover:bg-secondary/80 shadow-md hover:shadow-lg transition-all"
               aria-label={isMuted ? 'Réactiver le son' : 'Couper le son'}
             >
               {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -822,7 +825,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
               step="0.01"
               value={volume}
               onChange={changeVolume}
-              className="w-24 h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
+              className="w-32 h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
               aria-label="Contrôle du volume"
             />
           </div>

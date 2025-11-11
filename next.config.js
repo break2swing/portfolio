@@ -5,9 +5,6 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: { unoptimized: true },
   // Source maps optimisés pour la production
   productionBrowserSourceMaps: false,
@@ -20,9 +17,8 @@ const nextConfig = {
   // Note: Les headers de sécurité HTTP ne peuvent pas être configurés dans next.config.js
   // avec output: 'export'. Ils doivent être configurés au niveau du serveur web ou
   // de la plateforme d'hébergement. Voir docs/SECURITY.md pour les instructions.
-  // Optimisations expérimentales Next.js
+  // Optimisations maintenant stables dans Next.js 16
   experimental: {
-    optimizeCss: true,
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-dialog',

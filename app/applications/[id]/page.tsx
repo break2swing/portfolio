@@ -3,9 +3,9 @@ import { notFound } from 'next/navigation';
 import { repositoryService } from '@/services/repositoryService';
 
 interface RepositoryPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 /**
@@ -30,14 +30,16 @@ export async function generateStaticParams() {
   }
 }
 
-export default function RepositoryPage({ params }: RepositoryPageProps) {
-  if (!params.id) {
+export default async function RepositoryPage({ params }: RepositoryPageProps) {
+  const { id } = await params;
+  
+  if (!id) {
     notFound();
   }
 
   return (
     <div className="container mx-auto py-6">
-      <RepositoryDetail repositoryId={params.id} />
+      <RepositoryDetail repositoryId={id} />
     </div>
   );
 }
