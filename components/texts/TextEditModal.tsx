@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { TextWithMetadata, Category, Tag } from '@/lib/supabaseClient';
@@ -25,8 +26,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Save, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { MarkdownRenderer } from './MarkdownRenderer';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TagBadge } from './TagBadge';
+
+// Lazy load MarkdownRenderer (utilisé seulement dans l'onglet preview)
+const MarkdownRenderer = dynamic(() => import('./MarkdownRenderer').then(mod => ({ default: mod.MarkdownRenderer })), {
+  loading: () => <Skeleton className="h-64 w-full" />,
+  ssr: false,
+});
 
 interface TextEditModalProps {
   text: TextWithMetadata;

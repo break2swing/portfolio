@@ -1,12 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Sidebar } from '@/components/Sidebar';
 import { MobileSidebar } from '@/components/MobileSidebar';
 import { Topbar } from '@/components/Topbar';
-import { GlobalSearch } from '@/components/GlobalSearch';
 import { SkipToContent } from '@/components/SkipToContent';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
+
+// Lazy load GlobalSearch (modal, chargé seulement quand nécessaire)
+const GlobalSearch = dynamic(() => import('@/components/GlobalSearch').then(mod => ({ default: mod.GlobalSearch })), {
+  loading: () => null, // Pas de loading state visible pour un modal
+  ssr: false,
+});
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarWidth, setSidebarWidth] = useState(256);

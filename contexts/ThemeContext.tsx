@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -62,20 +62,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme, mounted]);
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem('theme', newTheme);
-  };
+  }, []);
 
-  const cycleTheme = () => {
+  const cycleTheme = useCallback(() => {
     const cycle: Theme[] = ['light', 'dark', 'system'];
     const currentIndex = cycle.indexOf(theme);
     const nextIndex = (currentIndex + 1) % cycle.length;
     setTheme(cycle[nextIndex]);
-  };
+  }, [theme, setTheme]);
+
+  const value = useMemo(
+    () => ({ theme, setTheme, cycleTheme, resolvedTheme }),
+    [theme, setTheme, cycleTheme, resolvedTheme]
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, cycleTheme, resolvedTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

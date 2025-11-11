@@ -460,7 +460,7 @@ export function RepositoryUploadForm({ onSuccess }: RepositoryUploadFormProps) {
                 ref={folderInputRef}
                 type="file"
                 multiple
-                webkitdirectory=""
+                {...({ webkitdirectory: "" } as any)}
                 className="hidden"
                 onChange={(e) => handleFileSelect(e.target.files)}
               />

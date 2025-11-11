@@ -6,17 +6,33 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { TextWithMetadata } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
-import { TextListAdmin } from '@/components/texts/TextListAdmin';
-import { CategoryManager } from '@/components/texts/CategoryManager';
-import { TagManager } from '@/components/texts/TagManager';
 import { RefreshButton } from '@/components/RefreshButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, Settings, FolderTree, Tags } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Lazy load TextUploadForm
+// Lazy load admin components
 const TextUploadForm = dynamic(() => import('@/components/texts/TextUploadForm').then(mod => ({ default: mod.TextUploadForm })), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
+
+const TextListAdmin = dynamic(() => import('@/components/texts/TextListAdmin').then(mod => ({ default: mod.TextListAdmin })), {
+  loading: () => (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  ),
+  ssr: false,
+});
+
+const CategoryManager = dynamic(() => import('@/components/texts/CategoryManager').then(mod => ({ default: mod.CategoryManager })), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
+
+const TagManager = dynamic(() => import('@/components/texts/TagManager').then(mod => ({ default: mod.TagManager })), {
   loading: () => <Skeleton className="h-96 w-full" />,
   ssr: false,
 });

@@ -1,16 +1,35 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Video } from '@/lib/supabaseClient';
 import { videoService } from '@/services/videoService';
-import { VideoUploadForm } from '@/components/videos/VideoUploadForm';
-import { VideoListAdmin } from '@/components/videos/VideoListAdmin';
-import { TagManager } from '@/components/texts/TagManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Upload, Settings, Tags } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load admin components
+const VideoUploadForm = dynamic(() => import('@/components/videos/VideoUploadForm').then(mod => ({ default: mod.VideoUploadForm })), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
+
+const VideoListAdmin = dynamic(() => import('@/components/videos/VideoListAdmin').then(mod => ({ default: mod.VideoListAdmin })), {
+  loading: () => (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  ),
+  ssr: false,
+});
+
+const TagManager = dynamic(() => import('@/components/texts/TagManager').then(mod => ({ default: mod.TagManager })), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
 
 function AdminVideosContent() {
   const [videos, setVideos] = useState<Video[]>([]);

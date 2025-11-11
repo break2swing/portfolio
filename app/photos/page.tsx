@@ -7,10 +7,17 @@ import { photoService } from '@/services/photoService';
 import { photoTagService } from '@/services/photoTagService';
 import { PhotoGrid } from '@/components/photos/PhotoGrid';
 import { VirtualizedPhotoGrid } from '@/components/photos/VirtualizedPhotoGrid';
-import { AdvancedFilters } from '@/components/AdvancedFilters';
 import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFilters } from '@/hooks/useFilters';
+
+// Lazy load AdvancedFilters
+const AdvancedFilters = dynamic(() => import('@/components/AdvancedFilters').then(mod => ({ default: mod.AdvancedFilters })), {
+  loading: () => (
+    <div className="w-full h-24 rounded-lg border border-border bg-card/50 animate-pulse" />
+  ),
+  ssr: false,
+});
 
 // Lazy load PhotoViewerModal
 const PhotoViewerModal = dynamic(() => import('@/components/photos/PhotoViewerModal').then(mod => ({ default: mod.PhotoViewerModal })), {

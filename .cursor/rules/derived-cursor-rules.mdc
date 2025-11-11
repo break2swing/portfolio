@@ -389,33 +389,15 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 * When, from the Application page, a user clicks on a Github repository, they should be redirected to the repository on Github in a new tab.
 * When displaying GitHub repository cards, show more information such as the number of forks, the number of stars, etc, using the same icons as GitHub.
 * When using `generateStaticParams()` with `output: export`, the function must be on the server side. Move components using it to server components, or use `next/dynamic` with `ssr: false` to load them client-side.
-
-## CODING STANDARDS
-
-*   When importing icons from `lucide-react`, and there is a naming conflict with a type or variable, rename the imported icon using `as`. For example: `import { Video as VideoIcon } from 'lucide-react'`.
-*   When implementing a social share feature, create `lib/shareUtils.ts` with all sharing utility functions and `components/ShareButton.tsx` with a dropdown menu and share options. Modify `PhotoViewerModal.tsx`, `TextDetailModal.tsx`, and `AudioPlayer.tsx` to include the `ShareButton`.
-
-## DEBUG
-
-*   When debugging errors, especially those reported as generic messages like "Impossible de modifier le morceau," follow these steps:
-    1.  **Examine the relevant code:** Start by inspecting the code where the error is occurring, such as the `TrackEditDialog.tsx` or `PhotoEditModal.tsx` components.
-    2.  **Implement detailed logging:** Add `console.log` statements to log data and track the flow of execution. Log details such as function arguments, intermediate values, and any relevant state variables.
-    3.  **Inspect network requests:** Use browser developer tools to inspect network requests and responses. Check the request payload and response status to identify any issues with the data being sent or received.
-    4.  **Improve error handling:** Enhance error handling in the code to provide more specific error messages. Use try-catch blocks to catch errors and log detailed information about the error, including the error message, error code, and any additional details.
-    5.  **Check Supabase permissions (RLS):** Verify that the Supabase Row Level Security (RLS) policies are correctly configured to allow the necessary operations.
-    6.  **Validate data formats:** Ensure that the data being sent to the database is in the correct format and meets any constraints imposed by the database schema.
-    7.  **Test and verify:** After making changes, thoroughly test the code to ensure that the error has been resolved and that no new issues have been introduced.
-*   When debugging the "Impossible de modifier le morceau" error specifically:
-    1.  **Add detailed logs** to each step of the `TrackEditDialog.tsx` and `PhotoEditDialog.tsx` components, including:
-        *   The data being sent for updates.
-        *   The stage at which the error occurs (e.g., updating track information, updating tags).
-        *   Full error objects, including error type, constructor, and stringified details.
-    2.  **Verify `musicTagService.ts` and `photoTagService.ts`** to ensure errors are correctly handled during the deletion of existing tags and insertion of new tags.
-    3.  **If the error is related to missing tables** (e.g., `music_tags`):
-        *   The code should continue to function, providing a warning that tags could not be updated due to the missing table.
-        *   The tag loading process should also be optional, preventing errors if the table doesn't exist.
-    4.  **Ensure proper error messages:** The toast messages should display clear error details, including message, code, status code, hint, and details.
-* When a table is missing, the code must continue to function, providing a warning that tags could not be updated due to the missing table. The tag loading process should also be optional, preventing errors if the table doesn't exist.
+* When debugging the build process and encountering issues with `generateStaticParams` in dynamic routes:
+    * Ensure that the dynamic route file (e.g., `app/applications/gist/[id]/page.tsx`) is a server component and does not include `'use client'`.
+    * Verify that all required data fetching functions (e.g., `supabaseClient.from('gists').select('id').eq('is_public', true)`) are correctly implemented and handle potential errors.
+    * When the error persists, even with correct code, it may be due to caching or other build-time issues. Try the following steps:
+         * Clear the Next.js cache by running `Remove-Item -Recurse -Force .next`
+         * Clear the `node_modules` cache by running `Remove-Item -Recurse -Force node_modules/.cache`
+         * Restart the development server: `npm run dev`
+        If the error persists, it may indicate a more complex issue with the Next.js build process or the interaction with external services like Supabase.
+*   When a table is missing, the code must continue to function, providing a warning that tags could not be updated due to the missing table. The tag loading process should also be optional, preventing errors if the table doesn't exist.
 * When displaying tags on public pages, ensure that each page displays only the tags that are actually used for its content type:
     * Page Photos: only tags from the `photo_tags` table.
     * Page Music: only tags from the `music_tags` table.
@@ -459,43 +441,159 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 * When implementing a system of code repositories with a GitHub-like style, follow these guidelines:
     * Use the MCP Supabase server for database operations.
     * When creating the database schema, the `repositories` table should include columns
-* When implementing a system of code repositories with a GitHub-like style, use the MCP Supabase server for database operations.
-    * When creating the database schema, the `repositories` table should include columns for `id`, `name`, `description`, `source_type` (`local` or `github`), `github_owner`, `github_repo`, `github_branch`, `storage_path`, `language`, `is_public`, `display_order`, `user_id`, `created_at`, and `updated_at`.
-    * The `repository_files` table should include columns for `id`, `repository_id`, `path`, `content`, `size`, `is_directory`, `last_modified`, and `created_at`.
-    * Create services:
-        * `repositoryService.ts`: CRUD operations for repositories and file management.
-        * `githubService.ts`: Integration with the GitHub API.
-        * Extend `storageService.ts` for repository file management.
-    * Create UI components:
-        * `RepositoryCard.tsx`: Repository card.
-        * `RepositoryList.tsx`: List/grid of repositories with filters and search.
-        * `FileExplorer.tsx`: GitHub-like file explorer.
-        * `CodeViewer.tsx`: Code visualization with syntax highlighting.
-        * `MarkdownViewer.tsx`: Enhanced `MarkdownRenderer` for GitHub-like Markdown rendering.
-        * `RepositoryDetail.tsx`: Repository detail page integrating `FileExplorer`, `CodeViewer`, and `MarkdownViewer`.
-    * Create pages:
-        * `app/applications/page.tsx`: Repository list page.
-        * `app/applications/[id]/page.tsx`: Repository detail page.
-    * Create Supabase migrations using the MCP Supabase server:
-        * Create `repositories` and `repository_files` tables with RLS policies using `mcp_supabase_apply_migration`.
-        * Create a `repository-files` bucket in Storage.
-        * Create indexes for optimized queries.
-        * Verify the structure with `mcp_supabase_list_tables` after creation.
-        * Use `mcp_supabase_execute_sql` for complex queries if needed.
-* When creating a new admin page, you should:
-    * Create `app/admin/applications/page.tsx` with a basic structure and `ProtectedRoute`.
-    * Create a `RepositoryUploadForm.tsx` component with a toggle between GitHub and Local upload options.
-    * Implement the GitHub mode with fields for owner, repo, and branch, including a "Verify" button to test the connection.
-    * Implement the Local mode with multi-file upload and drag-and-drop support.
-    * Create `RepositoryListAdmin.tsx` for managing existing repositories.
-    * Create `RepositoryEditDialog.tsx` to edit repository metadata.
-    * Extend `repositoryService.ts` with functions for verifying GitHub repos and uploading local repos.
-    * Extend `storageService.ts` with functions for uploading multiple files and creating repository folders.
-    * Implement form validation and error handling.
-    * Integrate the admin page into the navigation sidebar.
-* When uploading a local repository, take `.gitignore` into account and do not upload the files it contains.
-* When, from the Application page, a user clicks on a Github repository, they should be redirected to the repository on Github in a new tab.
-* When displaying GitHub repository cards, show more information such as the number of forks, the number of stars, etc, using the same icons as GitHub.
-* When, from the Application page, a user clicks on a Github repository, they should be redirected to the repository on Github in a new tab.
-* When displaying GitHub repository cards, show more information such as the number of forks, the number of stars, etc, using the same icons as GitHub.
-* When using `generateStaticParams()` with `output: export`, the function must be on the server side. Move components using it to server components, or use `next/dynamic` with `ssr: false` to load them client-side.
+
+## CODING STANDARDS
+
+*   When importing icons from `lucide-react`, and there is a naming conflict with a type or variable, rename the imported icon using `as`. For example: `import { Video as VideoIcon } from 'lucide-react'`.
+*   When implementing a social share feature, create `lib/shareUtils.ts` with all sharing utility functions and `components/ShareButton.tsx` with a dropdown menu and share options. Modify `PhotoViewerModal.tsx`, `TextDetailModal.tsx`, and `AudioPlayer.tsx` to include the `ShareButton`.
+* Update the buttons of the audio player to use the following implementation:
+
+```index.tsx
+import './index.css'
+import React from "react";
+import { render } from "react-dom";
+import { App } from "./App";
+
+render(<App />, document.getElementById("root"));
+```
+
+```App.tsx
+import React from 'react'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { ThemeToggle } from './components/ThemeToggle'
+import { AudioPlayer } from './components/AudioPlayer'
+
+export function App() {
+  return (
+    <ThemeProvider>
+      <div className="w-full min-h-screen bg-background text-foreground p-6">
+        <header className="w-full max-w-2xl mx-auto flex justify-end mb-4">
+          <ThemeToggle />
+        </header>
+        <main className="flex flex-col items-center justify-center">
+          <AudioPlayer />
+        </main>
+      </div>
+    </ThemeProvider>
+  )
+}
+```
+
+```AppRouter.tsx
+import React from "react";
+  import { BrowserRouter, Routes, Route } from "react-router-dom";
+  import { App } from "./App";
+
+  export function AppRouter() {
+    return (
+      <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<App />} />
+          </Routes>
+      </BrowserRouter>
+    );
+  }
+```
+
+```tailwind.config.js
+module.exports = {
+  darkMode: "selector",
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "caret-blink": {
+          "0%,70%,100%": { opacity: "1" },
+          "20%,50%": { opacity: "0" },
+        },
+        "accordion-down": {
+          from: { height: 0 },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: 0 },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "caret-blink": "caret-blink 1.25s ease-out infinite",
+      },
+    },
+  },
+}
+```
+
+```index.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;

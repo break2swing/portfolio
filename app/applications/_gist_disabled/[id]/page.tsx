@@ -1,6 +1,6 @@
+import { gistService } from '@/services/gistService';
 import { GistDetail } from '@/components/gists/GistDetail';
 import { notFound } from 'next/navigation';
-import { supabaseClient } from '@/lib/supabaseClient';
 
 interface GistPageProps {
   params: Promise<{
@@ -11,28 +11,16 @@ interface GistPageProps {
 /**
  * Génère les paramètres statiques pour toutes les routes de Gists
  * Requis pour l'export statique (output: 'export')
- * Note: Utilise directement supabaseClient car le cache côté client n'est pas disponible lors du build
+ * En mode export statique, retourne un tableau vide car les pages seront générées côté client
  */
 export async function generateStaticParams() {
-  try {
-    const { data, error } = await supabaseClient
-      .from('gists')
-      .select('id')
-      .eq('is_public', true);
-
-    if (error || !data) {
-      console.error('Error fetching gists for static generation:', error);
-      return [];
-    }
-
-    return data.map((gist) => ({
-      id: gist.id,
-    }));
-  } catch (error) {
-    console.error('Unexpected error generating static params:', error);
-    return [];
-  }
+  // En mode export statique, on ne peut pas pré-générer les pages dynamiques
+  // Les pages seront générées côté client à la demande
+  return [];
 }
+
+// Permet aux pages dynamiques d'être générées à la demande
+export const dynamicParams = true;
 
 export default async function GistPage({ params }: GistPageProps) {
   const { id } = await params;
@@ -47,3 +35,4 @@ export default async function GistPage({ params }: GistPageProps) {
     </div>
   );
 }
+

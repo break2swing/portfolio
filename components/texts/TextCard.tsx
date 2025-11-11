@@ -47,7 +47,7 @@ export const TextCard = memo(function TextCard({ text, onClick, highlightQuery }
         {text.subtitle && (
           <CardDescription
             className="text-base line-clamp-1"
-            dangerouslySetInnerHTML={highlightQuery ? { __html: highlightedSubtitle } : undefined}
+            dangerouslySetInnerHTML={highlightQuery && highlightedSubtitle ? { __html: highlightedSubtitle } : undefined}
           >
             {!highlightQuery && text.subtitle}
           </CardDescription>
@@ -57,7 +57,7 @@ export const TextCard = memo(function TextCard({ text, onClick, highlightQuery }
         {text.excerpt && (
           <p
             className="text-muted-foreground line-clamp-3"
-            dangerouslySetInnerHTML={highlightQuery ? { __html: highlightedExcerpt } : undefined}
+            dangerouslySetInnerHTML={highlightQuery && highlightedExcerpt ? { __html: highlightedExcerpt } : undefined}
           >
             {!highlightQuery && text.excerpt}
           </p>

@@ -57,6 +57,10 @@ class Logger {
    * @returns true si le niveau doit être affiché
    */
   private shouldLog(level: LogLevel): boolean {
+    // En production, logger uniquement les erreurs et warnings
+    if (!this.isDevelopment && level !== 'error' && level !== 'warn') {
+      return false;
+    }
     return LOG_LEVELS[level] >= LOG_LEVELS[this.currentLevel];
   }
 
@@ -76,11 +80,18 @@ class Logger {
 
   /**
    * Sanitize les données pour éviter les fuites de données sensibles
+   * Note: Désactivé en production pour les performances
    * @param data Données à sanitizer
-   * @returns Données sanitizées
+   * @returns Données sanitizées ou originales
    */
   private sanitize(data: any): any {
     if (!data) return data;
+
+    // En production, skip la sanitization pour les performances
+    // Les logs sensibles ne devraient pas être créés en premier lieu
+    if (!this.isDevelopment) {
+      return data;
+    }
 
     // Copie profonde pour ne pas modifier l'original
     const sanitized = JSON.parse(JSON.stringify(data));

@@ -5,8 +5,6 @@ import dynamic from 'next/dynamic';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Photo } from '@/lib/supabaseClient';
 import { photoService } from '@/services/photoService';
-import { PhotoList } from '@/components/photos/PhotoList';
-import { TagManager } from '@/components/texts/TagManager';
 import { RefreshButton } from '@/components/RefreshButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,8 +12,22 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, Upload, Settings, Tags } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Lazy load PhotoUploadForm
+// Lazy load admin components
 const PhotoUploadForm = dynamic(() => import('@/components/photos/PhotoUploadForm').then(mod => ({ default: mod.PhotoUploadForm })), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
+
+const PhotoList = dynamic(() => import('@/components/photos/PhotoList').then(mod => ({ default: mod.PhotoList })), {
+  loading: () => (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  ),
+  ssr: false,
+});
+
+const TagManager = dynamic(() => import('@/components/texts/TagManager').then(mod => ({ default: mod.TagManager })), {
   loading: () => <Skeleton className="h-96 w-full" />,
   ssr: false,
 });

@@ -168,7 +168,7 @@ export function GistForm({ initialData, onSuccess, onCancel }: GistFormProps) {
     const filenames = files.map(f => f.filename.toLowerCase());
     const duplicates = filenames.filter((name, index) => filenames.indexOf(name) !== index);
     if (duplicates.length > 0) {
-      toast.error(`Les fichiers suivants sont en double : ${[...new Set(duplicates)].join(', ')}`);
+      toast.error(`Les fichiers suivants sont en double : ${Array.from(new Set(duplicates)).join(', ')}`);
       return false;
     }
 

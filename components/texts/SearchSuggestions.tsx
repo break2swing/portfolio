@@ -57,7 +57,7 @@ export function SearchSuggestions({
   });
 
   // Navigation clavier
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement | HTMLDivElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
     const items = showHistory ? history : results;
     const maxIndex = items.length - 1;
 
