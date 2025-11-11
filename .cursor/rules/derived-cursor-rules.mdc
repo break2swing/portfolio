@@ -296,7 +296,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     * Lists of new and modified files.
     * Details about how the URLs are generated and encoded for each platform using `generateShareUrl` function.
     * Details about UTM parameters used for tracking analytics.
-    * Recommended tests (verify share URLs, opening in new windows, UTM parameters, image sharing on Pinterest, mobile compatibility, linting).
+    * Recommended tests (verify share URLs, opening in new windows, UTM parameters, mobile compatibility, linting).
 * When creating a pull request to enhance the audio player and playlist functionalities, the description should include:
     * A summary of the improvements to the audio player, including the addition of personalized playlists, the ability to share playlist items, and drag-and-drop functionality for playlist reorganization.
     * Details about the database schema changes, including:
@@ -336,6 +336,14 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
         * Verifying RLS permissions.
         * Testing reordering during playback.
 *   When implementing the drag and drop functionality, use `@dnd-kit/core` and `@dnd-kit/sortable` (or `react-beautiful-dnd` as an alternative).
+* When adding social share capabilities, ensure that the correct `ShareContentType` is passed when generating share URLs.
+* When adding a button to add tracks to personalized playlists from the main playlist, the description should include:
+    * Details about the addition of a button/icon on each element of `TrackList.tsx`.
+    * Details about the creation of a `AddToPlaylistDialog.tsx` or a `DropdownMenu`
+    * Details about the existing playlists of the user via `playlistService.getUserPlaylists()`.
+    * Details about the logic to add the track with `playlistService.addTrackToPlaylist(playlistId, trackId)`.
+    * Details about error management, with toasts.
+    * Details about the new states, with loading, empty and success states.
 
 ## CODING STANDARDS
 
@@ -391,3 +399,57 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     }
     ````
 * **Database Migrations:** If a "Could not find the table" error occurs, it indicates that the database migration has not been run. To resolve this, execute the SQL migration script in your Supabase project using the SQL Editor. The script is located at `supabase/migrations/YYYYMMDDHHMMSS_create_playlists_system.sql`. After running the migration, verify that the tables are created in the Table Editor.
+* When adding social share capabilities, ensure that the correct `ShareContentType` is passed when generating share URLs.
+* When the audio player is not producing sound:
+    * Ensure that the audio is only played once it is loaded
+    * Implement error handling around the audio play function
+    * Double check the  `useEffect` hook that manages track changes is properly configured and that it is listening for the correct state changes
+* The `AudioPlayer` component should also:
+    * Listen for changes to `initialTrackIndex` and update the `currentTrackIndex` state accordingly.
+    * Set `isPlaying` to `true` when a new track is loaded, but do so only after the audio has been loaded via `handleCanPlay`.
+* To resolve issues with the track list not responding to the "Play" icon, ensure that :
+    * The `useEffect` hook that handles playback is listening for both `isPlaying` and `currentTrackIndex`.
+    * The audio element's `readyState` is checked before attempting to play to prevent playing before the audio loads.
+    * An error handler is implemented for the `audio.play()` call to catch and log any playback errors.
+* When implementing a social share feature and Twitter, Facebook or Linkedin icons are not available in `lucide-react`, use the following simple SVG components:
+ ```javascript
+ // Simple SVG icons for social networks
+ const TwitterIcon = ({ className }: { className?: string }) => (
+  <X className={className} />
+ );
+ 
+ const FacebookIcon = ({ className }: { className?: string }) => (
+  <svg
+  className={className}
+  fill="currentColor"
+  viewBox="0 0 24 24"
+  xmlns="http://www.w3.org/2000/svg"
+  >
+  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  </svg>
+ );
+ 
+ const LinkedinIcon = ({ className }: { className?: string }) => (
+  <svg
+  className={className}
+  fill="currentColor"
+  viewBox="0 0 24 24"
+  xmlns="http://www.w3.org/2000/svg"
+  >
+  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+  </svg>
+ );
+ ```
+* If a "Could not find the table" error occurs, it indicates that the database migration has not been run. To resolve this, execute the SQL migration script in your Supabase project using the SQL Editor. The script is located at `supabase/migrations/YYYYMMDDHHMMSS_create_playlists_system.sql`. After running the migration, verify that the tables are created in the Table Editor.
+* When adding social share capabilities, ensure that the correct `ShareContentType` is passed when generating share URLs.
+* When the audio player is not producing sound:
+    * Ensure that the audio is only played once it is loaded
+    * Implement error handling around the audio play function
+    * Double check the  `useEffect` hook that manages track changes is properly configured and that it is listening for the correct state changes
+* The `AudioPlayer` component should also:
+    * Listen for changes to `initialTrackIndex` and update the `currentTrackIndex` state accordingly.
+    * Set `isPlaying` to `true` when a new track is loaded, but do so only after the audio has been loaded via `handleCanPlay`.
+* To resolve issues with the track list not responding to the "Play" icon, ensure that :
+    * The `useEffect` hook that handles playback is listening for both `isPlaying` and `currentTrackIndex`.
+    * The audio element's `readyState` is checked before attempting to play to prevent playing before the audio loads.
+    * An error handler is implemented for the `audio.play()` call to catch and log any playback errors.

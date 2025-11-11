@@ -5,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Music, Play, Pause, GripVertical } from 'lucide-react';
 import { BookmarkButton } from '@/components/BookmarkButton';
 import { ShareButton } from '@/components/ShareButton';
+import { AddToPlaylistMenu } from '@/components/music/AddToPlaylistMenu';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DndContext,
   closestCenter,
@@ -49,6 +51,7 @@ function SortableTrackItem({
   onTrackSelect,
   reorderable = false,
 }: SortableTrackItemProps) {
+  const { user } = useAuth();
   const {
     attributes,
     listeners,
@@ -74,7 +77,7 @@ function SortableTrackItem({
   return (
     <div ref={setNodeRef} style={style}>
       <Card
-        className={`cursor-pointer transition-all hover:bg-accent/50 ${
+        className={`group cursor-pointer transition-all hover:bg-accent/50 ${
           isCurrentTrack
             ? 'bg-accent border-primary shadow-sm'
             : 'border-border'
@@ -95,7 +98,7 @@ function SortableTrackItem({
                 <GripVertical className="h-4 w-4 text-muted-foreground" />
               </div>
             )}
-            <div className="flex-shrink-0 w-8 text-center">
+            <div className="flex-shrink-0 w-8 text-center flex items-center justify-center">
               {isCurrentTrack ? (
                 <div className="flex items-center justify-center">
                   {isPlaying ? (
@@ -105,9 +108,18 @@ function SortableTrackItem({
                   )}
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground font-mono">
-                  {(index + 1).toString().padStart(2, '0')}
-                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTrackSelect(index);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded p-1"
+                  aria-label={`Lire ${track.title}`}
+                  title="Lire ce morceau"
+                  type="button"
+                >
+                  <Play className="h-4 w-4" />
+                </button>
               )}
             </div>
             <div className="flex-shrink-0">
@@ -155,6 +167,15 @@ function SortableTrackItem({
                   size="sm"
                 />
               </div>
+              {user && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  <AddToPlaylistMenu track={track} />
+                </div>
+              )}
               <BookmarkButton
                 type="audio"
                 itemId={track.id}
