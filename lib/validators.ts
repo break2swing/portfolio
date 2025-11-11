@@ -171,3 +171,44 @@ export type UpdateCategoryFormData = z.infer<typeof updateCategorySchema>;
 export type TagFormData = z.infer<typeof tagSchema>;
 export type CreateTagFormData = z.infer<typeof createTagSchema>;
 export type UpdateTagFormData = z.infer<typeof updateTagSchema>;
+
+/**
+ * Schéma de validation pour les playlists
+ */
+export const playlistSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Le nom est requis')
+    .max(100, 'Le nom ne peut pas dépasser 100 caractères')
+    .trim()
+    .refine((val) => val.length > 0, 'Le nom ne peut pas être vide'),
+
+  description: z
+    .string()
+    .max(500, 'La description ne peut pas dépasser 500 caractères')
+    .trim()
+    .optional()
+    .nullable()
+    .transform((val) => (val === '' ? null : val)),
+
+  is_public: z.boolean().default(false),
+
+  display_order: z.number().int().nonnegative().default(0),
+});
+
+/**
+ * Schéma pour la création d'une playlist (sans display_order qui est auto-généré)
+ */
+export const createPlaylistSchema = playlistSchema.omit({ display_order: true });
+
+/**
+ * Schéma pour la mise à jour d'une playlist
+ */
+export const updatePlaylistSchema = playlistSchema.partial();
+
+/**
+ * Types TypeScript inférés des schémas de playlist
+ */
+export type PlaylistFormData = z.infer<typeof playlistSchema>;
+export type CreatePlaylistFormData = z.infer<typeof createPlaylistSchema>;
+export type UpdatePlaylistFormData = z.infer<typeof updatePlaylistSchema>;

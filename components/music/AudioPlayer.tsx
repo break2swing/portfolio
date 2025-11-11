@@ -48,9 +48,10 @@ const VISUALIZATION_NAMES: Record<VisualizationType, string> = {
 interface AudioPlayerProps {
   tracks: MusicTrack[];
   initialTrackIndex?: number;
+  onTracksReorder?: (newOrder: number[]) => void;
 }
 
-export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps) {
+export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: AudioPlayerProps) {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(initialTrackIndex);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -69,6 +70,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
   const progressContainerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const previousTracksRef = useRef<MusicTrack[]>(tracks);
 
   const currentTrack = tracks[currentTrackIndex];
   const currentVisualization = VISUALIZATION_TYPES[visualizationIndex];
@@ -178,6 +180,36 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
       savePlaylistState(trackIds, currentTrackIndex, shuffle, repeat);
     }
   }, [tracks, currentTrackIndex, shuffle, repeat]);
+
+  // Mettre à jour currentTrackIndex si les tracks ont été réorganisés
+  useEffect(() => {
+    if (tracks.length === 0 || previousTracksRef.current.length === 0) {
+      previousTracksRef.current = tracks;
+      return;
+    }
+
+    const previousTracks = previousTracksRef.current;
+    const currentTrackId = previousTracks[currentTrackIndex]?.id;
+
+    // Vérifier si les tracks ont été réorganisés (mêmes IDs mais ordre différent)
+    const previousIds = previousTracks.map((t) => t.id);
+    const currentIds = tracks.map((t) => t.id);
+
+    // Si les IDs sont les mêmes mais dans un ordre différent, c'est une réorganisation
+    if (
+      previousIds.length === currentIds.length &&
+      previousIds.every((id) => currentIds.includes(id)) &&
+      !previousIds.every((id, index) => id === currentIds[index])
+    ) {
+      // Trouver la nouvelle position du morceau actuel
+      const newIndex = tracks.findIndex((t) => t.id === currentTrackId);
+      if (newIndex !== -1 && newIndex !== currentTrackIndex) {
+        setCurrentTrackIndex(newIndex);
+      }
+    }
+
+    previousTracksRef.current = tracks;
+  }, [tracks, currentTrackIndex]);
 
   // Restaurer la position et le volume au chargement d'un morceau
   useEffect(() => {

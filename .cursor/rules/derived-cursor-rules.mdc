@@ -79,6 +79,9 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 
 *   `@tanstack/react-virtual`
 *   `lucide-react`
+*   `@dnd-kit/core`
+*   `@dnd-kit/sortable`
+*   `@dnd-kit/utilities`
 
 ## WORKFLOW & RELEASE RULES
 
@@ -257,6 +260,82 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
     *   For complex systems, use the `example_prd_rpg.txt` template (for dependency-aware task graphs). Save the PRD to `.taskmaster/docs/prd.txt`.
     *   After the PRD is created, parse it to generate initial tasks using: `task-master parse-prd .taskmaster/docs/prd.txt`. Then, analyze the complexity of these tasks with `task-master analyze-complexity --research` and expand the tasks into sub-tasks with `task-master expand --all --research`. Finally, see the next task to do with `task-master next`.
 *   When aiming to improve performance, start by analyzing existing plans and tasks related to performance optimization.
+*   When creating a pull request for implementing a social share feature, the description should include:
+    * A summary of the addition of social share capabilities to enable users to share content on various platforms.
+    * Details about the implementation of the `lib/shareUtils.ts` and `components/ShareButton.tsx` files.
+    * Information about the integrated platforms:
+        * Twitter
+        * Facebook
+        * LinkedIn
+        * WhatsApp
+        * Telegram
+        * Reddit
+        * Pinterest
+        * Email
+    * UI components details:
+        * `ShareButton`: reusable component for displaying share options using `DropdownMenu` from `shadcn/ui`.
+    * Public display details:
+        * Share buttons are integrated into `PhotoViewerModal`, `TextDetailModal`, and `AudioPlayer` components.
+    * Lists of new and modified files.
+    * Details about how the URLs are generated and encoded for each platform using `generateShareUrl` function.
+    * Details about UTM parameters used for tracking analytics.
+    * Recommended tests (verify share URLs, opening in new windows, UTM parameters, image sharing on Pinterest, mobile compatibility, linting, and SSR compatibility).
+    * Technical notes (SVG icons, static export compatibility, security measures).
+* When creating a pull request for implementing a set of additional share services:
+    * A summary of the addition of WhatsApp, Telegram, Reddit and Pinterest share capabilities to enable users to share content on various platforms.
+    * Details about the implementation of the `lib/shareUtils.ts` and `components/ShareButton.tsx` files.
+    * Information about the integrated platforms:
+        * WhatsApp
+        * Telegram
+        * Reddit
+        * Pinterest
+    * UI components details:
+        * `ShareButton`: reusable component for displaying share options using `DropdownMenu` from `shadcn/ui`.
+    * Public display details:
+        * Share buttons are integrated into `PhotoViewerModal`, `TextDetailModal`, and `AudioPlayer` components.
+    * Lists of new and modified files.
+    * Details about how the URLs are generated and encoded for each platform using `generateShareUrl` function.
+    * Details about UTM parameters used for tracking analytics.
+    * Recommended tests (verify share URLs, opening in new windows, UTM parameters, image sharing on Pinterest, mobile compatibility, linting).
+* When creating a pull request to enhance the audio player and playlist functionalities, the description should include:
+    * A summary of the improvements to the audio player, including the addition of personalized playlists, the ability to share playlist items, and drag-and-drop functionality for playlist reorganization.
+    * Details about the database schema changes, including:
+        * The addition of a `playlists` table with columns for `id`, `name`, `description`, `user_id`, `is_public`, `display_order`, `created_at`, and `updated_at`.
+        * The addition of a `playlist_tracks` table with columns for `id`, `playlist_id`, `track_id`, `display_order`, and `added_at`, and a unique constraint on `playlist_id` and `track_id`.
+        * Indexes on `playlist_tracks.playlist_id`, `playlist_tracks.track_id`, and `playlist_tracks.display_order` for optimized query performance.
+        * Row Level Security (RLS) policies enabled for both tables, restricting access and modifications based on ownership and public visibility.
+    * Backend services details, including the creation of a `playlistService.ts` with methods for:
+        * Creating playlists (`createPlaylist`).
+        * Retrieving user playlists (`getUserPlaylists`).
+        * Retrieving playlist tracks (`getPlaylistTracks`).
+        * Adding tracks to playlists (`addTrackToPlaylist`).
+        * Removing tracks from playlists (`removeTrackFromPlaylist`).
+        * Updating the order of tracks in a playlist (`updatePlaylistOrder`).
+        * Updating playlist metadata (`updatePlaylist`).
+        * Deleting playlists (`deletePlaylist`).
+        * Retrieving a playlist with its associated tracks (`getPlaylistWithTracks`).
+    * Admin interface details, including:
+        * The creation of a `PlaylistManager.tsx` component for displaying and managing playlists.
+        * A "Create playlist" button opening a `CreatePlaylistDialog`.
+    * UI components details, including:
+        * The creation of a `CreatePlaylistDialog.tsx` component with a form for creating new playlists, including Zod validation.
+    * Public display details, including:
+        * The integration of a "My Playlists" tab in `app/musique/page.tsx`.
+        * The display of the active playlist name above the player.
+    * Drag and drop implementation details:
+        * Details about using `@dnd-kit/core` and `@dnd-kit/sortable` to implement drag and drop functionality in `TrackList.tsx`.
+        * Information about the `onReorder` handler in `app/musique/page.tsx` and its role in saving the new order.
+    * Share button details:
+        * Details about the addition of a share button in `TrackList.tsx` for each track.
+    * Lists of new and modified files.
+    * TypeScript types, including the addition of `Playlist`, `PlaylistTrack`, and `PlaylistWithTracks` types in `lib/supabaseClient.ts`.
+    * Testing details, including tests for:
+        * Creating, adding to, removing from, reordering, sharing, loading, and deleting playlists.
+        * Persisting the order after reloading.
+        * Testing with empty and large playlists.
+        * Verifying RLS permissions.
+        * Testing reordering during playback.
+*   When implementing the drag and drop functionality, use `@dnd-kit/core` and `@dnd-kit/sortable` (or `react-beautiful-dnd` as an alternative).
 
 ## CODING STANDARDS
 
@@ -311,3 +390,4 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
         return false;
     }
     ````
+* **Database Migrations:** If a "Could not find the table" error occurs, it indicates that the database migration has not been run. To resolve this, execute the SQL migration script in your Supabase project using the SQL Editor. The script is located at `supabase/migrations/YYYYMMDDHHMMSS_create_playlists_system.sql`. After running the migration, verify that the tables are created in the Table Editor.

@@ -117,6 +117,29 @@ export type PhotoWithTags = Photo & {
   tags?: Tag[];
 };
 
+export type Playlist = {
+  id: string;
+  name: string;
+  description: string | null;
+  user_id: string;
+  is_public: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PlaylistTrack = {
+  id: string;
+  playlist_id: string;
+  track_id: string;
+  display_order: number;
+  added_at: string;
+};
+
+export type PlaylistWithTracks = Playlist & {
+  tracks?: MusicTrack[];
+};
+
 export type Video = {
   id: string;
   title: string;
@@ -202,6 +225,23 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Omit<Video, 'id' | 'created_at'>>;
+      };
+      playlists: {
+        Row: Playlist;
+        Insert: Omit<Playlist, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Playlist, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      playlist_tracks: {
+        Row: PlaylistTrack;
+        Insert: Omit<PlaylistTrack, 'id' | 'added_at'> & {
+          id?: string;
+          added_at?: string;
+        };
+        Update: Partial<Omit<PlaylistTrack, 'id' | 'added_at'>>;
       };
     };
   };
