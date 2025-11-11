@@ -71,6 +71,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
   const animationRef = useRef<number>();
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const previousTracksRef = useRef<MusicTrack[]>(tracks);
+  const isPlayingRef = useRef(isPlaying);
 
   const currentTrack = tracks[currentTrackIndex];
   const currentVisualization = VISUALIZATION_TYPES[visualizationIndex];
@@ -147,6 +148,19 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
     }
   }, [tracks.length, shuffle, shuffledPlaylist, currentTrackIndex, repeat]);
 
+  // Mettre à jour la ref isPlaying quand l'état change
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  const whilePlaying = useCallback(() => {
+    if (progressBarRef.current && audioRef.current) {
+      progressBarRef.current.value = audioRef.current.currentTime.toString();
+      setCurrentTime(audioRef.current.currentTime);
+      animationRef.current = requestAnimationFrame(whilePlaying);
+    }
+  }, []);
+
   // Générer la playlist aléatoire quand shuffle est activé ou quand les tracks changent
   useEffect(() => {
     if (shuffle && tracks.length > 0) {
@@ -210,6 +224,25 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
 
     previousTracksRef.current = tracks;
   }, [tracks, currentTrackIndex]);
+
+  // Synchroniser avec initialTrackIndex
+  useEffect(() => {
+    if (initialTrackIndex !== undefined && initialTrackIndex !== currentTrackIndex) {
+      // Mettre à jour la ref avant de changer l'index pour que handleCanPlay puisse l'utiliser
+      isPlayingRef.current = true;
+      setCurrentTrackIndex(initialTrackIndex);
+      setIsPlaying(true);
+    }
+  }, [initialTrackIndex, currentTrackIndex]);
+
+  // Appliquer le volume et le mute à l'élément audio
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = volume;
+      audio.muted = isMuted;
+    }
+  }, [volume, isMuted]);
 
   // Restaurer la position et le volume au chargement d'un morceau
   useEffect(() => {
@@ -282,6 +315,10 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
 
     setIsLoading(true);
     setError(null);
+    
+    // Appliquer le volume et le mute au chargement
+    audio.volume = volume;
+    audio.muted = isMuted;
 
     const setAudioData = () => {
       console.log('[AUDIO PLAYER] Audio loaded - duration:', audio.duration);
@@ -320,8 +357,28 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
     };
 
     const handleCanPlay = () => {
-      console.log('[AUDIO PLAYER] Can play - audio ready');
+      console.log('[AUDIO PLAYER] Can play - audio ready, isPlayingRef:', isPlayingRef.current);
       setIsLoading(false);
+      // Démarrer automatiquement la lecture si isPlaying est true
+      if (isPlayingRef.current && audio && !audio.paused) {
+        // Déjà en cours de lecture, ne rien faire
+        return;
+      }
+      if (isPlayingRef.current && audio) {
+        console.log('[AUDIO PLAYER] Starting playback from canplay');
+        audio.play()
+          .then(() => {
+            console.log('[AUDIO PLAYER] Auto-playing after canplay - success');
+            // Démarrer l'animation de la barre de progression
+            animationRef.current = requestAnimationFrame(whilePlaying);
+          })
+          .catch((err) => {
+            console.error('[AUDIO PLAYER] Play error in canplay:', err);
+            setError('Impossible de lire le fichier audio');
+            setIsPlaying(false);
+            isPlayingRef.current = false;
+          });
+      }
     };
 
     audio.addEventListener('loadeddata', setAudioData);
@@ -339,18 +396,39 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
       audio.removeEventListener('error', handleError as any);
       audio.removeEventListener('canplay', handleCanPlay);
     };
-  }, [currentTrackIndex, repeat, playNext]);
+  }, [currentTrackIndex, repeat, playNext, whilePlaying, volume, isMuted]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (isPlaying) {
-      audio.play();
-    } else {
-      audio.pause();
+    // Ne jouer que si l'audio est déjà chargé (readyState >= HAVE_CURRENT_DATA = 2)
+    // Sinon, attendre l'événement 'canplay' qui est géré dans l'autre useEffect
+    if (isPlaying && audio.readyState >= 2 && !audio.paused) {
+      // L'audio est déjà en cours de lecture, ne rien faire
+      return;
     }
-  }, [currentTrackIndex]);
+    
+    if (isPlaying && audio.readyState >= 2) {
+      audio.play()
+        .then(() => {
+          console.log('[AUDIO PLAYER] Playing from useEffect');
+          // Démarrer l'animation de la barre de progression
+          animationRef.current = requestAnimationFrame(whilePlaying);
+        })
+        .catch((err) => {
+          console.error('[AUDIO PLAYER] Play error:', err);
+          setError('Impossible de lire le fichier audio');
+          setIsPlaying(false);
+          isPlayingRef.current = false;
+        });
+    } else if (!isPlaying) {
+      audio.pause();
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    }
+  }, [currentTrackIndex, isPlaying, whilePlaying]);
 
   const formatTime = (time: number) => {
     if (isNaN(time)) return '00:00';
@@ -380,15 +458,7 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0, onTracksReorder }: 
       setError('Impossible de lire le fichier audio');
       setIsPlaying(false);
     }
-  }, [isPlaying]);
-
-  const whilePlaying = () => {
-    if (progressBarRef.current && audioRef.current) {
-      progressBarRef.current.value = audioRef.current.currentTime.toString();
-      setCurrentTime(audioRef.current.currentTime);
-      animationRef.current = requestAnimationFrame(whilePlaying);
-    }
-  };
+  }, [isPlaying, whilePlaying]);
 
   const changeRange = () => {
     if (audioRef.current && progressBarRef.current) {

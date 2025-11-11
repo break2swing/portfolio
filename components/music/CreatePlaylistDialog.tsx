@@ -33,7 +33,7 @@ import {
 interface CreatePlaylistDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: (playlistId?: string) => void;
 }
 
 export function CreatePlaylistDialog({
@@ -73,7 +73,7 @@ export function CreatePlaylistDialog({
 
       form.reset();
       onOpenChange(false);
-      onSuccess?.();
+      onSuccess?.(playlist?.id);
     } catch (error: any) {
       console.error('Error creating playlist:', error);
       toast.error('Erreur', {

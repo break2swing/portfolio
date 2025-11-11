@@ -71,7 +71,7 @@ export function PlaylistManager({
     }
   };
 
-  const handleCreateSuccess = () => {
+  const handleCreateSuccess = (playlistId?: string) => {
     loadPlaylists();
   };
 
