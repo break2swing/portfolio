@@ -685,3 +685,4 @@ type ApiError = { type: 'api'; status: number; message: string };
 **Auteur** : PRD généré pour améliorations Portfolio Next.js
 
 
+

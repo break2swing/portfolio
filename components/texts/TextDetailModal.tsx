@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ShareButton } from '@/components/ShareButton';
 
 // Lazy load MarkdownRenderer
 const MarkdownRenderer = dynamic(() => import('./MarkdownRenderer').then(mod => ({ default: mod.MarkdownRenderer })), {
@@ -38,12 +39,24 @@ export function TextDetailModal({ text, open, onClose }: TextDetailModalProps) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="text-2xl">{text.title}</DialogTitle>
-          {text.subtitle && (
-            <DialogDescription className="text-lg">
-              {text.subtitle}
-            </DialogDescription>
-          )}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <DialogTitle className="text-2xl">{text.title}</DialogTitle>
+              {text.subtitle && (
+                <DialogDescription className="text-lg">
+                  {text.subtitle}
+                </DialogDescription>
+              )}
+            </div>
+            <ShareButton
+              url={`${typeof window !== 'undefined' ? window.location.origin : ''}/textes#text-${text.id}`}
+              title={text.title}
+              description={text.excerpt || text.subtitle || text.title}
+              type="text"
+              variant="ghost"
+              size="icon"
+            />
+          </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
             {text.author && (
               <div className="flex items-center gap-1">

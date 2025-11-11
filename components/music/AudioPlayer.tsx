@@ -27,6 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { ShareButton } from '@/components/ShareButton';
 
 const VISUALIZATION_TYPES: VisualizationType[] = [
   'bars',
@@ -527,7 +528,18 @@ export function AudioPlayer({ tracks, initialTrackIndex = 0 }: AudioPlayerProps)
     <div className="w-full max-w-2xl mx-auto bg-card border border-border rounded-xl p-6 shadow-lg">
       <div className="flex flex-col space-y-4">
         <div className="text-center mb-2">
-          <h2 className="text-xl font-bold">{currentTrack.title}</h2>
+          <div className="flex items-center justify-center gap-2">
+            <h2 className="text-xl font-bold">{currentTrack.title}</h2>
+            <ShareButton
+              url={`${typeof window !== 'undefined' ? window.location.origin : ''}/musique#track-${currentTrack.id}`}
+              title={`${currentTrack.title} - ${currentTrack.artist || 'Artiste inconnu'}`}
+              description={currentTrack.album || undefined}
+              imageUrl={currentTrack.cover_image_url || undefined}
+              type="music"
+              variant="ghost"
+              size="sm"
+            />
+          </div>
           <p className="text-muted-foreground">{currentTrack.artist || 'Artiste inconnu'}</p>
           {currentTrack.album && (
             <p className="text-sm text-muted-foreground">{currentTrack.album}</p>
