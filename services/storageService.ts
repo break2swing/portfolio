@@ -164,4 +164,146 @@ export const storageService = {
     const urlParts = url.split('/');
     return urlParts[urlParts.length - 1];
   },
+
+  /**
+   * Liste les fichiers d'un dépôt dans Storage
+   */
+  async listRepositoryFiles(bucket: string, path: string = ''): Promise<{ files: any[] | null; error: Error | null }> {
+    try {
+      const { data, error } = await supabaseClient.storage
+        .from(bucket)
+        .list(path, {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: 'name', order: 'asc' },
+        });
+
+      if (error) {
+        console.error('[STORAGE] Error listing repository files:', error);
+        return { files: null, error };
+      }
+
+      // Transformer les données Storage en format similaire à RepositoryFile
+      const files = (data || []).map((item) => ({
+        name: item.name,
+        path: path ? `${path}/${item.name}` : item.name,
+        size: item.metadata?.size || null,
+        is_directory: !item.id, // Les dossiers n'ont pas d'id dans Storage
+        last_modified: item.updated_at || null,
+      }));
+
+      return { files, error: null };
+    } catch (error) {
+      console.error('[STORAGE] Unexpected error listing repository files:', error);
+      return { files: null, error: error as Error };
+    }
+  },
+
+  /**
+   * Télécharge le contenu d'un fichier depuis Storage
+   */
+  async getRepositoryFile(bucket: string, path: string): Promise<{ content: string | null; error: Error | null }> {
+    try {
+      const { data, error } = await supabaseClient.storage
+        .from(bucket)
+        .download(path);
+
+      if (error) {
+        console.error('[STORAGE] Error downloading repository file:', error);
+        return { content: null, error };
+      }
+
+      if (!data) {
+        return { content: null, error: new Error('File not found') };
+      }
+
+      // Convertir le Blob en texte
+      const content = await data.text();
+      return { content, error: null };
+    } catch (error) {
+      console.error('[STORAGE] Unexpected error downloading repository file:', error);
+      return { content: null, error: error as Error };
+    }
+  },
+
+  /**
+   * Upload plusieurs fichiers d'un dépôt avec préservation de la structure
+   */
+  async uploadRepositoryFiles(
+    bucket: string,
+    files: File[],
+    basePath: string
+  ): Promise<{ uploaded: number; error: Error | null }> {
+    try {
+      let uploaded = 0;
+      const errors: Error[] = [];
+
+      for (const file of files) {
+        // Utiliser webkitRelativePath si disponible (pour préserver la structure de dossiers)
+        // Sinon utiliser juste le nom du fichier
+        let relativePath = '';
+        if ('webkitRelativePath' in file && file.webkitRelativePath) {
+          // webkitRelativePath contient le chemin complet depuis la racine du dossier sélectionné
+          relativePath = file.webkitRelativePath;
+        } else {
+          relativePath = file.name;
+        }
+
+        // Construire le chemin final dans Storage
+        const filePath = basePath ? `${basePath}/${relativePath}` : relativePath;
+
+        const { error } = await supabaseClient.storage
+          .from(bucket)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true, // Permettre l'écrasement si le fichier existe déjà
+          });
+
+        if (error) {
+          console.error(`[STORAGE] Error uploading file ${filePath}:`, error);
+          errors.push(error);
+        } else {
+          uploaded++;
+        }
+      }
+
+      if (errors.length > 0 && uploaded === 0) {
+        return { uploaded: 0, error: errors[0] };
+      }
+
+      return { uploaded, error: null };
+    } catch (error) {
+      console.error('[STORAGE] Unexpected error uploading repository files:', error);
+      return { uploaded: 0, error: error as Error };
+    }
+  },
+
+  /**
+   * Crée une structure de dossiers dans Storage (via upload d'un fichier vide)
+   * Note: Supabase Storage ne supporte pas les dossiers vides, donc on crée un fichier .gitkeep
+   */
+  async createRepositoryFolder(bucket: string, path: string): Promise<{ error: Error | null }> {
+    try {
+      // Créer un fichier .gitkeep pour représenter le dossier
+      const folderPath = path.endsWith('/') ? `${path}.gitkeep` : `${path}/.gitkeep`;
+      const emptyFile = new File([''], '.gitkeep', { type: 'text/plain' });
+
+      const { error } = await supabaseClient.storage
+        .from(bucket)
+        .upload(folderPath, emptyFile, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) {
+        console.error('[STORAGE] Error creating repository folder:', error);
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('[STORAGE] Unexpected error creating repository folder:', error);
+      return { error: error as Error };
+    }
+  },
 };

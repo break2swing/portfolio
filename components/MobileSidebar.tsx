@@ -16,6 +16,7 @@ import {
   LogIn,
   LogOut,
   Bookmark,
+  Code,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -182,6 +183,23 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
                   >
                     <FileText className="h-5 w-5 flex-shrink-0" />
                     <span>Admin Texte</span>
+                  </div>
+                </Link>
+                <Link
+                  href="/admin/applications"
+                  onClick={handleNavClick}
+                  aria-current={pathname === '/admin/applications' ? 'page' : undefined}
+                >
+                  <div
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors',
+                      'hover:bg-accent/50 active:bg-accent',
+                      pathname === '/admin/applications' && 'bg-foreground text-background font-medium',
+                      pathname !== '/admin/applications' && 'text-muted-foreground'
+                    )}
+                  >
+                    <Code className="h-5 w-5 flex-shrink-0" />
+                    <span>Admin Application</span>
                   </div>
                 </Link>
               </>

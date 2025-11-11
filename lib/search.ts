@@ -353,6 +353,8 @@ export function searchAllContent(
     videos?: any[];
     music?: any[];
     applications?: any[];
+    repositories?: any[];
+    gists?: any[];
   },
   options: SearchOptions = {}
 ): Record<string, GlobalSearchItem[]> {
@@ -475,6 +477,55 @@ export function searchAllContent(
       url: `/applications`,
       icon: 'AppWindow',
     }));
+  }
+
+  if (allContent.repositories) {
+    const repoResults = searchInCollection(
+      allContent.repositories,
+      query,
+      [
+        { field: 'name', weight: 3 },
+        { field: 'description', weight: 2 },
+        { field: 'language', weight: 1 },
+      ],
+      { ...options, maxResults: 5 }
+    );
+
+    results.applications = [
+      ...(results.applications || []),
+      ...repoResults.map(({ item }) => ({
+        id: item.id,
+        title: item.name,
+        type: 'application' as const,
+        description: item.description || `Dépôt ${item.source_type === 'github' ? 'GitHub' : 'local'}`,
+        url: `/applications/${item.id}`,
+        icon: 'Code',
+      })),
+    ];
+  }
+
+  if (allContent.gists) {
+    const gistResults = searchInCollection(
+      allContent.gists,
+      query,
+      [
+        { field: 'title', weight: 3 },
+        { field: 'description', weight: 2 },
+      ],
+      { ...options, maxResults: 5 }
+    );
+
+    results.applications = [
+      ...(results.applications || []),
+      ...gistResults.map(({ item }) => ({
+        id: item.id,
+        title: item.title || 'Sans titre',
+        type: 'application' as const,
+        description: item.description || 'Gist de code',
+        url: `/applications/gist/${item.id}`,
+        icon: 'Code',
+      })),
+    ];
   }
 
   return results;

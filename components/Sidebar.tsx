@@ -19,6 +19,7 @@ import {
   LogIn,
   LogOut,
   Bookmark,
+  Code,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -223,6 +224,24 @@ export function Sidebar({ onToggle }: SidebarProps) {
                 >
                   <FileText className="h-5 w-5 flex-shrink-0" />
                   {isExpanded && <span>Admin Texte</span>}
+                </div>
+              </Link>
+              <Link
+                href="/admin/applications"
+                aria-current={pathname === '/admin/applications' ? 'page' : undefined}
+                aria-label={!isExpanded ? 'Admin Application' : undefined}
+              >
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+                    'hover:bg-accent/50',
+                    pathname === '/admin/applications' && 'bg-foreground text-background font-medium',
+                    pathname !== '/admin/applications' && 'text-muted-foreground',
+                    !isExpanded && 'justify-center px-2'
+                  )}
+                >
+                  <Code className="h-5 w-5 flex-shrink-0" />
+                  {isExpanded && <span>Admin Application</span>}
                 </div>
               </Link>
             </>
