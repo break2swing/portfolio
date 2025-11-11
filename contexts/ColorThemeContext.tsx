@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 
 export type ColorThemeName = 'ocean' | 'forest' | 'sun' | 'rose' | 'custom';
 
@@ -81,12 +81,12 @@ export function ColorThemeProvider({ children }: { children: React.ReactNode }) 
     root.style.setProperty('--theme-accent', colors.accent);
   }, [colorTheme, customColors, mounted]);
 
-  const setColorTheme = (theme: ColorThemeName) => {
+  const setColorTheme = useCallback((theme: ColorThemeName) => {
     setColorThemeState(theme);
     localStorage.setItem('colorTheme', theme);
-  };
+  }, []);
 
-  const setCustomColors = (colors: ColorTheme) => {
+  const setCustomColors = useCallback((colors: ColorTheme) => {
     setCustomColorsState(colors);
     localStorage.setItem('customColors', JSON.stringify(colors));
     if (colorTheme === 'custom') {
@@ -95,12 +95,15 @@ export function ColorThemeProvider({ children }: { children: React.ReactNode }) 
       root.style.setProperty('--theme-secondary', colors.secondary);
       root.style.setProperty('--theme-accent', colors.accent);
     }
-  };
+  }, [colorTheme]);
+
+  const value = useMemo(
+    () => ({ colorTheme, setColorTheme, customColors, setCustomColors }),
+    [colorTheme, setColorTheme, customColors, setCustomColors]
+  );
 
   return (
-    <ColorThemeContext.Provider
-      value={{ colorTheme, setColorTheme, customColors, setCustomColors }}
-    >
+    <ColorThemeContext.Provider value={value}>
       {children}
     </ColorThemeContext.Provider>
   );
