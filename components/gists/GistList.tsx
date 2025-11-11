@@ -1,13 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Gist, GistWithFiles } from '@/lib/supabaseClient';
 import { gistService } from '@/services/gistService';
 import { GistCard } from './GistCard';
-import { AdvancedFilters } from '@/components/AdvancedFilters';
 import { useFilters } from '@/hooks/useFilters';
 import { Loader2, FileCode } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load AdvancedFilters
+const AdvancedFilters = dynamic(() => import('@/components/AdvancedFilters').then(mod => ({ default: mod.AdvancedFilters })), {
+  loading: () => (
+    <div className="w-full h-24 rounded-lg border border-border bg-card/50 animate-pulse" />
+  ),
+  ssr: false,
+});
 
 interface GistListProps {
   gists: Gist[];

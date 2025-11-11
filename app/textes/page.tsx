@@ -9,11 +9,18 @@ import { tagService } from '@/services/tagService';
 import { TextCard } from '@/components/texts/TextCard';
 import { VirtualizedTextList } from '@/components/texts/VirtualizedTextList';
 import { CategoryBadge } from '@/components/texts/CategoryBadge';
-import { AdvancedFilters } from '@/components/AdvancedFilters';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFilters } from '@/hooks/useFilters';
+
+// Lazy load AdvancedFilters
+const AdvancedFilters = dynamic(() => import('@/components/AdvancedFilters').then(mod => ({ default: mod.AdvancedFilters })), {
+  loading: () => (
+    <div className="w-full h-24 rounded-lg border border-border bg-card/50 animate-pulse" />
+  ),
+  ssr: false,
+});
 
 // Lazy load TextDetailModal
 const TextDetailModal = dynamic(() => import('@/components/texts/TextDetailModal').then(mod => ({ default: mod.TextDetailModal })), {
