@@ -41,7 +41,7 @@ export default function TextesPage() {
   } = useFilters({
     items: allTexts,
     searchFields: ['title', 'subtitle', 'excerpt', 'content'],
-    dateField: 'published_at',
+    dateField: 'published_date',
     tagsField: 'tags',
     titleField: 'title',
   });

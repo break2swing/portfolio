@@ -127,7 +127,7 @@ export function TagManager() {
         });
       } else {
         // Create new tag
-        const { error } = await tagService.createTag(data);
+        const { error } = await tagService.createTag(data as CreateTagFormData);
 
         if (error) throw error;
 

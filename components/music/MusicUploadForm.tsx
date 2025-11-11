@@ -133,7 +133,7 @@ export function MusicUploadForm({ onSuccess }: MusicUploadFormProps) {
     }
   };
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);

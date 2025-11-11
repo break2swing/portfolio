@@ -30,13 +30,13 @@ export function GistList({ gists, loading }: GistListProps) {
         gists.map(async (gist) => {
           const { gist: fullGist } = await gistService.getGistById(gist.id);
           if (fullGist) {
-            const languages = [
-              ...new Set(
+            const languages = Array.from(
+              new Set(
                 fullGist.files
                   .map((f) => f.language)
                   .filter((l): l is string => l !== null)
-              ),
-            ];
+              )
+            );
             return {
               ...gist,
               fileCount: fullGist.files.length,

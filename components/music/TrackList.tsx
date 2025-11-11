@@ -177,7 +177,7 @@ function SortableTrackItem({
                 </div>
               )}
               <BookmarkButton
-                type="audio"
+                type="music"
                 itemId={track.id}
                 itemTitle={track.title}
                 variant="ghost"

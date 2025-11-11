@@ -1,17 +1,36 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { MusicTrack } from '@/lib/supabaseClient';
 import { musicService } from '@/services/musicService';
-import { MusicUploadForm } from '@/components/music/MusicUploadForm';
-import { TrackListAdmin } from '@/components/music/TrackListAdmin';
-import { TagManager } from '@/components/texts/TagManager';
 import { RefreshButton } from '@/components/RefreshButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Upload, Settings, Tags } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load admin components
+const MusicUploadForm = dynamic(() => import('@/components/music/MusicUploadForm').then(mod => ({ default: mod.MusicUploadForm })), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
+
+const TrackListAdmin = dynamic(() => import('@/components/music/TrackListAdmin').then(mod => ({ default: mod.TrackListAdmin })), {
+  loading: () => (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  ),
+  ssr: false,
+});
+
+const TagManager = dynamic(() => import('@/components/texts/TagManager').then(mod => ({ default: mod.TagManager })), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
 
 function AdminMusicContent() {
   const [tracks, setTracks] = useState<MusicTrack[]>([]);

@@ -96,6 +96,11 @@ export function TextUploadForm({ onSuccess }: TextUploadFormProps) {
 
       const newText = {
         ...data,
+        subtitle: data.subtitle ?? null,
+        excerpt: data.excerpt ?? null,
+        author: data.author ?? null,
+        published_date: data.published_date ?? null,
+        category_id: data.category_id ?? null,
         display_order: (maxOrder ?? -1) + 1,
       };
 

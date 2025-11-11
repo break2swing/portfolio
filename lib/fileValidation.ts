@@ -144,9 +144,9 @@ export async function validateFileByCategory(
   category: FileCategory
 ): Promise<{ valid: boolean; error?: string; mimeType?: string }> {
   const allowedTypes = ALLOWED_MIME_TYPES[category];
-  
+
   // Vérifier que le type MIME déclaré est autorisé
-  if (!allowedTypes.includes(file.type as any)) {
+  if (!(allowedTypes as readonly string[]).includes(file.type)) {
     return {
       valid: false,
       error: `Type MIME non autorisé: ${file.type}. Types autorisés: ${allowedTypes.join(', ')}`,

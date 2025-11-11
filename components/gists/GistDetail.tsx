@@ -103,7 +103,7 @@ export function GistDetail({ gistId }: GistDetailProps) {
             <div className="flex items-center gap-2">
               <span>Langages :</span>
               <div className="flex gap-1 flex-wrap">
-                {[...new Set(gist.files.map((f) => f.language).filter((l): l is string => l !== null))].map(
+                {Array.from(new Set(gist.files.map((f) => f.language).filter((l): l is string => l !== null))).map(
                   (lang) => (
                     <Badge key={lang} variant="outline" className="text-xs">
                       {formatLanguageName(lang)}
