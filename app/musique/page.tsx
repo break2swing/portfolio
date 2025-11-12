@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { MusicTrackWithTags, Tag } from '@/lib/supabaseClient';
 import { musicService } from '@/services/musicService';
 import { musicTagService } from '@/services/musicTagService';
-import { AudioPlayer } from '@/components/music/AudioPlayer';
 import { TrackList } from '@/components/music/TrackList';
 import { PlaylistManager } from '@/components/music/PlaylistManager';
 import { TagBadge } from '@/components/texts/TagBadge';
@@ -18,6 +18,17 @@ import { searchInCollection, SearchResult } from '@/lib/search';
 import { saveSearchQuery } from '@/lib/searchHistory';
 import { playlistService } from '@/services/playlistService';
 import { MusicTrack } from '@/lib/supabaseClient';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load AudioPlayer (composant lourd, chargé seulement dans l'onglet "Lecteur Audio")
+const AudioPlayer = dynamic(() => import('@/components/music/AudioPlayer').then(mod => ({ default: mod.AudioPlayer })), {
+  loading: () => (
+    <div className="w-full max-w-2xl mx-auto">
+      <Skeleton className="h-96 w-full rounded-xl" />
+    </div>
+  ),
+  ssr: false,
+});
 
 export default function MusiquePage() {
   const [allTracks, setAllTracks] = useState<MusicTrackWithTags[]>([]);
