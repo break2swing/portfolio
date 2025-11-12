@@ -6,8 +6,6 @@ import { TextWithMetadata, Category, Tag } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
 import { categoryService } from '@/services/categoryService';
 import { tagService } from '@/services/tagService';
-import { TextCard } from '@/components/texts/TextCard';
-import { VirtualizedTextList } from '@/components/texts/VirtualizedTextList';
 import { CategoryBadge } from '@/components/texts/CategoryBadge';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, X } from 'lucide-react';
@@ -25,6 +23,24 @@ const AdvancedFilters = dynamic(() => import('@/components/AdvancedFilters').the
 // Lazy load TextDetailModal
 const TextDetailModal = dynamic(() => import('@/components/texts/TextDetailModal').then(mod => ({ default: mod.TextDetailModal })), {
   loading: () => <Skeleton className="h-[90vh] w-full" />,
+  ssr: false,
+});
+
+// Lazy load VirtualizedTextList (uses @tanstack/react-virtual which can cause webpack issues)
+const VirtualizedTextList = dynamic(() => import('@/components/texts/VirtualizedTextList').then(mod => ({ default: mod.VirtualizedTextList })), {
+  loading: () => (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Chargement de la liste...</p>
+      </div>
+    </div>
+  ),
+  ssr: false,
+});
+
+// Lazy load TextCard (uses date-fns/locale which can cause webpack issues)
+const TextCard = dynamic(() => import('@/components/texts/TextCard').then(mod => ({ default: mod.TextCard })), {
   ssr: false,
 });
 

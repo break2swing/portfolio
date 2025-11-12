@@ -31,73 +31,25 @@ const nextConfig = {
     ],
   },
   // Configuration webpack pour optimiser les chunks
+  // Simplifiée pour éviter les problèmes avec Next.js 16 en mode export statique
   webpack: (config, { isServer }) => {
     if (!isServer) {
+      // Utiliser la configuration par défaut de Next.js avec quelques ajustements
       config.optimization = {
         ...config.optimization,
         splitChunks: {
-          chunks: 'all',
+          ...config.optimization.splitChunks,
           cacheGroups: {
+            ...config.optimization.splitChunks?.cacheGroups,
             default: false,
             vendors: false,
-            // Framework chunk (React, React-DOM)
+            // Framework chunk (React, React-DOM) - garder cette optimisation
             framework: {
               name: 'framework',
               chunks: 'all',
               test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
               priority: 50,
               enforce: true,
-            },
-            // Supabase chunk
-            supabase: {
-              name: 'supabase',
-              test: /[\\/]node_modules[\\/]@supabase[\\/]/,
-              priority: 45,
-              enforce: true,
-            },
-            // Date-fns chunk
-            dateFns: {
-              name: 'date-fns',
-              test: /[\\/]node_modules[\\/]date-fns[\\/]/,
-              priority: 40,
-              enforce: true,
-            },
-            // Lucide icons chunk
-            lucide: {
-              name: 'lucide',
-              test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
-              priority: 35,
-              enforce: true,
-            },
-            // Chunk séparé pour react-markdown et ses dépendances
-            markdown: {
-              name: 'markdown',
-              test: /[\\/]node_modules[\\/](react-markdown|remark-gfm|unified|micromark|mdast)[\\/]/,
-              priority: 30,
-              enforce: true,
-            },
-            // Chunk pour les composants UI Radix
-            radix: {
-              name: 'radix',
-              test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
-              priority: 25,
-              enforce: true,
-            },
-            // Admin routes chunk
-            admin: {
-              name: 'admin',
-              test: /[\\/]app[\\/]admin[\\/]/,
-              priority: 20,
-              enforce: true,
-              minSize: 10000,
-            },
-            // Vendor chunk pour les dépendances restantes
-            vendor: {
-              name: 'vendor',
-              chunks: 'all',
-              test: /[\\/]node_modules[\\/]/,
-              priority: 10,
-              minSize: 20000,
             },
           },
         },
