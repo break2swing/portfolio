@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { TextWithMetadata } from '@/lib/supabaseClient';
 import { textService } from '@/services/textService';
-import { RefreshButton } from '@/components/RefreshButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Upload, Settings, FolderTree, Tags } from 'lucide-react';
@@ -34,6 +33,11 @@ const CategoryManager = dynamic(() => import('@/components/texts/CategoryManager
 
 const TagManager = dynamic(() => import('@/components/texts/TagManager').then(mod => ({ default: mod.TagManager })), {
   loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
+
+// Lazy load RefreshButton (uses cache which can cause webpack issues)
+const RefreshButton = dynamic(() => import('@/components/RefreshButton').then(mod => ({ default: mod.RefreshButton })), {
   ssr: false,
 });
 

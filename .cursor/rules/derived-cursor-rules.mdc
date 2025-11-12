@@ -85,6 +85,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 *   `react-markdown`
 *   `react-syntax-highlighter` + `@types/react-syntax-highlighter` or `shiki` (for syntax highlighting)
 *   `octokit` (optional) - Client GitHub API if full GitHub integration is needed
+*   `date-fns/locale`
 
 ## WORKFLOW & RELEASE RULES
 
@@ -371,7 +372,7 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
         * Create a `repository-files` bucket in Storage.
         * Create indexes for optimized queries.
         * Verify the structure with `mcp_supabase_list_tables` after creation.
-        * Use `mcp_supabase_execute_sql` for complex queries if needed.
+        * Use `mcp_supabase_supabase_execute_sql` for complex queries if needed.
 * When creating a new admin page, you should:
     * Create `app/admin/applications/page.tsx` with a basic structure and `ProtectedRoute`.
     * Create a `RepositoryUploadForm.tsx` component with a toggle between GitHub and Local upload options.
@@ -441,6 +442,30 @@ The `CLAUDE.md` and `AGENTS.md` files must be kept up-to-date to reflect the cur
 * When implementing a system of code repositories with a GitHub-like style, follow these guidelines:
     * Use the MCP Supabase server for database operations.
     * When creating the database schema, the `repositories` table should include columns
+*  When encountering a Webpack-related TypeError:
+    * The error often originates from incompatibility between certain libraries and Next.js's static export bundling process.
+    * Libraries like `@tanstack/react-virtual` and `date-fns/locale` are known to cause such issues.
+    * To resolve this, use `next/dynamic` to lazy-load the problematic components.
+    * Always set `ssr: false` in the dynamic import options to ensure the component is only loaded client-side.
+    * Provide a `<Skeleton>` or similar component as the `loading` fallback for a better user experience.
+    * Example:
+        ```javascript
+        import dynamic from 'next/dynamic';
+        import { Loader2 } from 'lucide-react';
+        import { Skeleton } from '@/components/ui/skeleton';
+
+        const VirtualizedComponent = dynamic(() => import('@/components/VirtualizedComponent').then(mod => ({ default: mod.VirtualizedComponent })), {
+            loading: () => (
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="flex flex-col items-center gap-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Chargement...</p>
+                    </div>
+                </div>
+            ),
+            ssr: false,
+        });
+        ```
 
 ## CODING STANDARDS
 
@@ -564,36 +589,4 @@ module.exports = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "caret-blink": "caret-blink 1.25s ease-out infinite",
-      },
-    },
-  },
-}
-```
-
-```index.css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
+        "caret

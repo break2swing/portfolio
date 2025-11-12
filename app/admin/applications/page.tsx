@@ -6,7 +6,6 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Repository, Gist } from '@/lib/supabaseClient';
 import { repositoryService } from '@/services/repositoryService';
 import { gistService } from '@/services/gistService';
-import { RefreshButton } from '@/components/RefreshButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -34,6 +33,11 @@ const GistForm = dynamic(() => import('@/components/gists/GistForm').then(mod =>
 // Lazy load GistListAdmin
 const GistListAdmin = dynamic(() => import('@/components/gists/GistListAdmin').then(mod => ({ default: mod.GistListAdmin })), {
   loading: () => <Skeleton className="h-96 w-full" />,
+  ssr: false,
+});
+
+// Lazy load RefreshButton (uses cache which can cause webpack issues)
+const RefreshButton = dynamic(() => import('@/components/RefreshButton').then(mod => ({ default: mod.RefreshButton })), {
   ssr: false,
 });
 

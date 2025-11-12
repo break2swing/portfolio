@@ -6,7 +6,6 @@ import { PhotoWithTags, Tag } from '@/lib/supabaseClient';
 import { photoService } from '@/services/photoService';
 import { photoTagService } from '@/services/photoTagService';
 import { PhotoGrid } from '@/components/photos/PhotoGrid';
-import { VirtualizedPhotoGrid } from '@/components/photos/VirtualizedPhotoGrid';
 import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFilters } from '@/hooks/useFilters';
@@ -22,6 +21,19 @@ const AdvancedFilters = dynamic(() => import('@/components/AdvancedFilters').the
 // Lazy load PhotoViewerModal
 const PhotoViewerModal = dynamic(() => import('@/components/photos/PhotoViewerModal').then(mod => ({ default: mod.PhotoViewerModal })), {
   loading: () => <Skeleton className="h-[90vh] w-full" />,
+  ssr: false,
+});
+
+// Lazy load VirtualizedPhotoGrid (uses @tanstack/react-virtual which can cause webpack issues)
+const VirtualizedPhotoGrid = dynamic(() => import('@/components/photos/VirtualizedPhotoGrid').then(mod => ({ default: mod.VirtualizedPhotoGrid })), {
+  loading: () => (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Chargement de la grille...</p>
+      </div>
+    </div>
+  ),
   ssr: false,
 });
 
